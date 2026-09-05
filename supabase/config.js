@@ -1,6 +1,6 @@
-// Public browser configuration. The publishable/anon key is safe to expose in a frontend app.
-// Replace PASTE_SUPABASE_PUBLISHABLE_KEY with the project's public key from Supabase → Settings → API.
+// Public browser configuration for Thatha Kadai Business OS.
+// Supabase publishable keys are intended for client-side use. Security is enforced with RLS policies.
 window.TK_SUPABASE_CONFIG = {
-  url: 'https://vjvswrossfoubgnwjigj.supabase.co',
-  publishableKey: 'PASTE_SUPABASE_PUBLISHABLE_KEY'
+  url: 'https://vjvswrossfoubgnwjigi.supabase.co',
+  publishableKey: 'sb_publishable_j1GtTOvLo_lfs-20g2KN4Q_BQcT7bMD'
 };
