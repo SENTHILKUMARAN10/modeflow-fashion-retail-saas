@@ -1,147 +1,101 @@
-# Thatha Kadai Business OS
+# Thatha Kadai — Business OS
 
-A responsive **multi-tenant Billing, Inventory & Business Management SaaS** designed for small retail businesses.
+A responsive billing, inventory, CRM and analytics SaaS built around a real small-business workflow. The project demonstrates product thinking, UI/UX design, frontend engineering, database design and SaaS security concepts in one portfolio project.
 
-The project began as a real-world billing solution for a Sunday meat shop and was redesigned into a scalable SaaS product to demonstrate frontend engineering, UI/UX, database design, authentication architecture, role-based authorization and business analytics.
+## Product goal
 
-## Live demo
+Small shops often manage billing, stock and expenses in separate notebooks or spreadsheets. Thatha Kadai Business OS combines these workflows into one simple dashboard designed for fast day-to-day use on desktop and mobile.
 
-https://thatha-kadai-billing.senthilkumaran539.chatgpt.site
+## Features
 
-> The portfolio demo intentionally supports instant access and browser storage so recruiters can test the complete workflow without creating an account. The repository also includes the production Supabase/PostgreSQL SaaS architecture.
-
-## Core features
-
-- Business performance dashboard
-- Invoice generation
-- Automatic inventory deduction after billing
-- Product and stock management
-- Low-stock/reorder alerts
-- Customer CRM and purchase history
-- Expense management
-- Revenue and estimated-profit analytics
-- Invoice history
+- Professional dashboard with revenue, gross profit, invoices and low-stock KPIs
+- Invoice creation with quantity, rate, discount, payment method and payment status
+- Live invoice preview
+- Printable invoice view
 - WhatsApp invoice sharing
-- Responsive desktop/mobile UI
-- Multi-business SaaS database architecture
-- Owner, manager and staff roles
-- PostgreSQL Row Level Security for tenant isolation
-- Stock movement/audit-ready data model
+- Inventory management with cost price, selling price, stock and reorder alerts
+- Customer CRM generated from sales activity
+- Expense tracking with categories and notes
+- Invoice history with search and deletion
+- Stock restoration when an invoice is deleted in demo mode
+- Reports for average order value, inventory value, product performance and payment mix
+- JSON backup export
+- Responsive mobile-first interface
+- Demo mode for instant portfolio review
+- Supabase-ready production authentication and database architecture
 
-## SaaS architecture
+## SaaS backend architecture
 
-### Frontend
+The `supabase/migrations` folder contains the production PostgreSQL schema. It includes:
+
+- `businesses`
+- `business_members`
+- `products`
+- `customers`
+- `invoices`
+- `invoice_items`
+- `expenses`
+- `stock_movements`
+
+The database is designed as a multi-tenant SaaS. Every operational record belongs to a business. Row Level Security policies restrict access to business members, with `owner`, `manager` and `staff` roles.
+
+An atomic `create_invoice` PostgreSQL function validates stock, creates/links the customer, inserts the invoice and item, deducts inventory and records the stock movement in a single transaction.
+
+## Security
+
+- Supabase Auth-ready email/password login
+- Row Level Security on tenant data
+- Role-aware write/delete policies
+- Public frontend uses only the Supabase publishable/anon key; service-role keys are never stored in browser code
+- Server-side database constraints protect quantities, prices and payment values
+
+## Demo vs production mode
+
+The application opens instantly in Demo Mode using browser storage so recruiters can test the complete workflow without credentials.
+
+For production Supabase login, set the project's public browser key in `supabase/config.js`. The project URL is already configured. Never place the Supabase service-role key in this repository.
+
+## Technology
 
 - HTML5
-- CSS3
-- JavaScript
-- Responsive dashboard UI
-- LocalStorage demo adapter
-
-### Production backend design
-
+- CSS3 / responsive design
+- Vanilla JavaScript
 - Supabase Auth
 - PostgreSQL
-- Row Level Security (RLS)
-- Multi-tenant `business_id` data isolation
-- Role-based authorization
-- Relational invoice + invoice-item model
-- Stock movement ledger
+- Row Level Security
+- GitHub / GitHub Pages-compatible static deployment
 
-See [`ARCHITECTURE.md`](./ARCHITECTURE.md) for system-design decisions and interview talking points.
+## Interview talking points
 
-See [`supabase/schema.sql`](./supabase/schema.sql) for the production database schema and security policies.
+**Problem:** Small businesses need a lightweight alternative to spreadsheets for billing, inventory and expenses.
 
-## Data model
+**Design decision:** The UI prioritizes quick invoicing and high-visibility KPIs while keeping secondary operations in a simple sidebar navigation.
+
+**Engineering decision:** Demo mode makes the portfolio frictionless, while the repository also contains a genuine multi-tenant Supabase schema demonstrating how the same interface can move to production persistence and authentication.
+
+**Data integrity:** Invoice creation is modeled as a transaction so stock deduction and billing records cannot become inconsistent.
+
+**Scalability:** Tenant ownership and business membership are modeled separately, allowing multiple businesses and multiple staff roles without duplicating the product.
+
+## Repository structure
 
 ```text
-users
-  │
-  └── business_members ── businesses
-                           ├── products
-                           ├── customers
-                           ├── invoices ── invoice_items
-                           ├── expenses
-                           └── stock_movements
+index.html
+styles.css
+app.js
+supabase/
+  config.js
+  client.js
+  schema.sql
+  migrations/
+    20260905_000001_business_os.sql
+ARCHITECTURE.md
 ```
 
-Every operational record belongs to a business. Database RLS policies prevent users from accessing another business's data.
+## Portfolio title
 
-## Roles
+**Business Billing & Inventory SaaS — Thatha Kadai Business OS**
 
-| Role | Permissions |
-| --- | --- |
-| Owner | Full business control, members, products, invoices, expenses and destructive actions |
-| Manager | Manage products, invoices, stock and expenses |
-| Staff | Daily billing and customer operations |
+Suggested resume description:
 
-## Important engineering decisions
-
-### 1. Multi-tenancy
-Rather than building a separate application/database for every shop, records are scoped using `business_id`. A membership table connects authenticated users to businesses.
-
-### 2. Security at the database layer
-Frontend route hiding is not considered authorization. Supabase/PostgreSQL Row Level Security determines which rows each authenticated user can read or modify.
-
-### 3. Transaction-safe billing
-The production billing flow is designed to create invoice records, invoice line items, stock deductions and stock movement logs in one atomic transaction. This prevents inventory and billing from becoming inconsistent.
-
-### 4. Recruiter-friendly demo mode
-A recruiter should not need credentials simply to review a portfolio project. Therefore the hosted portfolio demo remains immediately accessible while the repository documents the secure production architecture separately.
-
-## Business workflow
-
-1. Owner creates products and defines prices/reorder levels.
-2. Staff selects a customer and items during billing.
-3. System calculates invoice totals.
-4. Invoice is created.
-5. Inventory is reduced automatically.
-6. Customer purchase history updates.
-7. Revenue and dashboard metrics update.
-8. Low stock generates an alert.
-9. Invoice can be shared through WhatsApp.
-
-## Problem solved
-
-Small businesses frequently maintain sales, inventory, customer details and expenses in separate notebooks or spreadsheets. Thatha Kadai Business OS combines those workflows into one simple dashboard, reducing duplicate entry and giving the owner an immediate view of revenue, stock and expenses.
-
-## What I learned
-
-- Designing a responsive SaaS dashboard
-- Turning real business requirements into UI workflows
-- Relational database modeling
-- Multi-tenant application architecture
-- Authentication vs authorization
-- PostgreSQL Row Level Security
-- Inventory consistency and transaction design
-- Building recruiter-friendly product demos
-
-## Future roadmap
-
-- Connect hosted UI to Supabase Auth/database
-- Transactional invoice RPC / Edge Function
-- GST/tax configuration
-- PDF invoice generation
-- Business logo/custom invoice templates
-- CSV/PDF reports
-- Monthly sales reports
-- Advanced charts and date filters
-- Staff invitations
-- Audit logs
-- Offline-first/PWA support
-
-## Interview summary
-
-**30-second explanation:**
-
-> Thatha Kadai Business OS is a billing and inventory SaaS I designed from a real small-business requirement. It handles invoices, automatic stock deduction, customer history, expenses and analytics. I first built the workflow as a frontend MVP, then designed a production multi-tenant backend using Supabase and PostgreSQL. Every business record is tenant-scoped, and Row Level Security enforces owner, manager and staff permissions at the database layer.
-
-## Resume description
-
-**Business Billing & Inventory SaaS — Frontend / SaaS Project**
-
-Designed and developed a responsive business-management SaaS for invoicing, inventory, customer CRM, expense tracking and sales analytics. Architected a multi-tenant PostgreSQL/Supabase data model with role-based authorization and Row Level Security, automatic inventory updates and WhatsApp invoice sharing.
-
-## Repository
-
-https://github.com/SENTHILKUMARAN10/thatha-kadai
+> Designed and developed a responsive business management SaaS for billing, inventory, customer CRM, expenses and analytics. Implemented invoice generation, stock tracking, low-stock alerts, payment tracking, WhatsApp sharing and reporting; designed a multi-tenant Supabase/PostgreSQL backend with authentication, Row Level Security and role-based access.
