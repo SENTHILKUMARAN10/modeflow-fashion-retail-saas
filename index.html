@@ -2,21 +2,40 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#8f1f24">
+<meta name="description" content="Thatha Kadai Business OS — billing, inventory, CRM, expenses and analytics SaaS.">
 <title>Thatha Kadai Business OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <section id="login" class="login-screen">
-  <div class="login-card">
-    <div class="logo">TK</div><p class="eyebrow">BUSINESS OPERATING SYSTEM</p>
-    <h1>Run your business smarter.</h1>
-    <p class="muted">A portfolio SaaS for billing, stock, customers, expenses and analytics.</p>
-    <button id="demoLogin" class="btn primary">Enter demo dashboard</button>
+  <div class="login-shell">
+    <div class="login-copy">
+      <div class="brand-lockup"><div class="logo">TK</div><div><strong>Thatha Kadai</strong><span>Business OS</span></div></div>
+      <p class="eyebrow light">PORTFOLIO SaaS • FULL STACK ARCHITECTURE</p>
+      <h1>Billing, stock and business insights in one clean workspace.</h1>
+      <p>Built as an interview-ready SaaS product with a responsive UI, Supabase-ready backend schema, role-based security and real business workflows.</p>
+      <div class="feature-pills"><span>Invoices</span><span>Inventory</span><span>CRM</span><span>Expenses</span><span>Analytics</span></div>
+    </div>
+    <div class="login-card">
+      <p class="eyebrow">WELCOME</p><h2>Open the dashboard</h2>
+      <p class="muted">Use demo mode instantly. Production authentication is supported through Supabase.</p>
+      <button id="demoLogin" class="btn primary full">Enter demo workspace</button>
+      <div class="divider"><span>or production login</span></div>
+      <form id="cloudLogin" class="stack compact">
+        <label>Email<input id="loginEmail" type="email" autocomplete="email" placeholder="owner@business.com"></label>
+        <label>Password<input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••"></label>
+        <button class="btn dark full">Sign in with Supabase</button>
+      </form>
+      <p id="cloudStatus" class="micro muted">Cloud login activates after the public Supabase key is configured.</p>
+    </div>
   </div>
 </section>
+
 <div id="app" class="app hidden">
   <aside class="sidebar">
     <div class="brand"><div class="logo small">TK</div><div><b>Thatha Kadai</b><span>Business OS</span></div></div>
@@ -27,32 +46,53 @@
       <button class="nav" data-view="customers">Customers</button>
       <button class="nav" data-view="expenses">Expenses</button>
       <button class="nav" data-view="history">Invoice History</button>
+      <button class="nav" data-view="reports">Reports</button>
     </nav>
-    <button id="logout" class="btn ghost">Log out</button>
+    <div class="side-footer"><span id="modeBadge" class="mode-badge">Demo data</span><button id="logout" class="btn ghost full">Log out</button></div>
   </aside>
+
   <main>
-    <header><div><p class="eyebrow" id="eyebrow">OVERVIEW</p><h2 id="title">Business Dashboard</h2></div><button class="btn primary goto-billing">+ New invoice</button></header>
+    <header><div><p class="eyebrow" id="eyebrow">OVERVIEW</p><h2 id="title">Business Dashboard</h2></div><div class="header-actions"><button id="exportData" class="btn ghost">Export</button><button class="btn primary goto-billing">+ New invoice</button></div></header>
+
     <section id="dashboard" class="view active-view">
-      <div class="hero"><div><p class="eyebrow light">BUSINESS PERFORMANCE</p><h3>Everything important, in one place.</h3><p>Track sales, profit, inventory and customer activity.</p></div><button class="btn white goto-billing">Create invoice</button></div>
+      <div class="hero"><div><p class="eyebrow light">BUSINESS PERFORMANCE</p><h3>One dashboard for every Sunday sale.</h3><p>Track revenue, margins, stock health and customer activity without spreadsheets.</p></div><button class="btn white goto-billing">Create invoice</button></div>
       <div class="metrics">
         <article><span>Revenue</span><strong id="revenue">₹0</strong><small>Total recorded sales</small></article>
-        <article><span>Estimated profit</span><strong id="profit">₹0</strong><small>Revenue minus expenses</small></article>
+        <article><span>Gross profit</span><strong id="profit">₹0</strong><small>Sales margin minus expenses</small></article>
         <article><span>Invoices</span><strong id="invoiceCount">0</strong><small>Bills generated</small></article>
         <article><span>Low stock</span><strong id="lowStock">0</strong><small>Needs attention</small></article>
       </div>
       <div class="two-col"><article class="panel"><p class="eyebrow">SALES</p><h3>Revenue by day</h3><div id="bars" class="bars"></div></article><article class="panel"><p class="eyebrow">ALERTS</p><h3>Inventory health</h3><div id="alerts"></div></article></div>
-      <article class="panel"><div class="panel-head"><div><p class="eyebrow">RECENT</p><h3>Latest invoices</h3></div></div><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Customer</th><th>Product</th><th>Total</th><th>Date</th></tr></thead><tbody id="recent"></tbody></table></div></article>
+      <article class="panel"><div class="panel-head"><div><p class="eyebrow">RECENT</p><h3>Latest invoices</h3></div><button class="link-btn" data-go="history">View all</button></div><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Customer</th><th>Product</th><th>Total</th><th>Payment</th><th>Date</th></tr></thead><tbody id="recent"></tbody></table></div></article>
     </section>
+
     <section id="billing" class="view">
-      <div class="two-col billing-grid"><article class="panel"><p class="eyebrow">BILLING</p><h3>Create invoice</h3><form id="invoiceForm" class="form-grid"><label>Customer<input id="customerName" required placeholder="Customer name"></label><label>Phone<input id="phone" inputmode="tel" placeholder="Mobile number"></label><label>Product<select id="product"></select></label><label>Quantity / kg<input id="qty" type="number" step="0.1" min="0.1" value="1" required></label><label>Rate ₹<input id="rate" type="number" min="0" required></label><label>Discount ₹<input id="discount" type="number" min="0" value="0"></label><div class="total span2"><span>Total</span><strong id="previewTotal">₹0</strong></div><button class="btn primary span2">Generate invoice</button></form></article><article class="panel"><p class="eyebrow">PREVIEW</p><div id="preview" class="invoice-preview"></div></article></div>
+      <div class="two-col billing-grid"><article class="panel"><p class="eyebrow">BILLING</p><h3>Create invoice</h3><form id="invoiceForm" class="form-grid">
+        <label>Customer<input id="customerName" required placeholder="Customer name"></label><label>Phone<input id="phone" inputmode="tel" placeholder="10-digit mobile number"></label>
+        <label>Product<select id="product"></select></label><label>Quantity / kg<input id="qty" type="number" step="0.1" min="0.1" value="1" required></label>
+        <label>Rate ₹<input id="rate" type="number" min="0" required></label><label>Discount ₹<input id="discount" type="number" min="0" value="0"></label>
+        <label>Payment method<select id="paymentMethod"><option value="cash">Cash</option><option value="upi">UPI</option><option value="card">Card</option><option value="bank">Bank</option></select></label>
+        <label>Payment status<select id="paymentStatus"><option value="paid">Paid</option><option value="partial">Partial</option><option value="unpaid">Unpaid</option></select></label>
+        <div class="total span2"><span>Total</span><strong id="previewTotal">₹0</strong></div><button class="btn primary span2">Generate invoice</button>
+      </form></article><article class="panel"><p class="eyebrow">LIVE PREVIEW</p><div id="preview" class="invoice-preview"></div></article></div>
     </section>
-    <section id="inventory" class="view"><div class="section-head"><p class="muted">Products, selling prices and stock levels.</p><button id="addProduct" class="btn primary">+ Add product</button></div><article class="panel"><div class="table-wrap"><table><thead><tr><th>Product</th><th>Price</th><th>Stock</th><th>Reorder</th><th>Status</th><th></th></tr></thead><tbody id="inventoryRows"></tbody></table></div></article></section>
-    <section id="customers" class="view"><article class="panel"><p class="eyebrow">CUSTOMER CRM</p><h3>Customer directory</h3><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Phone</th><th>Orders</th><th>Total spent</th><th>Last order</th></tr></thead><tbody id="customerRows"></tbody></table></div></article></section>
-    <section id="expenses" class="view"><div class="two-col"><article class="panel"><p class="eyebrow">EXPENSES</p><h3>Add expense</h3><form id="expenseForm" class="stack"><label>Category<input id="expenseCategory" required></label><label>Amount ₹<input id="expenseAmount" type="number" min="1" required></label><label>Note<input id="expenseNote"></label><button class="btn primary">Save expense</button></form></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">LOG</p><h3>Recent expenses</h3></div><strong id="expenseTotal">₹0</strong></div><div id="expenseList"></div></article></div></section>
-    <section id="history" class="view"><article class="panel"><p class="eyebrow">SALES RECORDS</p><h3>Invoice history</h3><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Customer</th><th>Product</th><th>Total</th><th>Date</th><th>Actions</th></tr></thead><tbody id="historyRows"></tbody></table></div></article></section>
+
+    <section id="inventory" class="view"><div class="section-head"><div><p class="muted">Products, costs, selling prices and current stock.</p></div><button id="addProduct" class="btn primary">+ Add product</button></div><article class="panel"><div class="table-wrap"><table><thead><tr><th>Product</th><th>Cost</th><th>Selling</th><th>Stock</th><th>Reorder</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inventoryRows"></tbody></table></div></article></section>
+
+    <section id="customers" class="view"><article class="panel"><div class="panel-head"><div><p class="eyebrow">CUSTOMER CRM</p><h3>Customer directory</h3></div><input id="customerSearch" class="search-input" placeholder="Search customer"></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Phone</th><th>Orders</th><th>Total spent</th><th>Last order</th></tr></thead><tbody id="customerRows"></tbody></table></div></article></section>
+
+    <section id="expenses" class="view"><div class="two-col"><article class="panel"><p class="eyebrow">EXPENSES</p><h3>Add expense</h3><form id="expenseForm" class="stack"><label>Category<input id="expenseCategory" required placeholder="Transport / Ice / Labour"></label><label>Amount ₹<input id="expenseAmount" type="number" min="1" required></label><label>Note<input id="expenseNote" placeholder="Optional note"></label><button class="btn primary">Save expense</button></form></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">LOG</p><h3>Recent expenses</h3></div><strong id="expenseTotal">₹0</strong></div><div id="expenseList"></div></article></div></section>
+
+    <section id="history" class="view"><article class="panel"><div class="panel-head"><div><p class="eyebrow">SALES RECORDS</p><h3>Invoice history</h3></div><input id="invoiceSearch" class="search-input" placeholder="Search invoice / customer"></div><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Customer</th><th>Product</th><th>Total</th><th>Payment</th><th>Date</th><th>Actions</th></tr></thead><tbody id="historyRows"></tbody></table></div></article></section>
+
+    <section id="reports" class="view"><div class="metrics report-metrics"><article><span>Average order</span><strong id="avgOrder">₹0</strong><small>Revenue per invoice</small></article><article><span>Inventory value</span><strong id="inventoryValue">₹0</strong><small>Current cost value</small></article><article><span>Customers</span><strong id="customerCount">0</strong><small>Unique buyers</small></article><article><span>Expenses</span><strong id="reportExpenses">₹0</strong><small>Total operating cost</small></article></div><div class="two-col"><article class="panel"><p class="eyebrow">PRODUCT PERFORMANCE</p><h3>Sales by product</h3><div id="productPerformance"></div></article><article class="panel"><p class="eyebrow">PAYMENT MIX</p><h3>How customers pay</h3><div id="paymentMix"></div></article></div></section>
   </main>
 </div>
-<dialog id="productDialog"><form id="productForm" class="dialog-card"><h3>Add product</h3><label>Name<input id="pName" required></label><label>Price ₹<input id="pPrice" type="number" min="0" required></label><label>Stock<input id="pStock" type="number" min="0" step="0.1" required></label><label>Reorder level<input id="pReorder" type="number" min="0" step="0.1" value="5" required></label><div class="dialog-actions"><button type="button" id="cancelProduct" class="btn ghost">Cancel</button><button class="btn primary">Add product</button></div></form></dialog>
+
+<dialog id="productDialog"><form id="productForm" class="dialog-card"><h3 id="productDialogTitle">Add product</h3><input id="pId" type="hidden"><label>Name<input id="pName" required></label><label>Cost price ₹<input id="pCost" type="number" min="0" required></label><label>Selling price ₹<input id="pPrice" type="number" min="0" required></label><label>Stock<input id="pStock" type="number" min="0" step="0.1" required></label><label>Reorder level<input id="pReorder" type="number" min="0" step="0.1" value="5" required></label><div class="dialog-actions"><button type="button" id="cancelProduct" class="btn ghost">Cancel</button><button class="btn primary">Save product</button></div></form></dialog>
 <div id="toast" class="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase/config.js"></script>
+<script src="supabase/client.js"></script>
 <script src="app.js"></script>
 </body></html>
