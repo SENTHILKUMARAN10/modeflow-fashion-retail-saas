@@ -49,6 +49,7 @@
       await loadScript('supabase/auth-upgrade.js');
       await loadScript('supabase/runtime-fixes.js');
       await loadScript('supabase/ui-profile-fixes.js');
+      await loadScript('supabase/greeting-fix.js');
       window.__modeflowControllerReady=true;
       const el=document.querySelector('#cloudStatus');if(el&&!/connected|signed|failed|offline|verification|password|google/i.test(el.textContent))el.textContent='Secure cloud workspace ready.';
     }catch(error){console.error(error);const el=document.querySelector('#cloudStatus');if(el)el.textContent='Cloud controller failed to load. Refresh the page.';}
