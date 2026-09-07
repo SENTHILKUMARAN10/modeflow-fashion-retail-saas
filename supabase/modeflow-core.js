@@ -7,8 +7,11 @@
 
   const number=value=>Number.isFinite(Number(value))?Number(value):0;
 
-  function money(value){
-    return '₹'+number(value).toLocaleString('en-IN',{maximumFractionDigits:0});
+  function money(value,currency){
+    const code=currency||globalThis.ModeFlowCurrency||'INR';
+    const locale=code==='INR'?'en-IN':'en-US';
+    try{return new Intl.NumberFormat(locale,{style:'currency',currency:code,maximumFractionDigits:code==='INR'?0:2}).format(number(value));}
+    catch{return (code==='USD'?'$':'₹')+number(value).toLocaleString(locale,{maximumFractionDigits:2});}
   }
 
   function calculateSale({quantity,rate,discount=0}){
@@ -67,6 +70,7 @@
     if(/fetch|network|offline/i.test(message)) return 'Network unavailable. Check your connection and try again.';
     if(/Invalid login credentials/i.test(message)) return 'Email or password is incorrect.';
     if(/Email not confirmed/i.test(message)) return 'Please confirm your email before signing in.';
+    if(/subscription required/i.test(message)) return 'An active ModeFlow subscription is required.';
     if(/row-level security|permission denied|not authorized/i.test(message)) return 'Your account does not have permission for this action.';
     return message.length>140?'The operation could not be completed. Please try again.':message;
   }
