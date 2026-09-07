@@ -79,10 +79,53 @@
     }
   };
 
-  window.addEventListener('load', () => {
-    const s=document.createElement('script');
-    s.src='supabase/realtime-app.js';
-    s.defer=true;
-    document.body.appendChild(s);
-  }, {once:true});
+  // app.js contains a local/demo fallback handler. In production, block it until the
+  // realtime controller has loaded so a fast tap cannot accidentally enter local mode.
+  window.__modeflowControllerReady=false;
+  const setLoadingStatus=()=>{
+    const el=document.querySelector('#cloudStatus');
+    if(el) el.textContent='Loading secure cloud workspace…';
+  };
+  document.addEventListener('submit',event=>{
+    if(event.target?.id==='cloudLogin'&&!window.__modeflowControllerReady){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setLoadingStatus();
+    }
+  },true);
+  document.addEventListener('click',event=>{
+    const button=event.target?.closest?.('#demoLogin');
+    if(button&&!window.__modeflowControllerReady){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setLoadingStatus();
+    }
+  },true);
+
+  const loadScript=src=>new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src=src;
+    script.async=false;
+    script.onload=resolve;
+    script.onerror=()=>reject(new Error('Failed to load '+src));
+    document.body.appendChild(script);
+  });
+
+  async function loadProductionController(){
+    try{
+      await loadScript('supabase/modeflow-core.js');
+      await loadScript('supabase/realtime-app.js');
+      await loadScript('supabase/runtime-fixes.js');
+      window.__modeflowControllerReady=true;
+      const el=document.querySelector('#cloudStatus');
+      if(el&&!/connected|signed|failed|offline/i.test(el.textContent)) el.textContent='Secure cloud workspace ready.';
+    }catch(error){
+      console.error(error);
+      const el=document.querySelector('#cloudStatus');
+      if(el) el.textContent='Cloud controller failed to load. Refresh the page.';
+    }
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',loadProductionController,{once:true});
+  else loadProductionController();
 })();
