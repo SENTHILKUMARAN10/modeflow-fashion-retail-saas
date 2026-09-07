@@ -1,0 +1,34 @@
+name: ModeFlow quality
+
+on:
+  push:
+    branches: [main, modeflow-production-hardening-v1]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          node --check app.js
+          node --check supabase/client.js
+          node --check supabase/realtime-app.js
+          node --check supabase/config.js
+      - name: Prevent privileged Supabase secrets in frontend
+        shell: bash
+        run: |
+          if grep -RniE 'service_role|SUPABASE_SERVICE_ROLE|sb_secret_' --exclude-dir=.git .; then
+            echo 'Privileged Supabase credential pattern found in repository.'
+            exit 1
+          fi
+      - name: Verify production migration exists
+        run: test -f supabase/migrations/20260907_modeflow_production_hardening.sql
