@@ -44,7 +44,7 @@
   const loadScript=src=>new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.async=false;script.onload=resolve;script.onerror=()=>reject(new Error('Failed to load '+src));document.body.appendChild(script);});
   async function loadProductionController(){
     try{
-      await loadScript('ui/redesign-v2.js?v=2');
+      await loadScript('ui/clean-v3.js?v=3');
       await loadScript('ui/visibility-hotfix.js?v=1');
       await loadScript('supabase/modeflow-core.js');
       await loadScript('supabase/realtime-app.js');
