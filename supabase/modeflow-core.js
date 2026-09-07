@@ -50,7 +50,9 @@
   }
 
   function initials(value){
-    const parts=String(value||'ModeFlow').trim().split(/\s+/).filter(Boolean);
+    const text=String(value??'').trim();
+    if(!text) return 'MF';
+    const parts=text.split(/\s+/).filter(Boolean);
     return (parts.slice(0,2).map(x=>x[0]).join('')||'MF').toUpperCase();
   }
 
