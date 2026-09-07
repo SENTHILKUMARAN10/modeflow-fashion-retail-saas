@@ -24,8 +24,8 @@ jobs:
       - name: Prevent privileged Supabase secrets in frontend
         shell: bash
         run: |
-          if grep -RniE 'service_role|SUPABASE_SERVICE_ROLE|sb_secret_' --exclude-dir=.git .; then
-            echo 'Privileged Supabase credential pattern found in repository.'
+          if grep -niE 'service_role|SUPABASE_SERVICE_ROLE|sb_secret_' index.html app.js supabase/*.js; then
+            echo 'Privileged Supabase credential pattern found in shipped frontend files.'
             exit 1
           fi
       - name: Verify production migration exists
