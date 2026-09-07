@@ -1,28 +1,14 @@
-// ModeFlow pricing + Razorpay subscription checkout.
+// ModeFlow pricing + simple UPI QR payment flow.
 (function(){
   if(!window.tkCloud?.enabled) return;
   const cloud=window.tkCloud,qs=s=>document.querySelector(s);
   const prices={INR:{monthly:'₹399',annual:'₹3,990'},USD:{monthly:'$4.99',annual:'$49.99'}};
+  const amounts={monthly:399,annual:3990};
   const regions={IN:'India',US:'United States',GB:'United Kingdom',AE:'United Arab Emirates',SG:'Singapore',AU:'Australia',CA:'Canada'};
-  let workspace=null,checkoutPromise=null;
+  let workspace=null;
   const toastMsg=m=>typeof toast==='function'?toast(m):alert(m);
   const regionOptions=Object.entries(regions).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
   const localRegion=()=>localStorage.getItem('modeflow-region')||'IN';
-
-  function loadCheckout(){
-    if(window.Razorpay) return Promise.resolve();
-    if(checkoutPromise) return checkoutPromise;
-    checkoutPromise=new Promise((resolve,reject)=>{
-      const existing=document.querySelector('script[data-modeflow-razorpay]');
-      if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',()=>reject(new Error('Razorpay Checkout failed to load')),{once:true});return;}
-      const s=document.createElement('script');
-      s.src='https://checkout.razorpay.com/v1/checkout.js';
-      s.async=true;s.dataset.modeflowRazorpay='1';
-      s.onload=resolve;s.onerror=()=>reject(new Error('Razorpay Checkout failed to load'));
-      document.head.appendChild(s);
-    });
-    return checkoutPromise;
-  }
 
   async function authToken(){
     const {data,error}=await cloud.auth.session();
@@ -35,23 +21,30 @@
   async function api(path,body){
     const token=await authToken();
     const response=await fetch(path,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify(body)});
-    const text=await response.text();
-    let data={};
-    try{data=text?JSON.parse(text):{};}catch{}
-    if(!response.ok){
-      const detail=data?.error||text?.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
-      throw new Error(detail||`Payment request failed (${response.status})`);
-    }
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data?.error||`Payment request failed (${response.status})`);
+    return data;
+  }
+
+  async function upiConfig(){
+    const response=await fetch('/api/upi-config',{cache:'no-store'});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(data?.error||'UPI payment is not configured yet');
     return data;
   }
 
   function ensureUI(){
     if(!qs('#mfPaywall')){
-      document.body.insertAdjacentHTML('beforeend',`<div id="mfPaywall" class="mf-paywall hidden" aria-live="polite"><div class="mf-paywall-card"><div class="mf-paywall-head"><div><small>MODEFLOW PRO</small><h2>Choose your plan</h2><p>Secure recurring payments are processed by Razorpay. You can test the flow without real money while test keys are enabled.</p></div><button id="mfClosePlans" class="btn" type="button">Close</button></div><div class="mf-billing-controls"><select id="mfRegion" aria-label="Region">${regionOptions}</select><select id="mfCurrency" aria-label="Currency"><option value="INR">INR — ₹</option><option value="USD">USD — $</option></select></div><div class="mf-plan-grid"><article class="mf-plan featured"><small>MONTHLY</small><strong id="mfMonthlyPrice">₹399</strong><span>per month</span><button class="btn primary" type="button" data-mf-pay="monthly">Pay with Razorpay</button></article><article class="mf-plan"><small>ANNUAL</small><strong id="mfAnnualPrice">₹3,990</strong><span>per year</span><button class="btn" type="button" data-mf-pay="annual">Pay with Razorpay</button></article></div><div id="mfBillingStatus" class="mf-paywall-note">Select a plan to open Razorpay secure checkout.</div></div></div>`);
+      document.body.insertAdjacentHTML('beforeend',`<div id="mfPaywall" class="mf-paywall hidden" aria-live="polite"><div class="mf-paywall-card"><div class="mf-paywall-head"><div><small>MODEFLOW PRO</small><h2>Choose your plan</h2><p>Pay securely by scanning the UPI QR code. After payment, enter the transaction reference number for manual verification.</p></div><button id="mfClosePlans" class="btn" type="button">Close</button></div><div class="mf-billing-controls"><select id="mfRegion" aria-label="Region">${regionOptions}</select><select id="mfCurrency" aria-label="Currency"><option value="INR">INR — ₹</option><option value="USD">USD — $</option></select></div><div class="mf-plan-grid"><article class="mf-plan featured"><small>MONTHLY</small><strong id="mfMonthlyPrice">₹399</strong><span>per month</span><button class="btn primary" type="button" data-mf-pay="monthly">Pay by UPI QR</button></article><article class="mf-plan"><small>ANNUAL</small><strong id="mfAnnualPrice">₹3,990</strong><span>per year</span><button class="btn" type="button" data-mf-pay="annual">Pay by UPI QR</button></article></div><div id="mfBillingStatus" class="mf-paywall-note">Select a plan to show the UPI QR code.</div></div></div>`);
       qs('#mfClosePlans').onclick=()=>qs('#mfPaywall').classList.add('hidden');
       qs('#mfRegion').onchange=()=>{const region=qs('#mfRegion').value;qs('#mfCurrency').value=region==='IN'?'INR':'USD';renderPrices();};
       qs('#mfCurrency').onchange=renderPrices;
       document.querySelectorAll('[data-mf-pay]').forEach(b=>b.onclick=()=>startPayment(b.dataset.mfPay,b));
+    }
+    if(!qs('#mfUpiDialog')){
+      document.body.insertAdjacentHTML('beforeend',`<dialog id="mfUpiDialog" class="mf-settings-dialog mf-upi-dialog"><div class="mf-settings-inner"><div class="mf-upi-head"><div><small>UPI PAYMENT</small><h3 id="mfUpiTitle">Pay ModeFlow</h3></div><button class="btn" id="mfUpiClose" type="button">Close</button></div><div class="mf-qr-wrap"><img id="mfUpiQr" alt="UPI payment QR code" width="260" height="260"><div class="mf-upi-amount" id="mfUpiAmount"></div><div class="mf-upi-id" id="mfUpiId"></div></div><a class="btn primary mf-upi-open" id="mfUpiOpen" href="#">Open UPI app</a><p class="mf-paywall-note">After you pay, enter the UPI transaction/reference number below. Your plan will remain pending until it is verified.</p><label class="mf-upi-label">UPI transaction/reference number<input id="mfUpiUtr" inputmode="numeric" autocomplete="off" placeholder="Example: 415812345678"></label><button class="btn primary" id="mfUpiSubmit" type="button">I have paid</button><div id="mfUpiStatus" class="mf-paywall-note"></div></div></dialog>`);
+      qs('#mfUpiClose').onclick=()=>qs('#mfUpiDialog').close();
+      qs('#mfUpiSubmit').onclick=submitManualPayment;
     }
     if(!qs('#mfSettingsDialog')){
       document.body.insertAdjacentHTML('beforeend',`<dialog id="mfSettingsDialog" class="mf-settings-dialog"><div class="mf-settings-inner"><h3>Region & currency</h3><div class="mf-settings-grid"><label>Region<select id="mfSettingsRegion">${regionOptions}</select></label><label>Business currency<select id="mfSettingsCurrency"><option value="INR">INR — ₹</option><option value="USD">USD — $</option></select></label></div><div class="mf-settings-actions"><button class="btn" id="mfSettingsCancel">Cancel</button><button class="btn primary" id="mfSettingsSave">Save</button></div></div></dialog>`);
@@ -63,52 +56,79 @@
     if(footer&&!qs('#mfPlansButton')){const b=document.createElement('button');b.id='mfPlansButton';b.className='mf-settings-btn';b.textContent='Plans & pricing';b.onclick=openPlans;footer.appendChild(b);}
   }
 
-  function renderPrices(){const c=qs('#mfCurrency')?.value||'INR';if(qs('#mfMonthlyPrice'))qs('#mfMonthlyPrice').textContent=prices[c].monthly;if(qs('#mfAnnualPrice'))qs('#mfAnnualPrice').textContent=prices[c].annual;}
+  function renderPrices(){
+    const c=qs('#mfCurrency')?.value||'INR';
+    if(qs('#mfMonthlyPrice'))qs('#mfMonthlyPrice').textContent=prices[c].monthly;
+    if(qs('#mfAnnualPrice'))qs('#mfAnnualPrice').textContent=prices[c].annual;
+  }
 
-  function openPlans(){ensureUI();const region=workspace?.business?.region||localRegion();const currency=workspace?.business?.currency||(region==='IN'?'INR':'USD');qs('#mfRegion').value=region;qs('#mfCurrency').value=currency;renderPrices();qs('#mfPaywall').classList.remove('hidden');document.body.classList.remove('mf-payment-required');}
+  function openPlans(){
+    ensureUI();
+    const region=workspace?.business?.region||localRegion();
+    const currency=workspace?.business?.currency||(region==='IN'?'INR':'USD');
+    qs('#mfRegion').value=region;
+    qs('#mfCurrency').value=currency;
+    renderPrices();
+    qs('#mfPaywall').classList.remove('hidden');
+    document.body.classList.remove('mf-payment-required');
+  }
 
   async function startPayment(interval,button){
     if(!workspace?.id) return toastMsg('Open your cloud workspace before starting payment.');
     const currency=qs('#mfCurrency')?.value||workspace?.business?.currency||'INR';
-    const status=qs('#mfBillingStatus');
+    if(currency!=='INR') return toastMsg('UPI QR payment is currently available only for INR.');
     const original=button.textContent;
-    button.disabled=true;button.textContent='Starting…';
-    if(status)status.textContent='Creating your secure Razorpay subscription…';
+    const status=qs('#mfBillingStatus');
+    button.disabled=true;button.textContent='Preparing QR…';
+    if(status)status.textContent='Preparing your UPI payment QR…';
     try{
-      await loadCheckout();
-      const created=await api('/api/create-subscription',{businessId:workspace.id,interval,currency});
-      if(!created?.subscriptionId||!created?.keyId) throw new Error('Razorpay subscription could not be created.');
-      const user=await cloud.auth.user().catch(()=>({data:null}));
-      const email=user?.data?.user?.email||'';
-      const options={
-        key:created.keyId,
-        subscription_id:created.subscriptionId,
-        name:'ModeFlow',
-        description:created.label||'ModeFlow Pro subscription',
-        prefill:{email},
-        theme:{},
-        handler:async response=>{
-          if(status)status.textContent='Payment received. Verifying securely…';
-          try{
-            await api('/api/verify-payment',{businessId:workspace.id,...response});
-            if(status)status.textContent='Payment verified. ModeFlow Pro is active.';
-            toastMsg('Payment verified successfully');
-          }catch(error){
-            if(status)status.textContent=error.message||'Payment verification failed.';
-            toastMsg(error.message||'Payment verification failed');
-          }
-        },
-        modal:{ondismiss:()=>{if(status)status.textContent='Payment cancelled. No charge was completed.';}},
-        notes:{business_id:workspace.id,plan_interval:interval,currency}
-      };
-      const rz=new window.Razorpay(options);
-      rz.on('payment.failed',response=>{const message=response?.error?.description||'Payment failed. Please try again.';if(status)status.textContent=message;toastMsg(message);});
-      rz.open();
+      const config=await upiConfig();
+      const amount=amounts[interval];
+      const note=`ModeFlow ${interval} plan`;
+      const params=new URLSearchParams({pa:config.upiId,pn:config.payeeName,am:String(amount),cu:'INR',tn:note});
+      const upiUri=`upi://pay?${params.toString()}`;
+      const qrUrl=`https://quickchart.io/qr?size=260&margin=2&text=${encodeURIComponent(upiUri)}`;
+      const dialog=qs('#mfUpiDialog');
+      dialog.dataset.interval=interval;
+      dialog.dataset.amount=String(amount);
+      qs('#mfUpiTitle').textContent=`${interval==='monthly'?'Monthly':'Annual'} plan`;
+      qs('#mfUpiAmount').textContent=`₹${amount.toLocaleString('en-IN')}`;
+      qs('#mfUpiId').textContent=config.upiId;
+      qs('#mfUpiQr').src=qrUrl;
+      qs('#mfUpiOpen').href=upiUri;
+      qs('#mfUpiUtr').value='';
+      qs('#mfUpiStatus').textContent='';
+      dialog.showModal();
+      if(status)status.textContent='Scan the QR code and complete the UPI payment.';
     }catch(error){
-      const message=error?.message||'Unable to start Razorpay checkout.';
+      const message=error?.message||'Unable to prepare UPI payment.';
       if(status)status.textContent=message;
       toastMsg(message);
-    }finally{button.disabled=false;button.textContent=original;}
+    }finally{
+      button.disabled=false;button.textContent=original;
+    }
+  }
+
+  async function submitManualPayment(){
+    const dialog=qs('#mfUpiDialog');
+    const interval=dialog.dataset.interval;
+    const amount=Number(dialog.dataset.amount||0);
+    const utr=qs('#mfUpiUtr').value.trim();
+    const status=qs('#mfUpiStatus');
+    const button=qs('#mfUpiSubmit');
+    if(!utr) return status.textContent='Enter the UPI transaction/reference number.';
+    button.disabled=true;button.textContent='Submitting…';
+    status.textContent='Submitting payment for verification…';
+    try{
+      await api('/api/manual-payment',{businessId:workspace.id,interval,currency:'INR',amount,utr});
+      status.textContent='Payment submitted. Status: pending verification.';
+      toastMsg('Payment submitted for verification');
+    }catch(error){
+      status.textContent=error.message||'Could not submit payment.';
+      toastMsg(error.message||'Could not submit payment');
+    }finally{
+      button.disabled=false;button.textContent='I have paid';
+    }
   }
 
   async function saveBusinessPreference(region,currency){
