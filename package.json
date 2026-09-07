@@ -1,10 +1,11 @@
 {
   "name": "modeflow-fashion-retail-saas",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.cjs",
-    "test:syntax": "node --check app.js && node --check supabase/config.js && node --check supabase/client.js && node --check supabase/modeflow-core.js && node --check supabase/realtime-app.js && node --check supabase/runtime-fixes.js && node --check supabase/auth-upgrade.js && node --check supabase/ui-profile-fixes.js"
+    "test:syntax": "node --check app.js && node --check supabase/config.js && node --check supabase/client.js && node --check supabase/modeflow-core.js && node --check supabase/realtime-app.js && node --check supabase/runtime-fixes.js && node --check supabase/auth-upgrade.js && node --check ui/clean-v4.js && node --check ui/commercial-v5.js",
+    "quality": "npm run test:syntax && npm test"
   },
   "engines": {
     "node": ">=20"
