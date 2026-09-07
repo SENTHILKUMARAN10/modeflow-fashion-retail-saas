@@ -1,7 +1,7 @@
 // ModeFlow commercial readiness UI: mobile drawer, onboarding and legal links.
 (function(){
   'use strict';
-  if(!document.querySelector('link[data-modeflow-mobile-v6]')){const l=document.createElement('link');l.rel='stylesheet';l.href='ui/mobile-v6.css?v=6';l.dataset.modeflowMobileV6='1';document.head.appendChild(l);}
+  if(!document.querySelector('link[data-modeflow-mobile-v6]')){const l=document.createElement('link');l.rel='stylesheet';l.href='ui/mobile-v6.css?v=7';l.dataset.modeflowMobileV6='1';document.head.appendChild(l);}
   const qs=s=>document.querySelector(s), qsa=s=>[...document.querySelectorAll(s)];
   const mobile=()=>matchMedia('(max-width:720px)').matches;
   function ensureMobileNav(){
