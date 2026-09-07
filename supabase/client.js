@@ -5,9 +5,10 @@
   if (!window.supabase?.createClient) { window.tkCloud = { enabled: false, reason: 'Supabase SDK not loaded.' }; return; }
 
   const addCss=(href,key)=>{if(document.querySelector(`link[data-${key}]`))return;const l=document.createElement('link');l.rel='stylesheet';l.href=href;l.setAttribute(`data-${key}`,'1');document.head.appendChild(l);};
-  addCss('ui/clean-v4.css?v=9','mf-clean-v9');
-  addCss('ui/mobile-v6.css?v=9','mf-mobile-v9');
-  addCss('ui/billing-v1.css?v=9','mf-billing-v9');
+  addCss('ui/clean-v4.css?v=10','mf-clean-v10');
+  addCss('ui/mobile-v6.css?v=10','mf-mobile-v10');
+  addCss('ui/billing-v1.css?v=10','mf-billing-v10');
+  addCss('ui/pro-v7.css?v=10','mf-pro-v10');
   try{if(localStorage.getItem('modeflow-auth-v1')){const login=document.querySelector('#login');if(login)login.style.visibility='hidden';document.body.classList.add('mf-restoring-session');}}catch{}
 
   const client = window.supabase.createClient(cfg.url, cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'modeflow-auth-v1'},realtime:{params:{eventsPerSecond:10}}});
@@ -20,6 +21,6 @@
   const setLoadingStatus=()=>{const el=document.querySelector('#cloudStatus');if(el)el.textContent='Loading secure cloud workspace…';};
   document.addEventListener('submit',event=>{if(event.target?.id==='cloudLogin'&&!window.__modeflowControllerReady){event.preventDefault();event.stopImmediatePropagation();setLoadingStatus();}},true);
   const loadScript=src=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.async=false;s.onload=resolve;s.onerror=()=>reject(new Error('Failed to load '+src));document.body.appendChild(s);});
-  async function loadProductionController(){try{await loadScript('supabase/modeflow-core.js?v=9');await loadScript('ui/clean-v4.js?v=9');await loadScript('ui/commercial-v5.js?v=9');await loadScript('supabase/realtime-app.js?v=9');await loadScript('supabase/auth-upgrade.js?v=9');await loadScript('supabase/runtime-fixes.js?v=9');await loadScript('ui/billing-v1.js?v=9');window.__modeflowControllerReady=true;const el=document.querySelector('#cloudStatus');if(el&&!/connected|signed|failed|offline|verification|password|google/i.test(el.textContent))el.textContent='Secure cloud workspace ready.';}catch(error){console.error(error);const el=document.querySelector('#cloudStatus');if(el)el.textContent='Cloud controller failed to load. Refresh the page.';}}
+  async function loadProductionController(){try{await loadScript('supabase/modeflow-core.js?v=10');await loadScript('ui/clean-v4.js?v=10');await loadScript('ui/commercial-v5.js?v=10');await loadScript('supabase/realtime-app.js?v=10');await loadScript('supabase/auth-upgrade.js?v=10');await loadScript('supabase/runtime-fixes.js?v=10');await loadScript('ui/billing-v1.js?v=10');window.__modeflowControllerReady=true;const el=document.querySelector('#cloudStatus');if(el&&!/connected|signed|failed|offline|verification|password|google/i.test(el.textContent))el.textContent='Secure cloud workspace ready.';}catch(error){console.error(error);const el=document.querySelector('#cloudStatus');if(el)el.textContent='Cloud controller failed to load. Refresh the page.';}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadProductionController,{once:true});else loadProductionController();
 })();
