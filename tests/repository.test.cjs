@@ -12,19 +12,19 @@ test('frontend contains no privileged Supabase secret patterns',()=>{
   }
 });
 
-test('cloud bootstrap blocks local/demo fallback before production controller is ready',()=>{
+test('cloud bootstrap blocks premature login submission before production controller is ready',()=>{
   const client=read('supabase/client.js');
   assert.match(client,/__modeflowControllerReady=false/);
   assert.match(client,/event\.target\?\.id==='cloudLogin'/);
-  assert.match(client,/closest\?\.\('#demoLogin'\)/);
+  assert.match(client,/stopImmediatePropagation/);
   assert.match(client,/DOMContentLoaded/);
 });
 
 test('production controller loads core realtime and runtime fix layers in order',()=>{
   const client=read('supabase/client.js');
-  const core=client.indexOf("loadScript('supabase/modeflow-core.js')");
-  const realtime=client.indexOf("loadScript('supabase/realtime-app.js')");
-  const fixes=client.indexOf("loadScript('supabase/runtime-fixes.js')");
+  const core=client.indexOf("supabase/modeflow-core.js?v=");
+  const realtime=client.indexOf("supabase/realtime-app.js?v=");
+  const fixes=client.indexOf("supabase/runtime-fixes.js?v=");
   assert.ok(core>=0&&realtime>core&&fixes>realtime);
 });
 
