@@ -1,4 +1,4 @@
-// Public browser configuration for Thatha Kadai Business OS.
+// Public browser configuration for ModeFlow Fashion Retail SaaS.
 // Supabase publishable keys are intended for client-side use. Security is enforced with RLS policies.
 window.TK_SUPABASE_CONFIG = {
   url: 'https://vjvswrossfoubgnwjigi.supabase.co',
