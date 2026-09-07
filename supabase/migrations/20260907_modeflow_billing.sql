@@ -31,7 +31,6 @@ $$;
 revoke all on function public.has_active_subscription(uuid) from public, anon;
 grant execute on function public.has_active_subscription(uuid) to authenticated;
 
--- Paid feature tables require both membership and an active subscription.
 drop policy if exists "members read products" on public.products;
 create policy "members read products" on public.products for select using (public.is_business_member(business_id) and public.has_active_subscription(business_id));
 drop policy if exists "managers write products" on public.products;
@@ -70,8 +69,6 @@ create policy "members read stock movements" on public.stock_movements for selec
 drop policy if exists "members create stock movements" on public.stock_movements;
 create policy "members create stock movements" on public.stock_movements for insert with check (public.is_business_member(business_id) and public.has_active_subscription(business_id) and created_by=auth.uid());
 
--- Extra protection for SECURITY DEFINER mutation paths: authenticated writes to paid tables
--- are rejected at the database layer when the subscription is inactive.
 create or replace function public.enforce_paid_business_write()
 returns trigger language plpgsql security definer set search_path=public as $$
 declare bid uuid;
@@ -83,8 +80,6 @@ begin
   end if;
   return coalesce(new,old);
 end;$$;
-
-foreach_table: begin end;
 
 drop trigger if exists trg_paid_products on public.products;
 create trigger trg_paid_products before insert or update or delete on public.products for each row execute function public.enforce_paid_business_write();
