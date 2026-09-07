@@ -2,7 +2,7 @@ name: ModeFlow quality
 
 on:
   push:
-    branches: [main, modeflow-production-hardening-v1, modeflow-test-fixes-v1]
+    branches: [main, modeflow-production-hardening-v1, modeflow-test-fixes-v1, modeflow-regression-fixes-v1]
   pull_request:
     branches: [main]
 
@@ -28,5 +28,7 @@ jobs:
             echo 'Privileged Supabase credential pattern found in shipped frontend files.'
             exit 1
           fi
-      - name: Verify production migration exists
-        run: test -f supabase/migrations/20260907_modeflow_production_hardening.sql
+      - name: Verify production migrations exist
+        run: |
+          test -f supabase/migrations/20260907_modeflow_production_hardening.sql
+          test -f supabase/migrations/20260907_modeflow_regression_fixes.sql
