@@ -35,8 +35,13 @@
   async function api(path,body){
     const token=await authToken();
     const response=await fetch(path,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify(body)});
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok) throw new Error(data?.error||'Payment request failed');
+    const text=await response.text();
+    let data={};
+    try{data=text?JSON.parse(text):{};}catch{}
+    if(!response.ok){
+      const detail=data?.error||text?.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+      throw new Error(detail||`Payment request failed (${response.status})`);
+    }
     return data;
   }
 
@@ -71,7 +76,7 @@
     if(status)status.textContent='Creating your secure Razorpay subscription…';
     try{
       await loadCheckout();
-      const created=await api('/api/billing/create-subscription',{businessId:workspace.id,interval,currency});
+      const created=await api('/api/create-subscription',{businessId:workspace.id,interval,currency});
       if(!created?.subscriptionId||!created?.keyId) throw new Error('Razorpay subscription could not be created.');
       const user=await cloud.auth.user().catch(()=>({data:null}));
       const email=user?.data?.user?.email||'';
@@ -85,7 +90,7 @@
         handler:async response=>{
           if(status)status.textContent='Payment received. Verifying securely…';
           try{
-            await api('/api/billing/verify-payment',{businessId:workspace.id,...response});
+            await api('/api/verify-payment',{businessId:workspace.id,...response});
             if(status)status.textContent='Payment verified. ModeFlow Pro is active.';
             toastMsg('Payment verified successfully');
           }catch(error){
