@@ -12,11 +12,17 @@
     return 'Good evening';
   }
 
+  function desiredTitle(){
+    return firstName ? `${greeting()}, ${firstName}.` : '';
+  }
+
   function render(){
     const title=qs('#title');
     if(!title || !firstName) return;
     const dashboard=qs('#dashboard');
-    if(dashboard?.classList.contains('active-view')) title.textContent=`${greeting()}, ${firstName}.`;
+    if(!dashboard?.classList.contains('active-view')) return;
+    const next=desiredTitle();
+    if(next && title.textContent!==next) title.textContent=next;
   }
 
   async function sync(){
@@ -29,14 +35,6 @@
       firstName=String(raw).trim().split(/\s+/)[0]||'User';
       render();
     }catch(e){ console.warn('ModeFlow greeting sync failed',e); }
-  }
-
-  const title=qs('#title');
-  if(title){
-    new MutationObserver(()=>{
-      if(/Good (morning|afternoon|evening),\s*Senthil\.?/i.test(title.textContent)||
-         (/Good (morning|afternoon|evening)/i.test(title.textContent)&&firstName)) render();
-    }).observe(title,{childList:true,subtree:true,characterData:true});
   }
 
   document.addEventListener('click',e=>{
