@@ -60,4 +60,12 @@
       unsubscribe: channel => channel && client.removeChannel(channel)
     }
   };
+
+  // app.js is loaded after this file. Attach the UI realtime adapter once the page is ready.
+  window.addEventListener('load', () => {
+    const s=document.createElement('script');
+    s.src='supabase/realtime-app.js';
+    s.defer=true;
+    document.body.appendChild(s);
+  }, {once:true});
 })();
