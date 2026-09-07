@@ -45,6 +45,7 @@
   async function loadProductionController(){
     try{
       await loadScript('ui/redesign-v2.js?v=2');
+      await loadScript('ui/visibility-hotfix.js?v=1');
       await loadScript('supabase/modeflow-core.js');
       await loadScript('supabase/realtime-app.js');
       await loadScript('supabase/auth-upgrade.js');
