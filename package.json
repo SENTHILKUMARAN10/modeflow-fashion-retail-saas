@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.cjs",
-    "test:syntax": "node --check app.js && node --check supabase/config.js && node --check supabase/client.js && node --check supabase/modeflow-core.js && node --check supabase/realtime-app.js && node --check supabase/runtime-fixes.js && node --check supabase/auth-upgrade.js && node --check ui/clean-v4.js && node --check ui/commercial-v5.js && node --check ui/billing-v1.js && node --check api/billing/_lib.js && node --check api/billing/create-subscription.js && node --check api/billing/verify-payment.js && node --check api/billing/webhook.js",
+    "test:syntax": "node --check app.js && node --check supabase/config.js && node --check supabase/client.js && node --check supabase/modeflow-core.js && node --check supabase/realtime-app.js && node --check supabase/runtime-fixes.js && node --check supabase/auth-upgrade.js && node --check ui/clean-v4.js && node --check ui/commercial-v5.js && node --check ui/billing-v1.js && node --check api/upi-config.js && node --check api/manual-payment.js && node --check api/billing/_lib.js && node --check api/billing/create-subscription.js && node --check api/billing/verify-payment.js && node --check api/billing/webhook.js",
     "quality": "npm run test:syntax && npm test"
   },
   "engines": {
