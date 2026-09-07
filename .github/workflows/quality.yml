@@ -2,7 +2,7 @@ name: ModeFlow quality
 
 on:
   push:
-    branches: [main, modeflow-production-hardening-v1]
+    branches: [main, modeflow-production-hardening-v1, modeflow-test-fixes-v1]
   pull_request:
     branches: [main]
 
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  static-checks:
+  quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,11 +18,9 @@ jobs:
         with:
           node-version: '22'
       - name: JavaScript syntax
-        run: |
-          node --check app.js
-          node --check supabase/client.js
-          node --check supabase/realtime-app.js
-          node --check supabase/config.js
+        run: npm run test:syntax
+      - name: Unit and integration tests
+        run: npm test
       - name: Prevent privileged Supabase secrets in frontend
         shell: bash
         run: |
