@@ -33,6 +33,22 @@
     return data;
   }
 
+  async function ensureAdminButton(){
+    const footer=qs('.side-footer');
+    if(!footer||qs('#mfAdminPaymentsButton')) return;
+    try{
+      const token=await authToken();
+      const response=await fetch('/api/admin-payments',{headers:{authorization:`Bearer ${token}`}});
+      if(!response.ok) return;
+      const b=document.createElement('button');
+      b.id='mfAdminPaymentsButton';
+      b.className='mf-settings-btn';
+      b.textContent='Admin payments';
+      b.onclick=()=>{location.href='/admin-payments';};
+      footer.appendChild(b);
+    }catch{}
+  }
+
   function ensureUI(){
     if(!qs('#mfPaywall')){
       document.body.insertAdjacentHTML('beforeend',`<div id="mfPaywall" class="mf-paywall hidden" aria-live="polite"><div class="mf-paywall-card"><div class="mf-paywall-head"><div><small>MODEFLOW PRO</small><h2>Choose your plan</h2><p>Pay securely by scanning the UPI QR code. After payment, enter the transaction reference number for manual verification.</p></div><button id="mfClosePlans" class="btn" type="button">Close</button></div><div class="mf-billing-controls"><select id="mfRegion" aria-label="Region">${regionOptions}</select><select id="mfCurrency" aria-label="Currency"><option value="INR">INR — ₹</option><option value="USD">USD — $</option></select></div><div class="mf-plan-grid"><article class="mf-plan featured"><small>MONTHLY</small><strong id="mfMonthlyPrice">₹399</strong><span>per month</span><button class="btn primary" type="button" data-mf-pay="monthly">Pay by UPI QR</button></article><article class="mf-plan"><small>ANNUAL</small><strong id="mfAnnualPrice">₹3,990</strong><span>per year</span><button class="btn" type="button" data-mf-pay="annual">Pay by UPI QR</button></article></div><div id="mfBillingStatus" class="mf-paywall-note">Select a plan to show the UPI QR code.</div></div></div>`);
@@ -54,6 +70,7 @@
     const footer=qs('.side-footer');
     if(footer&&!qs('#mfSettingsButton')){const b=document.createElement('button');b.id='mfSettingsButton';b.className='mf-settings-btn';b.textContent='Region & currency';b.onclick=openSettings;footer.appendChild(b);}
     if(footer&&!qs('#mfPlansButton')){const b=document.createElement('button');b.id='mfPlansButton';b.className='mf-settings-btn';b.textContent='Plans & pricing';b.onclick=openPlans;footer.appendChild(b);}
+    ensureAdminButton();
   }
 
   function renderPrices(){
@@ -142,7 +159,7 @@
 
   function openSettings(){ensureUI();const region=workspace?.business?.region||localRegion();qs('#mfSettingsRegion').value=region;qs('#mfSettingsCurrency').value=workspace?.business?.currency||(region==='IN'?'INR':'USD');qs('#mfSettingsDialog').showModal();}
   async function saveSettings(){try{await saveBusinessPreference(qs('#mfSettingsRegion').value,qs('#mfSettingsCurrency').value);qs('#mfSettingsDialog').close();toastMsg('Region and currency updated');if(typeof renderAll==='function')renderAll();}catch(err){toastMsg(err.message||'Could not update settings');}}
-  function setWorkspace(detail){workspace=detail;const region=detail?.business?.region||localRegion();window.ModeFlowCurrency=detail?.business?.currency||(region==='IN'?'INR':'USD');ensureUI();if(typeof renderAll==='function')renderAll();}
+  function setWorkspace(detail){workspace=detail;const region=detail?.business?.region||localRegion();window.ModeFlowCurrency=detail?.business?.currency||(region==='IN'?'INR':'USD');ensureUI();ensureAdminButton();if(typeof renderAll==='function')renderAll();}
 
   addEventListener('modeflow:workspace',e=>setWorkspace(e.detail));
   ensureUI();
