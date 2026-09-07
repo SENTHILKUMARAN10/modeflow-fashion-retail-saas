@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.cjs",
-    "test:syntax": "node --check app.js && node --check supabase/config.js && node --check supabase/client.js && node --check supabase/modeflow-core.js && node --check supabase/realtime-app.js && node --check supabase/runtime-fixes.js"
+    "test:syntax": "node --check app.js && node --check supabase/config.js && node --check supabase/client.js && node --check supabase/modeflow-core.js && node --check supabase/realtime-app.js && node --check supabase/runtime-fixes.js && node --check supabase/auth-upgrade.js"
   },
   "engines": {
     "node": ">=20"
