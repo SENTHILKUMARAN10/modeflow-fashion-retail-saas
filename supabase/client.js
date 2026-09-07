@@ -11,121 +11,46 @@
   }
 
   const client = window.supabase.createClient(cfg.url, cfg.publishableKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      storageKey: 'modeflow-auth-v1'
-    },
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'modeflow-auth-v1' },
     realtime: { params: { eventsPerSecond: 10 } }
   });
-
   const one = async q => { const {data,error}=await q; if(error) throw error; return data; };
 
   window.tkCloud = {
-    enabled: true,
-    client,
+    enabled: true, client,
     auth: {
-      signUp: (email,password) => client.auth.signUp({email,password}),
+      signUp: (email,password,redirectTo=location.origin+location.pathname) => client.auth.signUp({email,password,options:{emailRedirectTo:redirectTo}}),
       signIn: (email,password) => client.auth.signInWithPassword({email,password}),
-      signOut: () => client.auth.signOut(),
-      session: () => client.auth.getSession(),
-      user: () => client.auth.getUser(),
-      resetPassword: email => client.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname}),
+      signInGoogle: redirectTo => client.auth.signInWithOAuth({provider:'google',options:{redirectTo,queryParams:{access_type:'offline',prompt:'consent'}}}),
+      signOut: () => client.auth.signOut(), session: () => client.auth.getSession(), user: () => client.auth.getUser(),
+      resetPassword: (email,redirectTo=location.origin+location.pathname) => client.auth.resetPasswordForEmail(email,{redirectTo}),
+      resendVerification: (email,redirectTo=location.origin+location.pathname) => client.auth.resend({type:'signup',email,options:{emailRedirectTo:redirectTo}}),
       updatePassword: password => client.auth.updateUser({password}),
       onChange: cb => client.auth.onAuthStateChange(cb)
     },
-    businesses: {
-      list: () => one(client.from('business_members').select('role,businesses(id,name,slug,currency,phone,address)').order('created_at',{ascending:true})),
-      create: async (name='ModeFlow Store') => {
-        const {data,error}=await client.rpc('create_business_with_owner',{p_name:name,p_slug:null,p_phone:null,p_address:null});
-        if(error) throw error; return data;
-      }
-    },
-    products: {
-      list: businessId => one(client.from('products').select('*').eq('business_id',businessId).eq('is_active',true).order('name')),
-      create: (businessId,p) => one(client.from('products').insert({business_id:businessId,name:p.name,cost_price:p.cost,selling_price:p.price,stock:p.stock,reorder_level:p.reorder,unit:'pcs'}).select().single()),
-      update: (id,p) => one(client.from('products').update({name:p.name,cost_price:p.cost,selling_price:p.price,stock:p.stock,reorder_level:p.reorder}).eq('id',id).select().single()),
-      remove: id => one(client.from('products').update({is_active:false}).eq('id',id))
-    },
-    customers: {
-      list: businessId => one(client.from('customers').select('*').eq('business_id',businessId).order('created_at',{ascending:false}))
-    },
-    invoices: {
-      list: businessId => one(client.from('invoices').select('*,invoice_items(*)').eq('business_id',businessId).order('created_at',{ascending:false})),
-      checkout: async payload => {
-        const {data,error}=await client.rpc('complete_sale',payload);
-        if(error) throw error;
-        return data;
-      },
-      remove: async id => { const {error}=await client.rpc('delete_sale',{p_invoice_id:id}); if(error) throw error; }
-    },
-    expenses: {
-      list: businessId => one(client.from('expenses').select('*').eq('business_id',businessId).order('expense_date',{ascending:false}).order('created_at',{ascending:false})),
-      create: (businessId,userId,e) => one(client.from('expenses').insert({business_id:businessId,category:e.category,amount:e.amount,note:e.note,expense_date:new Date().toISOString().slice(0,10),created_by:userId}).select().single()),
-      remove: id => one(client.from('expenses').delete().eq('id',id))
-    },
-    audit: {
-      list: businessId => one(client.from('audit_logs').select('id,actor_user_id,action,entity_type,entity_id,created_at').eq('business_id',businessId).order('created_at',{ascending:false}).limit(100))
-    },
-    realtime: {
-      subscribe: (businessId,onChange,onStatus) => client.channel('modeflow-'+businessId,{config:{broadcast:{self:false}}})
-        .on('postgres_changes',{event:'*',schema:'public',table:'products',filter:`business_id=eq.${businessId}`},onChange)
-        .on('postgres_changes',{event:'*',schema:'public',table:'customers',filter:`business_id=eq.${businessId}`},onChange)
-        .on('postgres_changes',{event:'*',schema:'public',table:'invoices',filter:`business_id=eq.${businessId}`},onChange)
-        .on('postgres_changes',{event:'*',schema:'public',table:'expenses',filter:`business_id=eq.${businessId}`},onChange)
-        .subscribe(status => onStatus?.(status)),
-      unsubscribe: channel => channel && client.removeChannel(channel)
-    }
+    businesses: { list: () => one(client.from('business_members').select('role,businesses(id,name,slug,currency,phone,address)').order('created_at',{ascending:true})), create: async (name='ModeFlow Store') => {const {data,error}=await client.rpc('create_business_with_owner',{p_name:name,p_slug:null,p_phone:null,p_address:null});if(error) throw error;return data;} },
+    products: { list: businessId => one(client.from('products').select('*').eq('business_id',businessId).eq('is_active',true).order('name')), create: (businessId,p) => one(client.from('products').insert({business_id:businessId,name:p.name,cost_price:p.cost,selling_price:p.price,stock:p.stock,reorder_level:p.reorder,unit:'pcs'}).select().single()), update: (id,p) => one(client.from('products').update({name:p.name,cost_price:p.cost,selling_price:p.price,stock:p.stock,reorder_level:p.reorder}).eq('id',id).select().single()), remove: id => one(client.from('products').update({is_active:false}).eq('id',id)) },
+    customers: { list: businessId => one(client.from('customers').select('*').eq('business_id',businessId).order('created_at',{ascending:false})) },
+    invoices: { list: businessId => one(client.from('invoices').select('*,invoice_items(*)').eq('business_id',businessId).order('created_at',{ascending:false})), checkout: async payload => {const {data,error}=await client.rpc('complete_sale',payload);if(error) throw error;return data;}, remove: async id => {const {error}=await client.rpc('delete_sale',{p_invoice_id:id});if(error) throw error;} },
+    expenses: { list: businessId => one(client.from('expenses').select('*').eq('business_id',businessId).order('expense_date',{ascending:false}).order('created_at',{ascending:false})), create: (businessId,userId,e) => one(client.from('expenses').insert({business_id:businessId,category:e.category,amount:e.amount,note:e.note,expense_date:new Date().toISOString().slice(0,10),created_by:userId}).select().single()), remove: id => one(client.from('expenses').delete().eq('id',id)) },
+    audit: { list: businessId => one(client.from('audit_logs').select('id,actor_user_id,action,entity_type,entity_id,created_at').eq('business_id',businessId).order('created_at',{ascending:false}).limit(100)) },
+    realtime: { subscribe: (businessId,onChange,onStatus) => client.channel('modeflow-'+businessId,{config:{broadcast:{self:false}}}).on('postgres_changes',{event:'*',schema:'public',table:'products',filter:`business_id=eq.${businessId}`},onChange).on('postgres_changes',{event:'*',schema:'public',table:'customers',filter:`business_id=eq.${businessId}`},onChange).on('postgres_changes',{event:'*',schema:'public',table:'invoices',filter:`business_id=eq.${businessId}`},onChange).on('postgres_changes',{event:'*',schema:'public',table:'expenses',filter:`business_id=eq.${businessId}`},onChange).subscribe(status => onStatus?.(status)), unsubscribe: channel => channel && client.removeChannel(channel) }
   };
 
-  // app.js contains a local/demo fallback handler. In production, block it until the
-  // realtime controller has loaded so a fast tap cannot accidentally enter local mode.
   window.__modeflowControllerReady=false;
-  const setLoadingStatus=()=>{
-    const el=document.querySelector('#cloudStatus');
-    if(el) el.textContent='Loading secure cloud workspace…';
-  };
-  document.addEventListener('submit',event=>{
-    if(event.target?.id==='cloudLogin'&&!window.__modeflowControllerReady){
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      setLoadingStatus();
-    }
-  },true);
-  document.addEventListener('click',event=>{
-    const button=event.target?.closest?.('#demoLogin');
-    if(button&&!window.__modeflowControllerReady){
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      setLoadingStatus();
-    }
-  },true);
-
-  const loadScript=src=>new Promise((resolve,reject)=>{
-    const script=document.createElement('script');
-    script.src=src;
-    script.async=false;
-    script.onload=resolve;
-    script.onerror=()=>reject(new Error('Failed to load '+src));
-    document.body.appendChild(script);
-  });
-
+  const setLoadingStatus=()=>{const el=document.querySelector('#cloudStatus');if(el)el.textContent='Loading secure cloud workspace…';};
+  document.addEventListener('submit',event=>{if(event.target?.id==='cloudLogin'&&!window.__modeflowControllerReady){event.preventDefault();event.stopImmediatePropagation();setLoadingStatus();}},true);
+  document.addEventListener('click',event=>{const button=event.target?.closest?.('#demoLogin');if(button&&!window.__modeflowControllerReady){event.preventDefault();event.stopImmediatePropagation();setLoadingStatus();}},true);
+  const loadScript=src=>new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.async=false;script.onload=resolve;script.onerror=()=>reject(new Error('Failed to load '+src));document.body.appendChild(script);});
   async function loadProductionController(){
     try{
       await loadScript('supabase/modeflow-core.js');
       await loadScript('supabase/realtime-app.js');
+      await loadScript('supabase/auth-upgrade.js');
       await loadScript('supabase/runtime-fixes.js');
       window.__modeflowControllerReady=true;
-      const el=document.querySelector('#cloudStatus');
-      if(el&&!/connected|signed|failed|offline/i.test(el.textContent)) el.textContent='Secure cloud workspace ready.';
-    }catch(error){
-      console.error(error);
-      const el=document.querySelector('#cloudStatus');
-      if(el) el.textContent='Cloud controller failed to load. Refresh the page.';
-    }
+      const el=document.querySelector('#cloudStatus');if(el&&!/connected|signed|failed|offline|verification|password|google/i.test(el.textContent))el.textContent='Secure cloud workspace ready.';
+    }catch(error){console.error(error);const el=document.querySelector('#cloudStatus');if(el)el.textContent='Cloud controller failed to load. Refresh the page.';}
   }
-
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',loadProductionController,{once:true});
-  else loadProductionController();
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',loadProductionController,{once:true}); else loadProductionController();
 })();
