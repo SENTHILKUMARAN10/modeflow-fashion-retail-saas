@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#111111">
+<meta name="theme-color" content="#f5f3ed">
 <meta name="description" content="Velora — premium business management SaaS for sales, inventory, customers, expenses and analytics.">
 <title>Velora — Business Management SaaS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="velora-ledger.css">
 </head>
 <body>
 <section id="login" class="login-screen">
@@ -17,19 +18,19 @@
     <div class="login-brand"><span class="brand-mark">V</span><div><strong>Velora</strong><small>Business operations, beautifully managed.</small></div></div>
     <div class="fashion-card card-one"><span>REVENUE</span><strong>₹2.48L</strong><small>this month</small></div>
     <div class="fashion-card card-two"><span>GROWTH</span><strong>18.6%</strong><small>↑ vs last month</small></div>
-    <div class="fashion-card card-three"><span>TOP PERFORMER</span><strong>Premium Service</strong><small>₹84K revenue</small></div>
-    <div class="login-copy"><p class="kicker">ALL-IN-ONE BUSINESS OPERATING SYSTEM</p><h1>Run your business with <em>clarity.</em></h1><p>Sales, billing, inventory, customers, expenses and analytics in one premium workspace built for modern businesses.</p></div>
+    <div class="fashion-card card-three"><span>BUSINESS HEALTH</span><strong>Excellent</strong><small>all systems on track</small></div>
+    <div class="login-copy"><p class="kicker">THE QUIET OPERATING SYSTEM FOR BUSINESS</p><h1>Your business,<br><em>already organised.</em></h1><p>Sales, inventory, customers, expenses and analytics in one calm workspace built for businesses that want clarity without complexity.</p></div>
   </div>
   <div class="login-panel">
     <div class="login-box">
       <div class="mobile-brand"><span class="brand-mark">V</span><strong>Velora</strong></div>
-      <p class="kicker dark">WELCOME BACK</p><h2>Manage your business.</h2><p class="subtext">Explore the complete workspace or sign in securely to your cloud account.</p>
+      <p class="kicker dark">WELCOME BACK</p><h2>Pick up where your business left off.</h2><p class="subtext">Explore the workspace or sign in securely to your cloud account.</p>
       <button id="demoLogin" class="btn primary full">Explore demo workspace <span>→</span></button>
-      <div class="divider"><span>production access</span></div>
+      <div class="divider"><span>OR WITH EMAIL</span></div>
       <form id="cloudLogin" class="stack">
-        <label>Email address<input id="loginEmail" type="email" autocomplete="email" placeholder="owner@yourbusiness.com"></label>
+        <label>Email address<input id="loginEmail" type="email" autocomplete="email" placeholder="you@business.com"></label>
         <label>Password<input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••"></label>
-        <button class="btn dark full">Sign in securely</button>
+        <button class="btn dark full">Sign in</button>
       </form>
       <p id="cloudStatus" class="micro">Supabase cloud connection ready.</p>
     </div>
@@ -38,7 +39,7 @@
 
 <div id="app" class="app hidden">
   <aside class="sidebar">
-    <div class="brand"><span class="brand-mark small">V</span><div><b>Velora</b><small>Business Management SaaS</small></div></div>
+    <div class="brand"><span class="brand-mark small">V</span><div><b>Velora</b><small>Business workspace</small></div></div>
     <div class="store-card"><span class="store-avatar">VB</span><div><b>Velora Demo Co.</b><small>Main Workspace · India</small></div><span>⌄</span></div>
     <nav>
       <button class="nav active" data-view="dashboard"><i>⌂</i><span>Overview</span></button>
@@ -60,22 +61,19 @@
 
     <section id="dashboard" class="view active-view">
       <div class="hero-grid">
-        <article class="hero-card"><div><p class="kicker light">SEPTEMBER PERFORMANCE</p><h3>₹2,48,620</h3><p>Net sales this month</p><span class="trend positive">↑ 18.6% vs last month</span></div><div class="sparkline"><span style="height:28%"></span><span style="height:44%"></span><span style="height:36%"></span><span style="height:61%"></span><span style="height:53%"></span><span style="height:78%"></span><span style="height:92%"></span></div></article>
-        <article class="spotlight"><div class="spotlight-label">BUSINESS PULSE</div><div class="spotlight-content"><span class="product-swatch" aria-label="Business performance"><strong style="font-size:24px">↗</strong></span><div><small>Top performer</small><strong>Premium Service</strong><span>34 transactions this week</span></div></div><button data-go="reports" class="text-link">View performance →</button></article>
+        <article class="hero-card"><div><p class="kicker light">THIS MONTH</p><h3>₹2,48,620</h3><p>Net sales</p><span class="trend positive">↑ 18.6% vs last month</span></div><div class="sparkline"><span style="height:28%"></span><span style="height:44%"></span><span style="height:36%"></span><span style="height:61%"></span><span style="height:53%"></span><span style="height:78%"></span><span style="height:92%"></span></div></article>
+        <article class="spotlight"><div class="spotlight-label">BUSINESS PULSE</div><div class="spotlight-content"><span class="product-swatch"><strong style="font-size:24px">↗</strong></span><div><small>Top performer</small><strong>Premium Service</strong><span>34 transactions this week</span></div></div><button data-go="reports" class="text-link">View performance →</button></article>
       </div>
-
       <div class="metrics">
         <article><div class="metric-top"><span>Today’s sales</span><b class="pill good">+12.4%</b></div><strong id="revenue">₹0</strong><small>Across completed transactions</small></article>
         <article><div class="metric-top"><span>Net profit</span><b class="pill good">Healthy</b></div><strong id="profit">₹0</strong><small>After costs and expenses</small></article>
         <article><div class="metric-top"><span>Transactions</span><b class="pill neutral">Today</b></div><strong id="invoiceCount">0</strong><small>Completed business transactions</small></article>
         <article><div class="metric-top"><span>Stock alerts</span><b class="pill warn">Action</b></div><strong id="lowStock">0</strong><small>Items below reorder level</small></article>
       </div>
-
       <div class="two-col dashboard-grid">
         <article class="panel chart-panel"><div class="panel-head"><div><p class="kicker dark">REVENUE</p><h3>Sales trend</h3></div><select class="compact-select"><option>Last 7 days</option><option>This month</option></select></div><div id="bars" class="bars"></div></article>
         <article class="panel"><div class="panel-head"><div><p class="kicker dark">INVENTORY</p><h3>Stock health</h3></div><button class="text-link" data-go="inventory">View all →</button></div><div id="alerts"></div></article>
       </div>
-
       <article class="panel"><div class="panel-head"><div><p class="kicker dark">RECENT ACTIVITY</p><h3>Latest transactions</h3></div><button class="text-link" data-go="history">View all →</button></div><div class="table-wrap"><table><thead><tr><th>TRANSACTION</th><th>CUSTOMER</th><th>ITEM</th><th>AMOUNT</th><th>STATUS</th><th>DATE</th></tr></thead><tbody id="recent"></tbody></table></div></article>
     </section>
 
@@ -115,7 +113,7 @@
     </section>
 
     <section id="reports" class="view">
-      <div class="section-intro"><p class="kicker dark">BUSINESS INTELLIGENCE</p><h3>Performance analytics</h3><p>Turn sales, customers, expenses and inventory data into better business decisions.</p></div>
+      <div class="section-intro"><p class="kicker dark">BUSINESS INTELLIGENCE</p><h3>Performance analytics</h3><p>Turn sales, customers, expenses and inventory data into better decisions.</p></div>
       <div class="metrics report-metrics"><article><span>Average transaction value</span><strong id="avgOrder">₹0</strong><small>Revenue per transaction</small></article><article><span>Inventory value</span><strong id="inventoryValue">₹0</strong><small>Current inventory at cost</small></article><article><span>Active customers</span><strong id="customerCount">0</strong><small>Unique customers</small></article><article><span>Operating expenses</span><strong id="reportExpenses">₹0</strong><small>Recorded business costs</small></article></div>
       <div class="two-col"><article class="panel"><p class="kicker dark">TOP PERFORMERS</p><h3>Product & service performance</h3><div id="productPerformance"></div></article><article class="panel"><p class="kicker dark">PAYMENTS</p><h3>Payment mix</h3><div id="paymentMix"></div></article></div>
     </section>
@@ -128,4 +126,5 @@
 <script src="supabase/config.js"></script>
 <script src="supabase/client.js"></script>
 <script src="app.js"></script>
-</body></html>
+</body>
+</html>
