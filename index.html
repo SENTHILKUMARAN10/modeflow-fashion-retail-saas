@@ -2,18 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="theme-color" content="#f3efe5">
+<meta name="theme-color" content="#F4F0E6">
 <meta name="description" content="Velora — a calm, premium workspace for sales, inventory, customers, expenses and business analytics.">
 <title>Velora — Business, made clear.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="velora-final.css?v=20260910-0908">
-<link rel="stylesheet" href="velora-responsive.css?v=20260910-0908">
+<link rel="stylesheet" href="velora-v3.css?v=20260910-0918">
+<script src="responsive-device.js?v=20260910-0918" defer></script>
 </head>
 <body>
 <section id="login" class="login-screen">
@@ -70,9 +70,9 @@
 <dialog id="productDialog"><form id="productForm" class="dialog-card"><div><p class="kicker">PRODUCT</p><h3 id="productDialogTitle">Add product</h3></div><input id="pId" type="hidden"><label>Product name<input id="pName" required placeholder="e.g. Wireless Keyboard"></label><div class="dialog-grid"><label>Cost price ₹<input id="pCost" type="number" min="0" required></label><label>Selling price ₹<input id="pPrice" type="number" min="0" required></label><label>Available stock<input id="pStock" type="number" min="0" required></label><label>Reorder level<input id="pReorder" type="number" min="0" value="5" required></label></div><div class="dialog-actions"><button type="button" id="cancelProduct" class="btn ghost">Cancel</button><button class="btn primary">Save product</button></div></form></dialog>
 <div id="toast" class="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase/config.js?v=20260910-0908"></script>
-<script src="supabase/client.js?v=20260910-0908"></script>
-<script src="app.js?v=20260910-0908"></script>
-<script src="onboarding.js?v=20260910-0908"></script>
+<script src="supabase/config.js?v=20260910-0918"></script>
+<script src="supabase/client.js?v=20260910-0918"></script>
+<script src="app.js?v=20260910-0918"></script>
+<script src="onboarding.js?v=20260910-0918"></script>
 </body>
 </html>
