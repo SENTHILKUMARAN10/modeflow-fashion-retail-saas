@@ -4,8 +4,8 @@ export default function handler(req,res){
     res.setHeader('content-type','application/json');
     return res.end(JSON.stringify({error:'Method not allowed'}));
   }
-  const upiId=(process.env.MODEFLOW_UPI_ID||'').trim();
-  const payeeName=(process.env.MODEFLOW_UPI_PAYEE_NAME||'ModeFlow').trim();
+  const upiId=(process.env.SALES_DESK_UPI_ID||process.env.MODEFLOW_UPI_ID||'').trim();
+  const payeeName=(process.env.SALES_DESK_UPI_PAYEE_NAME||process.env.MODEFLOW_UPI_PAYEE_NAME||'SalesDesk').trim();
   if(!upiId){
     res.statusCode=503;
     res.setHeader('content-type','application/json');
