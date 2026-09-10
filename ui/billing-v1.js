@@ -1,4 +1,4 @@
-// ModeFlow direct UPI QR payment flow.
+// SalesDesk direct UPI QR payment flow.
 (function(){
   if(!window.tkCloud?.enabled)return;
   const cloud=window.tkCloud,qs=s=>document.querySelector(s);
@@ -29,7 +29,7 @@
 
   function ensureDialog(){
     if(qs('#mfUpiDialog'))return;
-    document.body.insertAdjacentHTML('beforeend',`<dialog id="mfUpiDialog" class="mf-settings-dialog mf-upi-dialog"><div class="mf-settings-inner"><div class="mf-upi-head"><div><small>SECURE UPI PAYMENT</small><h3 id="mfUpiTitle">Pay ModeFlow</h3></div><button class="btn" id="mfUpiClose" type="button">Close</button></div><div class="mf-qr-wrap"><img id="mfUpiQr" alt="UPI payment QR code" width="260" height="260"><div class="mf-upi-amount" id="mfUpiAmount"></div><div class="mf-upi-id" id="mfUpiId"></div></div><a class="btn primary mf-upi-open" id="mfUpiOpen" href="#">Open UPI app</a><p class="mf-paywall-note">After payment, enter the UPI transaction/reference number below for verification.</p><label class="mf-upi-label">UPI transaction/reference number<input id="mfUpiUtr" inputmode="numeric" autocomplete="off" placeholder="Example: 415812345678"></label><button class="btn primary" id="mfUpiSubmit" type="button">I have paid</button><div id="mfUpiStatus" class="mf-paywall-note"></div></div></dialog>`);
+    document.body.insertAdjacentHTML('beforeend',`<dialog id="mfUpiDialog" class="mf-settings-dialog mf-upi-dialog"><div class="mf-settings-inner"><div class="mf-upi-head"><div><small>SECURE UPI PAYMENT</small><h3 id="mfUpiTitle">Pay SalesDesk</h3></div><button class="btn" id="mfUpiClose" type="button">Close</button></div><div class="mf-qr-wrap"><img id="mfUpiQr" alt="UPI payment QR code" width="260" height="260"><div class="mf-upi-amount" id="mfUpiAmount"></div><div class="mf-upi-id" id="mfUpiId"></div></div><a class="btn primary mf-upi-open" id="mfUpiOpen" href="#">Open UPI app</a><p class="mf-paywall-note">After payment, enter the UPI transaction/reference number below for verification.</p><label class="mf-upi-label">UPI transaction/reference number<input id="mfUpiUtr" inputmode="numeric" autocomplete="off" placeholder="Example: 415812345678"></label><button class="btn primary" id="mfUpiSubmit" type="button">I have paid</button><div id="mfUpiStatus" class="mf-paywall-note"></div></div></dialog>`);
     qs('#mfUpiClose').onclick=()=>qs('#mfUpiDialog').close();
     qs('#mfUpiSubmit').onclick=submitPayment;
   }
@@ -42,10 +42,10 @@
     if(button){button.disabled=true;button.textContent='Preparing QR…';}
     try{
       const config=await upiConfig(),amount=amounts[interval]||amounts.monthly;
-      const params=new URLSearchParams({pa:config.upiId,pn:config.payeeName,am:String(amount),cu:'INR',tn:`ModeFlow ${interval} plan`});
+      const params=new URLSearchParams({pa:config.upiId,pn:config.payeeName,am:String(amount),cu:'INR',tn:`SalesDesk ${interval} plan`});
       const upiUri=`upi://pay?${params.toString()}`;
       const d=qs('#mfUpiDialog');d.dataset.interval=interval;d.dataset.amount=String(amount);
-      qs('#mfUpiTitle').textContent=`${interval==='annual'?'Annual':'Monthly'} plan`;
+      qs('#mfUpiTitle').textContent=`${interval==='annual'?'Annual':'Monthly'} SalesDesk plan`;
       qs('#mfUpiAmount').textContent=`₹${amount.toLocaleString('en-IN')}`;
       qs('#mfUpiId').textContent=config.upiId;
       qs('#mfUpiQr').src=`https://quickchart.io/qr?size=260&margin=2&text=${encodeURIComponent(upiUri)}`;
