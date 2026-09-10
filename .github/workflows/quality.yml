@@ -1,4 +1,4 @@
-name: ModeFlow quality
+name: SalesDesk quality
 
 on:
   push:
@@ -12,6 +12,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,14 +22,27 @@ jobs:
         run: npm run test:syntax
       - name: Unit and integration tests
         run: npm test
-      - name: Prevent privileged Supabase secrets in frontend
+      - name: Prevent privileged Supabase secrets in shipped frontend
         shell: bash
         run: |
-          if grep -niE 'service_role|SUPABASE_SERVICE_ROLE|sb_secret_' index.html app.js supabase/*.js; then
+          if grep -niE 'service_role|SUPABASE_SERVICE_ROLE|sb_secret_' index.html app.js account-pages-v1.js responsive-device.js supabase/*.js ui/*.js; then
             echo 'Privileged Supabase credential pattern found in shipped frontend files.'
             exit 1
           fi
-      - name: Verify production migrations exist
+      - name: Verify production migrations and operational scripts exist
         run: |
           test -f supabase/migrations/20260907_modeflow_production_hardening.sql
           test -f supabase/migrations/20260907_modeflow_regression_fixes.sql
+          test -f supabase/migrations/20260910_salesdesk_scale_100.sql
+          test -f scripts/verify-tenant-isolation.mjs
+          test -f scripts/load/k6-salesdesk.js
+          test -f scripts/backup/backup.sh
+          test -f scripts/backup/restore-test.sh
+          test -f api/health.js
+          test -f api/client-error.js
+      - name: Ensure production billing cannot trust client-only activation
+        shell: bash
+        run: |
+          grep -q "verifyHmac" api/billing/verify-payment.js
+          grep -q "RAZORPAY_WEBHOOK_SECRET" api/billing/webhook.js
+          grep -q "has_active_subscription" supabase/migrations/20260910_salesdesk_scale_100.sql
