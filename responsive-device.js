@@ -22,7 +22,7 @@
     addScript('script[data-mf-account-pages],script[src*="account-pages-v1.js"]','account-pages-v1.js?v=20260910-1245','data-mf-account-pages');
     addScript('script[data-mf-billing],script[src*="ui/billing-v1.js"]','ui/billing-v1.js?v=20260910-1245','data-mf-billing');
     addScript('script[data-mf-mobile-drawer],script[src*="mobile-drawer-v1.js"]','mobile-drawer-v1.js?v=20260910-1245','data-mf-mobile-drawer');
-    addScript('script[data-velora-excel-export],script[src*="ui/export-excel-v1.js"]','ui/export-excel-v1.js?v=20260910-1258','data-velora-excel-export');
+    addScript('script[data-velora-excel-export],script[src*="ui/export-excel-v1.js"]','ui/export-excel-v1.js?v=20260910-1324','data-velora-excel-export');
     // Invoice rendering is intentionally NOT loaded here. The page starts the authoritative v18 renderer exactly once.
   }
   applyDeviceClass();
