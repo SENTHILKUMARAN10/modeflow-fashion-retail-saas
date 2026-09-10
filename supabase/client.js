@@ -1,6 +1,6 @@
 // Velora Supabase cloud adapter.
 (function () {
-  const responsiveCss=document.createElement('link');responsiveCss.rel='stylesheet';responsiveCss.href='responsive-v4.css?v=20260910-0951';document.head.appendChild(responsiveCss);
+  const responsiveCss=document.createElement('link');responsiveCss.rel='stylesheet';responsiveCss.href='responsive-v4.css?v=20260910-1205';document.head.appendChild(responsiveCss);
   const cfg = window.TK_SUPABASE_CONFIG;
   if (!cfg || !cfg.url || !cfg.publishableKey || cfg.url.includes('YOUR-PROJECT')) { window.tkCloud = { enabled: false, reason: 'Supabase is not configured yet.' }; return; }
   if (!window.supabase?.createClient) { window.tkCloud = { enabled: false, reason: 'Supabase SDK not loaded.' }; return; }
@@ -17,6 +17,6 @@
   const setLoadingStatus=()=>{const el=document.querySelector('#cloudStatus');if(el)el.textContent='Loading secure cloud workspace…';};
   document.addEventListener('submit',event=>{if(event.target?.id==='cloudLogin'&&!window.__modeflowControllerReady){event.preventDefault();event.stopImmediatePropagation();setLoadingStatus();}},true);
   const loadScript=src=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.async=false;s.onload=resolve;s.onerror=()=>reject(new Error('Failed to load '+src));document.body.appendChild(s);});
-  async function loadProductionController(){try{await loadScript('supabase/modeflow-core.js?v=12');await loadScript('supabase/realtime-app.js?v=12');await loadScript('supabase/auth-upgrade.js?v=12');await loadScript('supabase/runtime-fixes.js?v=12');window.__modeflowControllerReady=true;const el=document.querySelector('#cloudStatus');if(el&&!/connected|signed|failed|offline|verification|password|google/i.test(el.textContent))el.textContent='Secure cloud workspace ready.';}catch(error){console.error(error);const el=document.querySelector('#cloudStatus');if(el)el.textContent='Cloud controller failed to load. Refresh the page.';}}
+  async function loadProductionController(){try{await loadScript('supabase/modeflow-core.js?v=13');await loadScript('supabase/realtime-app.js?v=13');await loadScript('supabase/auth-upgrade.js?v=13');await loadScript('supabase/runtime-fixes.js?v=13');window.__modeflowControllerReady=true;const el=document.querySelector('#cloudStatus');if(el&&!/connected|signed|failed|offline|verification|password|google/i.test(el.textContent))el.textContent='Secure cloud workspace ready.';}catch(error){console.error(error);const el=document.querySelector('#cloudStatus');if(el)el.textContent='Cloud controller failed to load. Refresh the page.';}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadProductionController,{once:true});else loadProductionController();
 })();
