@@ -2,7 +2,7 @@ name: SalesDesk quality
 
 on:
   push:
-    branches: [main, modeflow-production-hardening-v1, modeflow-test-fixes-v1, modeflow-regression-fixes-v1]
+    branches: [main, salesdesk-production-v1, modeflow-production-hardening-v1, modeflow-test-fixes-v1, modeflow-regression-fixes-v1]
   pull_request:
     branches: [main]
 
@@ -34,6 +34,16 @@ jobs:
           test -f supabase/migrations/20260907_modeflow_production_hardening.sql
           test -f supabase/migrations/20260907_modeflow_regression_fixes.sql
           test -f supabase/migrations/20260910_salesdesk_scale_100.sql
+          test -f supabase/migrations/202609102230_salesdesk_professional_os.sql
+          test -f supabase/migrations/202609102231_salesdesk_role_permissions.sql
+          test -f supabase/migrations/202609102232_salesdesk_transactions_v2.sql
+          test -f supabase/migrations/202609102233_salesdesk_automation_engine.sql
+          test -f ui/salesdesk-pro-suite-v1.js
+          test -f ui/salesdesk-pos-v1.js
+          test -f ui/salesdesk-finance-v1.js
+          test -f api/team/invite.js
+          test -f api/account/delete.js
+          test -f api/cron/automations.js
           test -f scripts/verify-tenant-isolation.mjs
           test -f scripts/load/k6-salesdesk.js
           test -f scripts/backup/backup.sh
