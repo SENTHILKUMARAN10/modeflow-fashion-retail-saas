@@ -1,0 +1,81 @@
+name: SalesDesk production readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_load_test:
+        description: 'Run the staged concurrent load test after tenant-isolation checks'
+        required: true
+        type: boolean
+        default: false
+      peak_users:
+        description: 'Peak virtual users for staged load test (100, 200 or 300)'
+        required: false
+        default: '100'
+        type: choice
+        options: ['100','200','300']
+      allow_transaction_writes:
+        description: 'Create TEST sales in the dedicated staging workspace'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  tenant-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify two-business RLS isolation
+        env:
+          SUPABASE_URL: ${{ secrets.SALESDESK_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SALESDESK_TEST_SUPABASE_ANON_KEY }}
+          SALESDESK_TEST_A_EMAIL: ${{ secrets.SALESDESK_TEST_A_EMAIL }}
+          SALESDESK_TEST_A_PASSWORD: ${{ secrets.SALESDESK_TEST_A_PASSWORD }}
+          SALESDESK_TEST_B_EMAIL: ${{ secrets.SALESDESK_TEST_B_EMAIL }}
+          SALESDESK_TEST_B_PASSWORD: ${{ secrets.SALESDESK_TEST_B_PASSWORD }}
+        run: node scripts/verify-tenant-isolation.mjs
+
+  staged-load:
+    needs: tenant-isolation
+    if: ${{ inputs.run_load_test }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate staging target
+        env:
+          BASE_URL: ${{ vars.SALESDESK_STAGING_URL }}
+        run: |
+          test -n "$BASE_URL" || { echo 'Set repository variable SALESDESK_STAGING_URL first.'; exit 2; }
+      - name: Run authenticated staged load test
+        env:
+          BASE_URL: ${{ vars.SALESDESK_STAGING_URL }}
+          SUPABASE_URL: ${{ secrets.SALESDESK_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SALESDESK_TEST_SUPABASE_ANON_KEY }}
+          TEST_EMAIL: ${{ secrets.SALESDESK_LOAD_TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.SALESDESK_LOAD_TEST_PASSWORD }}
+          TEST_BUSINESS_ID: ${{ secrets.SALESDESK_LOAD_TEST_BUSINESS_ID }}
+          TEST_PRODUCT_ID: ${{ secrets.SALESDESK_LOAD_TEST_PRODUCT_ID }}
+          PEAK: ${{ inputs.peak_users }}
+          WRITES: ${{ inputs.allow_transaction_writes }}
+        run: |
+          docker run --rm --network host \
+            -v "$PWD:/work" -w /work \
+            -e BASE_URL="$BASE_URL" \
+            -e SUPABASE_URL="$SUPABASE_URL" \
+            -e SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+            -e TEST_EMAIL="$TEST_EMAIL" \
+            -e TEST_PASSWORD="$TEST_PASSWORD" \
+            -e TEST_BUSINESS_ID="$TEST_BUSINESS_ID" \
+            -e TEST_PRODUCT_ID="$TEST_PRODUCT_ID" \
+            -e ALLOW_TRANSACTION_WRITES="$WRITES" \
+            -e VUS_1=50 -e VUS_2=100 -e VUS_3="$PEAK" \
+            -e RAMP_1=30s -e HOLD_1=1m -e RAMP_2=30s -e HOLD_2=1m -e RAMP_3=30s -e HOLD_3=1m \
+            grafana/k6:latest run scripts/load/k6-salesdesk.js
