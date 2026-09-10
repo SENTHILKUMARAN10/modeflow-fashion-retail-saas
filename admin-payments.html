@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f4f0e6">
-  <title>Velora · Payment verification</title>
+  <title>SalesDesk · Payment verification</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -18,13 +18,13 @@
 <body>
 <div class="shell">
   <aside class="side">
-    <div class="brand"><div class="mark">V</div><div><strong>Velora</strong><small>Administration</small></div></div>
+    <div class="brand"><div class="mark">S</div><div><strong>SalesDesk</strong><small>Administration</small></div></div>
     <div class="side-label">ADMIN</div>
     <nav><a class="side-link active" href="/admin-payments"><b>10</b><span>Payment verification</span></a></nav>
     <div class="side-bottom"><a class="side-link" href="/"><b>←</b><span>Back to workspace</span></a></div>
   </aside>
   <main class="content">
-    <header class="topbar"><div><p class="eyebrow">VELORA ADMIN</p><h1>Payment verification</h1></div><a class="btn" href="/">Back to Velora</a></header>
+    <header class="topbar"><div><p class="eyebrow">SALESDESK ADMIN</p><h1>Payment verification</h1></div><a class="btn" href="/">Back to SalesDesk</a></header>
     <section class="summary"><article class="stat"><span>Pending review</span><strong id="pendingCount">—</strong></article><article class="stat"><span>Approved</span><strong id="approvedCount">—</strong></article><article class="stat"><span>Rejected</span><strong id="rejectedCount">—</strong></article></section>
     <section class="card"><div class="card-head"><h2>Payment submissions</h2><small>Verify QR/UPI payments before activating customer access.</small></div><div id="list"><div class="status">Loading payments…</div></div></section>
   </main>
@@ -35,11 +35,11 @@
 const cfg=window.TK_SUPABASE_CONFIG;
 const sb=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'modeflow-auth-v1'}});
 const list=document.getElementById('list');
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
 async function token(){const {data}=await sb.auth.getSession();return data?.session?.access_token||'';}
 function counts(rows){pendingCount.textContent=rows.filter(x=>x.status==='pending_verification').length;approvedCount.textContent=rows.filter(x=>x.status==='active').length;rejectedCount.textContent=rows.filter(x=>x.status==='rejected').length;}
 async function load(){
- const t=await token();if(!t){list.innerHTML='<div class="status"><div class="empty-icon">!</div>Sign in to Velora first, then reopen this page.</div>';counts([]);return;}
+ const t=await token();if(!t){list.innerHTML='<div class="status"><div class="empty-icon">!</div>Sign in to SalesDesk first, then reopen this page.</div>';counts([]);return;}
  const r=await fetch('/api/admin-payments',{headers:{authorization:'Bearer '+t}}),d=await r.json().catch(()=>({}));
  if(!r.ok){list.innerHTML='<div class="status">'+esc(d.error||'Unable to load payments')+'</div>';counts([]);return;}
  const rows=d.payments||[];counts(rows);if(!rows.length){list.innerHTML='<div class="status"><div class="empty-icon">₹</div>No payment submissions yet.</div>';return;}
@@ -48,6 +48,6 @@ async function load(){
 async function act(businessId,action,button){if(!confirm((action==='approve'?'Approve':'Reject')+' this payment?'))return;const t=await token();button.disabled=true;const r=await fetch('/api/admin-payment-action',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+t},body:JSON.stringify({businessId,action})}),d=await r.json().catch(()=>({}));if(!r.ok){alert(d.error||'Unable to update payment');button.disabled=false;return;}await load();}
 load();
 </script>
-<script src="/ui/site-footer-v1.js?v=20260910-1425"></script>
+<script src="/ui/site-footer-v1.js?v=20260910-1745"></script>
 </body>
 </html>
