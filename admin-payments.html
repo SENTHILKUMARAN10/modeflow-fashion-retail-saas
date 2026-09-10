@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f4f0e6">
   <title>Velora · Payment verification</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root{--paper:#f4f0e6;--surface:#fffdf8;--ink:#182019;--muted:#697168;--line:#d9d2c5;--green:#1f5b49;--green2:#164638;--soft:#e7eee9;--danger:#a3473f;--warn:#9a6a2c}
     *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink)}body{font-family:'Plus Jakarta Sans',system-ui,sans-serif}.shell{min-height:100dvh;display:grid;grid-template-columns:260px minmax(0,1fr)}
@@ -48,5 +48,6 @@ async function load(){
 async function act(businessId,action,button){if(!confirm((action==='approve'?'Approve':'Reject')+' this payment?'))return;const t=await token();button.disabled=true;const r=await fetch('/api/admin-payment-action',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+t},body:JSON.stringify({businessId,action})}),d=await r.json().catch(()=>({}));if(!r.ok){alert(d.error||'Unable to update payment');button.disabled=false;return;}await load();}
 load();
 </script>
+<script src="/ui/site-footer-v1.js?v=20260910-1425"></script>
 </body>
 </html>
