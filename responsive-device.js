@@ -16,14 +16,15 @@
     if(!document.querySelector('link[data-mf-premium-fonts]')){
       var fonts=document.createElement('link');fonts.rel='stylesheet';fonts.href='https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';fonts.setAttribute('data-mf-premium-fonts','1');document.head.appendChild(fonts);
     }
-    addCss('link[data-mf-premium]','premium-v5.css?v=20260910-1245','data-mf-premium');
-    addCss('link[data-mf-mobile-drawer]','mobile-drawer-v1.css?v=20260910-1245','data-mf-mobile-drawer');
-    addCss('link[data-mf-billing]','ui/billing-v1.css?v=20260910-1245','data-mf-billing');
-    addScript('script[data-mf-account-pages],script[src*="account-pages-v1.js"]','account-pages-v1.js?v=20260910-1245','data-mf-account-pages');
-    addScript('script[data-mf-billing],script[src*="ui/billing-v1.js"]','ui/billing-v1.js?v=20260910-1245','data-mf-billing');
-    addScript('script[data-mf-mobile-drawer],script[src*="mobile-drawer-v1.js"]','mobile-drawer-v1.js?v=20260910-1245','data-mf-mobile-drawer');
-    addScript('script[data-velora-excel-export],script[src*="ui/export-excel-v1.js"]','ui/export-excel-v1.js?v=20260910-1324','data-velora-excel-export');
-    // Invoice rendering is intentionally NOT loaded here. The page starts the authoritative v18 renderer exactly once.
+    addCss('link[data-mf-premium]','premium-v5.css?v=20260910-1332','data-mf-premium');
+    addCss('link[data-mf-mobile-drawer]','mobile-drawer-v1.css?v=20260910-1332','data-mf-mobile-drawer');
+    addCss('link[data-mf-billing]','ui/billing-v1.css?v=20260910-1332','data-mf-billing');
+    addScript('script[data-mf-account-pages],script[src*="account-pages-v1.js"]','account-pages-v1.js?v=20260910-1332','data-mf-account-pages');
+    addScript('script[data-mf-billing],script[src*="ui/billing-v1.js"]','ui/billing-v1.js?v=20260910-1332','data-mf-billing');
+    addScript('script[data-mf-mobile-drawer],script[src*="mobile-drawer-v1.js"]','mobile-drawer-v1.js?v=20260910-1332','data-mf-mobile-drawer');
+    addScript('script[data-velora-excel-export],script[src*="ui/export-excel-v1.js"]','ui/export-excel-v1.js?v=20260910-1332','data-velora-excel-export');
+    addScript('script[data-velora-site-footer],script[src*="ui/site-footer-v1.js"]','ui/site-footer-v1.js?v=20260910-1332','data-velora-site-footer');
+    // Invoice rendering is intentionally NOT loaded here. The page starts the authoritative renderer exactly once.
   }
   applyDeviceClass();
   window.addEventListener('resize',applyDeviceClass,{passive:true});
