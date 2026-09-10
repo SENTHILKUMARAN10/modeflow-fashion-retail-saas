@@ -1,0 +1,51 @@
+// Live SalesDesk tenant-isolation verifier.
+// Requires two dedicated test accounts in different businesses. Never use real customer credentials.
+// Env:
+// SUPABASE_URL, SUPABASE_ANON_KEY,
+// SALESDESK_TEST_A_EMAIL, SALESDESK_TEST_A_PASSWORD,
+// SALESDESK_TEST_B_EMAIL, SALESDESK_TEST_B_PASSWORD
+
+const required=['SUPABASE_URL','SUPABASE_ANON_KEY','SALESDESK_TEST_A_EMAIL','SALESDESK_TEST_A_PASSWORD','SALESDESK_TEST_B_EMAIL','SALESDESK_TEST_B_PASSWORD'];
+for(const key of required)if(!process.env[key]){console.error(`Missing ${key}`);process.exit(2);}
+const base=process.env.SUPABASE_URL.replace(/\/$/,'');const anon=process.env.SUPABASE_ANON_KEY;
+
+async function signIn(email,password){
+  const r=await fetch(`${base}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:anon,'content-type':'application/json'},body:JSON.stringify({email,password})});
+  const d=await r.json();if(!r.ok||!d.access_token)throw new Error(`Test sign-in failed (${r.status})`);return d.access_token;
+}
+async function rest(token,path,options={}){
+  const r=await fetch(`${base}/rest/v1/${path}`,{...options,headers:{apikey:anon,authorization:`Bearer ${token}`,'content-type':'application/json',...(options.headers||{})}});
+  const text=await r.text();let body=null;try{body=text?JSON.parse(text):null}catch{body=text;}return{status:r.status,ok:r.ok,body};
+}
+async function firstBusiness(token){
+  const r=await rest(token,'business_members?select=business_id,role&order=created_at.asc&limit=1');if(!r.ok||!Array.isArray(r.body)||!r.body[0])throw new Error('Each test account must already belong to one test business.');return r.body[0];
+}
+function fail(message,detail){console.error('FAIL:',message,detail??'');process.exitCode=1;}
+function pass(message){console.log('PASS:',message);}
+async function assertInvisible(token,table,businessId,label){
+  const r=await rest(token,`${table}?business_id=eq.${encodeURIComponent(businessId)}&select=*&limit=1`);
+  if(!r.ok)return fail(`${label} cross-tenant ${table} read returned HTTP ${r.status}`);
+  if(Array.isArray(r.body)&&r.body.length===0)pass(`${label} cannot read ${table} from the other business`);else fail(`${label} could read ${table} from the other business`);
+}
+async function assertWriteBlocked(token,businessId,label){
+  const marker=`isolation-${Date.now()}`;
+  const r=await rest(token,'expenses',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({business_id:businessId,category:marker,amount:1,note:'automated isolation test'})});
+  if(r.ok)fail(`${label} cross-tenant write unexpectedly succeeded`,r.body);else pass(`${label} cross-tenant expense write was denied`);
+}
+
+try{
+  const [aToken,bToken]=await Promise.all([signIn(process.env.SALESDESK_TEST_A_EMAIL,process.env.SALESDESK_TEST_A_PASSWORD),signIn(process.env.SALESDESK_TEST_B_EMAIL,process.env.SALESDESK_TEST_B_PASSWORD)]);
+  const [a,b]=await Promise.all([firstBusiness(aToken),firstBusiness(bToken)]);
+  if(a.business_id===b.business_id)throw new Error('Test A and Test B must belong to different businesses.');
+  console.log('Testing two distinct business workspaces without printing credentials.');
+  for(const table of ['products','customers','invoices','expenses','stock_movements']){
+    await assertInvisible(aToken,table,b.business_id,'User A');
+    await assertInvisible(bToken,table,a.business_id,'User B');
+  }
+  await assertWriteBlocked(aToken,b.business_id,'User A');await assertWriteBlocked(bToken,a.business_id,'User B');
+  const crossMembershipA=await rest(aToken,`business_members?business_id=eq.${encodeURIComponent(b.business_id)}&select=business_id`);
+  if(crossMembershipA.ok&&Array.isArray(crossMembershipA.body)&&crossMembershipA.body.length===0)pass('User A cannot read User B membership');else fail('User A membership isolation failed');
+  const crossMembershipB=await rest(bToken,`business_members?business_id=eq.${encodeURIComponent(a.business_id)}&select=business_id`);
+  if(crossMembershipB.ok&&Array.isArray(crossMembershipB.body)&&crossMembershipB.body.length===0)pass('User B cannot read User A membership');else fail('User B membership isolation failed');
+  if(!process.exitCode)console.log('SalesDesk tenant isolation verification PASSED.');
+}catch(error){console.error('Isolation verification could not complete:',error.message);process.exit(2);}
