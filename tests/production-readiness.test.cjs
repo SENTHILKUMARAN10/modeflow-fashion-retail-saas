@@ -7,16 +7,18 @@ const read = p => fs.readFileSync(path.join(process.cwd(), p), 'utf8');
 test('production legal pages exist', () => {
   assert.ok(fs.existsSync('privacy.html'));
   assert.ok(fs.existsSync('terms.html'));
+  assert.ok(fs.existsSync('refund-policy.html'));
 });
 
-test('Velora uses one authoritative production design system', () => {
+test('SalesDesk production workspace loads the consolidated market UI', () => {
   const index = read('index.html');
-  const client = read('supabase/client.js');
-  assert.match(index, /velora-final\.css/);
-  assert.doesNotMatch(client, /ui\/clean-v4\.css/);
-  assert.doesNotMatch(client, /ui\/mobile-v6\.css/);
-  assert.doesNotMatch(client, /ui\/pro-v7\.css/);
-  assert.doesNotMatch(client, /ui\/commercial-v5\.js/);
+  const directLoader = read('ui/velora-final-v16.js');
+  const responsive = read('responsive-device.js');
+  assert.match(index, /SalesDesk/);
+  assert.match(directLoader, /salesdesk-market-suite-v3\.js/);
+  assert.match(directLoader, /salesdesk-market-suite-v2\.css/);
+  assert.match(responsive, /salesdesk-market-suite-v3\.js/);
+  assert.doesNotMatch(read('supabase/client.js'), /ui\/clean-v4\.css/);
 });
 
 test('legacy observer-heavy UI is not loaded by production bootstrap', () => {
@@ -43,9 +45,10 @@ test('auth persistence and recovery features are wired', () => {
   assert.match(auth, /PASSWORD_RECOVERY/);
 });
 
-test('critical hardening migrations exist', () => {
+test('critical hardening and scale migrations exist', () => {
   assert.ok(fs.existsSync('supabase/migrations/20260907_modeflow_realtime.sql'));
   assert.ok(fs.existsSync('supabase/migrations/20260907_modeflow_production_hardening.sql'));
+  assert.ok(fs.existsSync('supabase/migrations/20260910_salesdesk_scale_100.sql'));
 });
 
 test('commercial production audit documents external requirements', () => {
