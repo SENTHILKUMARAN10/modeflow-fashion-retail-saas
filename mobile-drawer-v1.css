@@ -3,19 +3,20 @@
   html,body{overflow-x:hidden!important}
   body.mf-drawer-open{overflow:hidden!important;touch-action:none}
   .app{display:block!important;padding-bottom:0!important}
-  .sidebar{position:fixed!important;inset:0 auto 0 0!important;width:min(84vw,320px)!important;height:100dvh!important;padding:18px 14px calc(18px + env(safe-area-inset-bottom))!important;background:#F8F3E9!important;border-right:1px solid var(--line)!important;display:flex!important;flex-direction:column!important;gap:16px!important;transform:translateX(-105%)!important;transition:transform .2s ease!important;z-index:1000!important;overflow-y:auto!important;overscroll-behavior:contain!important;box-shadow:18px 0 55px rgba(26,35,29,.22)!important}
+  .sidebar{position:fixed!important;inset:0 auto 0 0!important;width:min(86vw,320px)!important;height:100dvh!important;padding:18px 16px calc(18px + env(safe-area-inset-bottom))!important;background:#F8F3E9!important;border-right:1px solid var(--line)!important;display:flex!important;flex-direction:column!important;gap:16px!important;transform:translateX(-105%)!important;transition:transform .2s ease!important;z-index:1000!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;box-shadow:18px 0 55px rgba(26,35,29,.22)!important}
   body.mf-drawer-open .sidebar{transform:translateX(0)!important}
   .sidebar>.brand,.sidebar>.store-card,.sidebar>.nav-label,.sidebar>.side-footer{display:flex!important}
   .sidebar>.brand{padding-right:48px!important;align-items:center!important}
   .sidebar>.store-card{justify-content:flex-start!important}
   .sidebar .brand>div,.sidebar .store-card>div,.sidebar .store-card>span:last-child,.sidebar .nav span{display:block!important}
-  .sidebar .nav-label{display:block!important;margin:4px 8px -2px!important}
-  .sidebar nav{display:grid!important;gap:5px!important;overflow:visible!important;width:100%!important}
-  .sidebar .nav{width:100%!important;min-width:0!important;min-height:46px!important;height:auto!important;padding:10px 11px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:11px!important;border-radius:8px!important;flex:initial!important}
-  .sidebar .nav i{width:24px!important;flex:0 0 24px!important;font-size:9px!important}
-  .sidebar .nav span{font-size:13px!important;white-space:normal!important;text-align:left!important}
-  .side-footer{margin-top:auto!important;display:block!important}
+  .sidebar .nav-label{display:block!important;margin:2px 8px 0!important}
+  body .app .sidebar nav{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:6px!important;overflow:visible!important;width:100%!important;min-width:0!important;flex-wrap:nowrap!important}
+  body .app .sidebar nav .nav{width:100%!important;max-width:100%!important;min-width:0!important;min-height:48px!important;height:48px!important;margin:0!important;padding:0 12px!important;display:grid!important;grid-template-columns:28px minmax(0,1fr)!important;align-items:center!important;justify-content:stretch!important;column-gap:10px!important;border-radius:9px!important;flex:none!important;text-align:left!important;white-space:normal!important}
+  body .app .sidebar nav .nav i{display:block!important;width:28px!important;min-width:28px!important;max-width:28px!important;margin:0!important;flex:none!important;font-size:10px!important;line-height:1!important;text-align:left!important}
+  body .app .sidebar nav .nav span{display:block!important;min-width:0!important;width:auto!important;margin:0!important;font-size:14px!important;line-height:1.2!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;text-align:left!important}
+  .side-footer{margin-top:auto!important;display:block!important;width:100%!important}
   .side-footer .mode-badge{display:inline-block!important}
+  .side-footer .logout{width:100%!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important}
   .mf-drawer-close{position:absolute;top:14px;right:12px;width:40px;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);display:grid;place-items:center;font-size:24px;line-height:1;z-index:2}
   .mf-drawer-backdrop{position:fixed;inset:0;background:rgba(18,27,22,.45);z-index:999;opacity:0;pointer-events:none;transition:opacity .2s ease}
   body.mf-drawer-open .mf-drawer-backdrop{opacity:1;pointer-events:auto}
