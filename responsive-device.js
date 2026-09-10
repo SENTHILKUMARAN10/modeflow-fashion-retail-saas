@@ -16,7 +16,7 @@
     if(!document.querySelector('link[data-mf-premium-fonts]')){
       var fonts=document.createElement('link');fonts.rel='stylesheet';fonts.href='https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';fonts.setAttribute('data-mf-premium-fonts','1');document.head.appendChild(fonts);
     }
-    var v='20260910-prod1';
+    var v='20260910-prod2';
     addCss('link[data-mf-premium]','premium-v5.css?v='+v,'data-mf-premium');
     addCss('link[data-mf-mobile-drawer]','mobile-drawer-v1.css?v='+v,'data-mf-mobile-drawer');
     addCss('link[data-mf-billing]','ui/billing-v1.css?v='+v,'data-mf-billing');
@@ -33,6 +33,7 @@
     addScript('script[data-salesdesk-business-suite-js],script[src*="ui/salesdesk-business-suite-v1.js"]','ui/salesdesk-business-suite-v1.js?v='+v,'data-salesdesk-business-suite-js');
     addScript('script[data-salesdesk-operations-js],script[src*="ui/salesdesk-operations-v1.js"]','ui/salesdesk-operations-v1.js?v='+v,'data-salesdesk-operations-js');
     addScript('script[data-salesdesk-catalog],script[src*="ui/salesdesk-catalog-v1.js"]','ui/salesdesk-catalog-v1.js?v='+v,'data-salesdesk-catalog');
+    addScript('script[data-salesdesk-backup],script[src*="ui/salesdesk-backup-v1.js"]','ui/salesdesk-backup-v1.js?v='+v,'data-salesdesk-backup');
     addScript('script[data-salesdesk-observability],script[src*="ui/observability-v1.js"]','ui/observability-v1.js?v='+v,'data-salesdesk-observability');
     // Keep this last: it cleans any customer-facing legacy brand text emitted by older compatible internals.
     addScript('script[data-salesdesk-brand],script[src*="ui/salesdesk-brand-v1.js"]','ui/salesdesk-brand-v1.js?v='+v,'data-salesdesk-brand');
