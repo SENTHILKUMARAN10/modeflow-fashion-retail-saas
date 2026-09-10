@@ -7,6 +7,8 @@ button,input,select,textarea{max-width:100%}
 button,.btn,.icon-btn,.nav,.filter-chip,.action-btn{min-height:var(--mf-touch)}
 input,select,textarea{font-size:16px}
 p,small,label,td,th,.subtext,.micro,.muted{overflow-wrap:anywhere}
+/* Hidden state must always win over responsive display rules. */
+.hidden,#app.hidden,.app.hidden,#login.hidden,.login-screen.hidden{display:none!important}
 .app main{min-width:0}
 .view{width:min(100%,var(--mf-page-max));margin-inline:auto}
 .page-intro,.panel-head,.utility-row,.header-actions,.total,.bill-head,.bill-total,.line-item{min-width:0}
@@ -58,16 +60,21 @@ main,.topbar,.view{color:var(--ink)}
 /* Mobile */
 @media(max-width:720px){
   body{background:var(--beige)}
-  .login-brandbar{height:62px;padding:0 16px}
+  .login-screen{min-height:100dvh}
+  .login-brandbar{min-height:76px;height:auto;padding:12px 18px calc(10px + env(safe-area-inset-top));align-items:center}
+  .login-brand{min-width:0;gap:12px}
+  .login-brand .brand-mark{width:42px;height:42px;flex:0 0 42px}
+  .login-brand strong{font-size:28px;line-height:1.1}
   .brand-note{display:none}
-  .login-stage{display:block;min-height:calc(100dvh - 62px)}
+  .login-stage{display:block;min-height:calc(100dvh - 76px)}
   .login-story{display:none}
-  .login-panel{min-height:calc(100dvh - 62px);padding:24px 16px;place-items:start stretch}
-  .login-box{width:100%;max-width:520px;margin:6vh auto 0}
+  .login-panel{min-height:calc(100dvh - 76px);padding:22px 16px 32px;place-items:start stretch}
+  .login-box{width:100%;max-width:520px;margin:3vh auto 0}
   .login-box h2{font-size:clamp(34px,10vw,44px);line-height:1.05}
 
   .app{display:block;min-height:100dvh}
-  main{width:100%;padding:0 14px 28px}
+  .app.hidden{display:none!important}
+  main{width:100%;padding:0 14px 92px}
   .topbar{position:sticky;top:0;z-index:40;height:auto;min-height:66px;margin:0 -14px 20px;padding:10px 14px;background:rgba(244,240,230,.97);backdrop-filter:blur(10px)}
   .topbar-copy{flex:1;min-width:0}
   .topbar h2{font-size:clamp(22px,7vw,28px);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
