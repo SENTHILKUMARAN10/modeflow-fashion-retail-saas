@@ -1,8 +1,8 @@
 import {json,supabaseAdmin,userFromToken} from './billing/_lib.js';
 
+const adminConfig=()=>process.env.SALES_DESK_ADMIN_EMAILS||process.env.MODEFLOW_ADMIN_EMAILS||'';
 function isAdmin(user){
-  const allowed=(process.env.MODEFLOW_ADMIN_EMAILS||'')
-    .split(',').map(v=>v.trim().toLowerCase()).filter(Boolean);
+  const allowed=adminConfig().split(',').map(v=>v.trim().toLowerCase()).filter(Boolean);
   return !!user?.email && allowed.includes(String(user.email).toLowerCase());
 }
 
@@ -12,7 +12,7 @@ export default async function handler(req,res){
     const token=(req.headers.authorization||'').replace(/^Bearer\s+/i,'');
     const user=await userFromToken(token);
     if(!user?.id) return json(res,401,{error:'Sign in required'});
-    if(!(process.env.MODEFLOW_ADMIN_EMAILS||'').trim()) return json(res,503,{error:'Admin access is not configured yet'});
+    if(!adminConfig().trim()) return json(res,503,{error:'Admin access is not configured yet'});
     if(!isAdmin(user)) return json(res,403,{error:'Admin access required'});
 
     const {businessId,action}=req.body||{};
