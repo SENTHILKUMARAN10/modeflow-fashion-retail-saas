@@ -6,10 +6,7 @@ const read=path=>fs.readFileSync(path,'utf8');
 
 test('frontend contains no privileged Supabase secret patterns',()=>{
   const files=['supabase/config.js','supabase/client.js','supabase/realtime-app.js','supabase/runtime-fixes.js'];
-  for(const file of files){
-    const text=read(file);
-    assert.doesNotMatch(text,/service_role|SUPABASE_SERVICE_ROLE|sb_secret_/i,file);
-  }
+  for(const file of files){const text=read(file);assert.doesNotMatch(text,/service_role|SUPABASE_SERVICE_ROLE|sb_secret_/i,file);}
 });
 
 test('cloud bootstrap blocks premature login submission before production controller is ready',()=>{
@@ -51,12 +48,14 @@ test('invoice items preserve historical cost for profit calculations',()=>{
   assert.match(realtime,/cost:Number\(item\.cost_price\|\|0\)/);
 });
 
-test('runtime removes hard-coded demo KPI behaviour from cloud dashboard',()=>{
+test('SalesDesk market dashboard contains live business KPI modules',()=>{
+  const market=read('ui/salesdesk-market-suite-v3.js');
   const fixes=read('supabase/runtime-fixes.js');
-  assert.match(fixes,/currentMonthSummary/);
-  assert.match(fixes,/Top-selling product/);
-  assert.match(fixes,/Business overview/);
-  assert.match(fixes,/Total sales/);
+  assert.match(market,/Today['’]s sales|Today's sales/);
+  assert.match(market,/BEST SELLERS/);
+  assert.match(market,/Pending payments/);
+  assert.match(market,/PROFIT & LOSS/);
+  assert.doesNotMatch(fixes,/Good evening, Senthil/);
 });
 
 test('role based UI prevents staff from seeing privileged actions',()=>{
