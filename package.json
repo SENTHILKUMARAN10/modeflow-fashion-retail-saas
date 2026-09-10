@@ -1,14 +1,12 @@
 {
   "name": "salesdesk-business-saas",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.cjs",
-    "test:syntax": "node --check app.js && node --check account-pages-v1.js && node --check responsive-device.js && node --check supabase/config.js && node --check supabase/client.js && node --check supabase/modeflow-core.js && node --check supabase/realtime-app.js && node --check supabase/runtime-fixes.js && node --check supabase/auth-upgrade.js && node --check ui/clean-v4.js && node --check ui/commercial-v5.js && node --check ui/billing-v1.js && node --check ui/salesdesk-brand-v1.js && node --check ui/salesdesk-business-suite-v1.js && node --check ui/salesdesk-operations-v1.js && node --check ui/salesdesk-catalog-v1.js && node --check ui/salesdesk-market-suite-v3.js && node --check ui/salesdesk-backup-v1.js && node --check ui/observability-v1.js && node --check api/upi-config.js && node --check api/manual-payment.js && node --check api/admin-payments.js && node --check api/admin-payment-action.js && node --check api/health.js && node --check api/client-error.js && node --check api/billing/_lib.js && node --check api/billing/create-subscription.js && node --check api/billing/verify-payment.js && node --check api/billing/webhook.js && node --check api/billing/status.js && node --check api/billing/cancel.js && node --check scripts/verify-tenant-isolation.mjs",
+    "test:syntax": "node --check app.js && node --check account-pages-v1.js && node --check responsive-device.js && node --check supabase/config.js && node --check supabase/client.js && node --check supabase/modeflow-core.js && node --check supabase/realtime-app.js && node --check supabase/runtime-fixes.js && node --check supabase/auth-upgrade.js && node --check ui/billing-v1.js && node --check ui/salesdesk-brand-v1.js && node --check ui/salesdesk-business-suite-v1.js && node --check ui/salesdesk-operations-v1.js && node --check ui/salesdesk-catalog-v1.js && node --check ui/salesdesk-market-suite-v3.js && node --check ui/salesdesk-pro-suite-v1.js && node --check ui/salesdesk-public-pro-v1.js && node --check ui/salesdesk-pos-v1.js && node --check ui/salesdesk-finance-v1.js && node --check ui/salesdesk-notification-inbox-v1.js && node --check ui/salesdesk-import-v1.js && node --check ui/salesdesk-account-security-v1.js && node --check ui/salesdesk-backup-v2.js && node --check ui/salesdesk-invoice-pro-v1.js && node --check ui/observability-v1.js && node --check api/upi-config.js && node --check api/manual-payment.js && node --check api/admin-payments.js && node --check api/admin-payment-action.js && node --check api/health.js && node --check api/client-error.js && node --check api/billing/_lib.js && node --check api/billing/create-subscription.js && node --check api/billing/verify-payment.js && node --check api/billing/webhook.js && node --check api/billing/status.js && node --check api/billing/cancel.js && node --check api/team/invite.js && node --check api/team/accept.js && node --check api/account/delete.js && node --check api/cron/automations.js && node --check scripts/verify-tenant-isolation.mjs",
     "test:isolation": "node scripts/verify-tenant-isolation.mjs",
     "quality": "npm run test:syntax && npm test"
   },
-  "engines": {
-    "node": ">=20"
-  }
+  "engines": {"node": ">=20"}
 }
