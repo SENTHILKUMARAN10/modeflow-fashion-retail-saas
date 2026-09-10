@@ -9,11 +9,14 @@ test('production legal pages exist', () => {
   assert.ok(fs.existsSync('terms.html'));
 });
 
-test('current mobile UI assets are present and loaded', () => {
+test('Velora uses one authoritative production design system', () => {
+  const index = read('index.html');
   const client = read('supabase/client.js');
-  const commercial = read('ui/commercial-v5.js');
-  assert.match(client, /ui\/commercial-v5\.js/);
-  assert.match(commercial, /ui\/mobile-v6\.css/);
+  assert.match(index, /velora-final\.css/);
+  assert.doesNotMatch(client, /ui\/clean-v4\.css/);
+  assert.doesNotMatch(client, /ui\/mobile-v6\.css/);
+  assert.doesNotMatch(client, /ui\/pro-v7\.css/);
+  assert.doesNotMatch(client, /ui\/commercial-v5\.js/);
 });
 
 test('legacy observer-heavy UI is not loaded by production bootstrap', () => {
