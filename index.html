@@ -12,12 +12,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="velora-v3.css?v=20260910-1205">
-<link rel="stylesheet" href="responsive-v4.css?v=20260910-1205">
-<link rel="stylesheet" href="premium-v5.css?v=20260910-1205">
-<link rel="stylesheet" href="ui/pro-polish-v8.css?v=20260910-1205">
-<link rel="stylesheet" href="ui/velora-receipt-v10.css?v=20260910-1205">
-<script src="responsive-device.js?v=20260910-1205" defer></script>
+<link rel="stylesheet" href="velora-v3.css?v=20260910-1218">
+<link rel="stylesheet" href="responsive-v4.css?v=20260910-1218">
+<link rel="stylesheet" href="premium-v5.css?v=20260910-1218">
+<link rel="stylesheet" href="ui/pro-polish-v8.css?v=20260910-1218">
+<link rel="stylesheet" href="ui/velora-final-v16.css?v=20260910-1218">
+<script src="responsive-device.js?v=20260910-1218" defer></script>
 </head>
 <body>
 <section id="login" class="login-screen">
@@ -32,7 +32,7 @@
 </section>
 <div id="app" class="app hidden">
   <aside class="sidebar">
-    <div class="brand"><span class="brand-mark small">V</span><div><b>Velora</b><small>Business workspace</small></div></div>
+    <div class="brand"><span class="brand-mark small">V</span><div><b>Velora</b><strong id="veloraClientName" class="velora-client-name">Account</strong><small>Business workspace</small></div></div>
     <div class="store-card"><span class="store-avatar">VB</span><div><b>Velora Workspace</b><small>Business · India</small></div><span>⌄</span></div>
     <p class="nav-label">WORKSPACE</p>
     <nav>
@@ -60,11 +60,12 @@
 <dialog id="productDialog"><form id="productForm" class="dialog-card"><div><p class="kicker">PRODUCT</p><h3 id="productDialogTitle">Add product</h3></div><input id="pId" type="hidden"><label>Product name<input id="pName" required placeholder="e.g. Wireless Keyboard"></label><div class="dialog-grid"><label>Cost price ₹<input id="pCost" type="number" min="0" required></label><label>Selling price ₹<input id="pPrice" type="number" min="0" required></label><label>Available stock<input id="pStock" type="number" min="0" required></label><label>Reorder level<input id="pReorder" type="number" min="0" value="5" required></label></div><div class="dialog-actions"><button type="button" id="cancelProduct" class="btn ghost">Cancel</button><button class="btn primary">Save product</button></div></form></dialog>
 <div id="toast" class="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase/config.js?v=20260910-1205"></script>
-<script src="supabase/client.js?v=20260910-1205"></script>
-<script src="app.js?v=20260910-1205"></script>
-<script src="onboarding.js?v=20260910-1205"></script>
-<script src="account-pages-v1.js?v=20260910-1205"></script>
-<script src="ui/pro-polish-v8.js?v=20260910-1205"></script>
+<script src="supabase/config.js?v=20260910-1218"></script>
+<script src="supabase/client.js?v=20260910-1218"></script>
+<script src="app.js?v=20260910-1218"></script>
+<script src="onboarding.js?v=20260910-1218"></script>
+<script src="account-pages-v1.js?v=20260910-1218"></script>
+<script src="ui/pro-polish-v8.js?v=20260910-1218"></script>
+<script src="ui/velora-final-v16.js?v=20260910-1218"></script>
 </body>
 </html>
