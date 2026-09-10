@@ -13,27 +13,41 @@
       document.head.appendChild(fonts);
       var css=document.createElement('link');
       css.rel='stylesheet';
-      css.href='premium-v5.css?v=20260910-1030';
+      css.href='premium-v5.css?v=20260910-1050';
       css.setAttribute('data-mf-premium','1');
       document.head.appendChild(css);
     }
     if(!document.querySelector('link[data-mf-mobile-drawer]')){
       var drawerCss=document.createElement('link');
       drawerCss.rel='stylesheet';
-      drawerCss.href='mobile-drawer-v1.css?v=20260910-1030';
+      drawerCss.href='mobile-drawer-v1.css?v=20260910-1050';
       drawerCss.setAttribute('data-mf-mobile-drawer','1');
       document.head.appendChild(drawerCss);
     }
+    if(!document.querySelector('link[data-mf-billing]')){
+      var billingCss=document.createElement('link');
+      billingCss.rel='stylesheet';
+      billingCss.href='ui/billing-v1.css?v=20260910-1050';
+      billingCss.setAttribute('data-mf-billing','1');
+      document.head.appendChild(billingCss);
+    }
     if(!document.querySelector('script[data-mf-account-pages]')){
       var js=document.createElement('script');
-      js.src='account-pages-v1.js?v=20260910-1030';
+      js.src='account-pages-v1.js?v=20260910-1050';
       js.defer=true;
       js.setAttribute('data-mf-account-pages','1');
       document.body.appendChild(js);
     }
+    if(!document.querySelector('script[data-mf-billing]')){
+      var billingJs=document.createElement('script');
+      billingJs.src='ui/billing-v1.js?v=20260910-1050';
+      billingJs.defer=true;
+      billingJs.setAttribute('data-mf-billing','1');
+      document.body.appendChild(billingJs);
+    }
     if(!document.querySelector('script[data-mf-mobile-drawer]')){
       var drawerJs=document.createElement('script');
-      drawerJs.src='mobile-drawer-v1.js?v=20260910-1030';
+      drawerJs.src='mobile-drawer-v1.js?v=20260910-1050';
       drawerJs.defer=true;
       drawerJs.setAttribute('data-mf-mobile-drawer','1');
       document.body.appendChild(drawerJs);
