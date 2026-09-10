@@ -1,26 +1,31 @@
 (function(){
   function applyDeviceClass(){
-    var sw=Math.min(window.screen && screen.width || 9999, window.screen && screen.height || 9999);
-    var phone=sw<=600 || window.innerWidth<=767;
+    var sw=Math.min(window.screen&&screen.width||9999,window.screen&&screen.height||9999);
+    var phone=sw<=600||window.innerWidth<=767;
     document.documentElement.classList.toggle('device-phone',phone);
   }
-  function loadPremiumLayer(){
-    if(!document.querySelector('link[data-mf-premium]')){
+  function addCss(selector,href,attr){
+    if(document.querySelector(selector))return;
+    var css=document.createElement('link');css.rel='stylesheet';css.href=href;css.setAttribute(attr,'1');document.head.appendChild(css);
+  }
+  function addScript(selector,src,attr){
+    if(document.querySelector(selector))return;
+    var js=document.createElement('script');js.src=src;js.async=false;js.setAttribute(attr,'1');document.body.appendChild(js);
+  }
+  function loadDeviceLayer(){
+    if(!document.querySelector('link[data-mf-premium-fonts]')){
       var fonts=document.createElement('link');fonts.rel='stylesheet';fonts.href='https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';fonts.setAttribute('data-mf-premium-fonts','1');document.head.appendChild(fonts);
-      var css=document.createElement('link');css.rel='stylesheet';css.href='premium-v5.css?v=20260910-1230';css.setAttribute('data-mf-premium','1');document.head.appendChild(css);
     }
-    if(!document.querySelector('link[data-mf-mobile-drawer]')){var drawerCss=document.createElement('link');drawerCss.rel='stylesheet';drawerCss.href='mobile-drawer-v1.css?v=20260910-1230';drawerCss.setAttribute('data-mf-mobile-drawer','1');document.head.appendChild(drawerCss);}
-    if(!document.querySelector('link[data-mf-billing]')){var billingCss=document.createElement('link');billingCss.rel='stylesheet';billingCss.href='ui/billing-v1.css?v=20260910-1230';billingCss.setAttribute('data-mf-billing','1');document.head.appendChild(billingCss);}
-    if(!document.querySelector('link[data-mf-pro-polish]')){var polishCss=document.createElement('link');polishCss.rel='stylesheet';polishCss.href='ui/pro-polish-v8.css?v=20260910-1230';polishCss.setAttribute('data-mf-pro-polish','1');document.head.appendChild(polishCss);}
-    if(!document.querySelector('link[data-velora-final17]')){var finalCss=document.createElement('link');finalCss.rel='stylesheet';finalCss.href='ui/velora-final-v17.css?v=20260910-1230';finalCss.setAttribute('data-velora-final17','1');document.head.appendChild(finalCss);}
-    if(!document.querySelector('script[data-mf-account-pages],script[src*="account-pages-v1.js"]')){var js=document.createElement('script');js.src='account-pages-v1.js?v=20260910-1230';js.defer=true;js.setAttribute('data-mf-account-pages','1');document.body.appendChild(js);}
-    if(!document.querySelector('script[data-mf-billing],script[src*="ui/billing-v1.js"]')){var billingJs=document.createElement('script');billingJs.src='ui/billing-v1.js?v=20260910-1230';billingJs.defer=true;billingJs.setAttribute('data-mf-billing','1');document.body.appendChild(billingJs);}
-    if(!document.querySelector('script[data-mf-mobile-drawer],script[src*="mobile-drawer-v1.js"]')){var drawerJs=document.createElement('script');drawerJs.src='mobile-drawer-v1.js?v=20260910-1230';drawerJs.defer=true;drawerJs.setAttribute('data-mf-mobile-drawer','1');document.body.appendChild(drawerJs);}
-    if(!document.querySelector('script[data-mf-pro-polish],script[src*="ui/pro-polish-v8.js"]')){var polishJs=document.createElement('script');polishJs.src='ui/pro-polish-v8.js?v=20260910-1230';polishJs.defer=true;polishJs.setAttribute('data-mf-pro-polish','1');document.body.appendChild(polishJs);}
-    if(!document.querySelector('script[data-velora-final17],script[src*="ui/velora-final-v17.js"]')){var finalJs=document.createElement('script');finalJs.src='ui/velora-final-v17.js?v=20260910-1230';finalJs.async=false;finalJs.setAttribute('data-velora-final17','1');document.body.appendChild(finalJs);}
+    addCss('link[data-mf-premium]','premium-v5.css?v=20260910-1245','data-mf-premium');
+    addCss('link[data-mf-mobile-drawer]','mobile-drawer-v1.css?v=20260910-1245','data-mf-mobile-drawer');
+    addCss('link[data-mf-billing]','ui/billing-v1.css?v=20260910-1245','data-mf-billing');
+    addScript('script[data-mf-account-pages],script[src*="account-pages-v1.js"]','account-pages-v1.js?v=20260910-1245','data-mf-account-pages');
+    addScript('script[data-mf-billing],script[src*="ui/billing-v1.js"]','ui/billing-v1.js?v=20260910-1245','data-mf-billing');
+    addScript('script[data-mf-mobile-drawer],script[src*="mobile-drawer-v1.js"]','mobile-drawer-v1.js?v=20260910-1245','data-mf-mobile-drawer');
+    // Invoice rendering is intentionally NOT loaded here. The page starts the authoritative v18 renderer exactly once.
   }
   applyDeviceClass();
   window.addEventListener('resize',applyDeviceClass,{passive:true});
   window.addEventListener('orientationchange',applyDeviceClass,{passive:true});
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadPremiumLayer,{once:true});else loadPremiumLayer();
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadDeviceLayer,{once:true});else loadDeviceLayer();
 })();
