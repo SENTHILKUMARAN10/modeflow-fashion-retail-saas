@@ -1,5 +1,6 @@
 // Velora Supabase cloud adapter.
 (function () {
+  const responsiveCss=document.createElement('link');responsiveCss.rel='stylesheet';responsiveCss.href='responsive-v4.css?v=20260910-0951';document.head.appendChild(responsiveCss);
   const cfg = window.TK_SUPABASE_CONFIG;
   if (!cfg || !cfg.url || !cfg.publishableKey || cfg.url.includes('YOUR-PROJECT')) { window.tkCloud = { enabled: false, reason: 'Supabase is not configured yet.' }; return; }
   if (!window.supabase?.createClient) { window.tkCloud = { enabled: false, reason: 'Supabase SDK not loaded.' }; return; }
