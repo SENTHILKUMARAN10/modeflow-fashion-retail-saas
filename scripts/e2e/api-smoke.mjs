@@ -1,12 +1,14 @@
 // SalesDesk staging E2E smoke verifier.
 // Read-only by default. Writes require explicit staging-only opt-in.
-// Required: BASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY, SALESDESK_E2E_EMAIL, SALESDESK_E2E_PASSWORD.
+// Required: SUPABASE_URL, SUPABASE_ANON_KEY, SALESDESK_E2E_EMAIL, SALESDESK_E2E_PASSWORD.
+// BASE_URL is required unless SALESDESK_E2E_SKIP_APP_HEALTH=true.
 // Optional writes: SALESDESK_E2E_WRITES=true, SALESDESK_E2E_ENV=staging,
 // SALESDESK_E2E_BUSINESS_ID, SALESDESK_E2E_PRODUCT_ID.
 
-const need=['BASE_URL','SUPABASE_URL','SUPABASE_ANON_KEY','SALESDESK_E2E_EMAIL','SALESDESK_E2E_PASSWORD'];
+const skipAppHealth=process.env.SALESDESK_E2E_SKIP_APP_HEALTH==='true';
+const need=['SUPABASE_URL','SUPABASE_ANON_KEY','SALESDESK_E2E_EMAIL','SALESDESK_E2E_PASSWORD',...(skipAppHealth?[]:['BASE_URL'])];
 for(const k of need)if(!process.env[k]){console.error(`Missing ${k}`);process.exit(2);}
-const app=process.env.BASE_URL.replace(/\/$/,'');const sb=process.env.SUPABASE_URL.replace(/\/$/,'');const anon=process.env.SUPABASE_ANON_KEY;
+const app=(process.env.BASE_URL||'').replace(/\/$/,'');const sb=process.env.SUPABASE_URL.replace(/\/$/,'');const anon=process.env.SUPABASE_ANON_KEY;
 const writes=process.env.SALESDESK_E2E_WRITES==='true';
 if(writes&&process.env.SALESDESK_E2E_ENV!=='staging'){console.error('Write-mode E2E is permitted only when SALESDESK_E2E_ENV=staging.');process.exit(2);}
 if(writes&&(!process.env.SALESDESK_E2E_BUSINESS_ID||!process.env.SALESDESK_E2E_PRODUCT_ID)){console.error('Write-mode E2E requires dedicated staging business/product IDs.');process.exit(2);}
@@ -17,8 +19,10 @@ async function rest(token,path,options={}){return http(`${sb}/rest/v1/${path}`,{
 async function rpc(token,name,body){return rest(token,`rpc/${name}`,{method:'POST',body:JSON.stringify(body)});}
 function assertOk(r,label){if(r.ok)pass(label);else fail(`${label} (${r.status})`,r.body);}
 try{
- const landing=await http(`${app}/`);assertOk(landing,'public landing loads');
- const health=await http(`${app}/api/health`);assertOk(health,'health endpoint responds');if(health.ok&&health.body?.service==='SalesDesk')pass('health identifies SalesDesk');else fail('health service identity',health.body);
+ if(!skipAppHealth){
+   const landing=await http(`${app}/`);assertOk(landing,'public landing loads');
+   const health=await http(`${app}/api/health`);assertOk(health,'health endpoint responds');if(health.ok&&health.body?.service==='SalesDesk')pass('health identifies SalesDesk');else fail('health service identity',health.body);
+ }else pass('app health check intentionally skipped for direct staging database verification');
  const token=await signIn();pass('dedicated E2E account signs in');
  const membership=await rest(token,'business_members?select=business_id,role,is_active&order=created_at.asc&limit=1');assertOk(membership,'workspace membership loads');const member=membership.body?.[0];if(!member?.business_id)throw new Error('E2E account has no workspace');
  const businessId=process.env.SALESDESK_E2E_BUSINESS_ID||member.business_id;if(businessId!==member.business_id&&writes)throw new Error('Write-mode business ID must match the E2E account workspace');
