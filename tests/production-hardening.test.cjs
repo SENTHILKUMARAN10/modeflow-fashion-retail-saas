@@ -10,6 +10,15 @@ test('production hardening migration protects tenant integrity and high-traffic 
   assert.match(sql,/Warehouse does not belong to this business/);
 });
 
+test('anonymous callers cannot execute tenant security helpers',()=>{
+  const sql=read('supabase/migrations/202609111500_salesdesk_restrict_anon_tenant_helpers.sql');
+  for(const fn of ['has_business_role','is_business_member','has_active_subscription','salesdesk_has_branch_access','salesdesk_can','salesdesk_role_capabilities']){
+    assert.ok(sql.includes(`revoke execute on function public.${fn}`),`missing anon revoke for ${fn}`);
+  }
+  assert.ok(sql.includes('from anon'));
+  assert.ok(sql.includes('to authenticated'));
+});
+
 test('tenant verifier covers new production tables and cross-tenant RPC access',()=>{
   const js=read('scripts/verify-tenant-isolation.mjs');
   for(const token of ['recurring_expense_schedules','recurring_invoice_schedules','scheduled_reports','automation_deliveries','automation_executions','salesdesk_role_capabilities','salesdesk_daily_brief_v2'])assert.ok(js.includes(token),`missing ${token}`);
