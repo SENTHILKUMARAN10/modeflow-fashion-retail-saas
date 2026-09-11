@@ -1,0 +1,38 @@
+name: SalesDesk staging load test
+
+on:
+  push:
+    branches:
+      - salesdesk-production-v1
+    paths:
+      - '.github/workflows/staging-load.yml'
+      - 'scripts/load/k6-salesdesk.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install k6
+        run: |
+          sudo gpg -k >/dev/null
+          curl -fsSL https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y k6
+      - name: Run SalesDesk staged capacity test
+        env:
+          BASE_URL: https://modeflow-fashion-retail-saas-git-salesd-205c77-senthilkumaran10.vercel.app
+          ALLOW_PRODUCTION_LOAD: 'true'
+          SUPABASE_URL: ${{ secrets.SALESDESK_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SALESDESK_TEST_SUPABASE_ANON_KEY }}
+          TEST_EMAIL: ${{ secrets.SALESDESK_TEST_A_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.SALESDESK_TEST_A_PASSWORD }}
+          TEST_BUSINESS_ID: e80b5635-95d7-4c43-8035-5081aa07a8d8
+          ALLOW_TRANSACTION_WRITES: 'false'
+        run: k6 run scripts/load/k6-salesdesk.js
