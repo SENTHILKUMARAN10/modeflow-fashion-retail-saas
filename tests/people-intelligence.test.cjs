@@ -27,9 +27,9 @@ test('document conversion and analytics are branch scoped',()=>{
 });
 
 test('team APIs protect owner/admin boundaries and branch assignment',()=>{
-  const files=['api/team/list.js','api/team/update.js','api/team/remove.js','api/team/revoke-invite.js','api/team/invite.js','api/team/accept.js'];
+  const files=['server/api/team/list.js','server/api/team/update.js','server/api/team/remove.js','server/api/team/revoke-invite.js','server/api/team/invite.js','server/api/team/accept.js'];
   for(const f of files)assert.ok(fs.existsSync(f),`missing ${f}`);
-  const update=read('api/team/update.js'),remove=read('api/team/remove.js'),invite=read('api/team/invite.js'),accept=read('api/team/accept.js');
+  const update=read('server/api/team/update.js'),remove=read('server/api/team/remove.js'),invite=read('server/api/team/invite.js'),accept=read('server/api/team/accept.js');
   assert.match(update,/Only the owner can manage admin access/);
   assert.match(remove,/business owner cannot be removed/);
   assert.match(invite,/branchIds/);
