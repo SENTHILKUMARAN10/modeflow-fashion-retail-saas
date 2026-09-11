@@ -38,10 +38,19 @@ jobs:
           test -f supabase/migrations/202609102231_salesdesk_role_permissions.sql
           test -f supabase/migrations/202609102232_salesdesk_transactions_v2.sql
           test -f supabase/migrations/202609102233_salesdesk_automation_engine.sql
+          test -f supabase/migrations/202609110840_salesdesk_branch_documents_completion.sql
+          test -f supabase/migrations/202609111000_salesdesk_people_permissions_intelligence.sql
+          test -f supabase/migrations/202609111005_salesdesk_role_rpc_hardening.sql
+          test -f supabase/migrations/202609111006_salesdesk_branch_scoped_intelligence.sql
           test -f ui/salesdesk-pro-suite-v1.js
-          test -f ui/salesdesk-pos-v1.js
-          test -f ui/salesdesk-finance-v1.js
+          test -f ui/salesdesk-operations-pro-v2.js
+          test -f ui/salesdesk-people-intelligence-v1.js
           test -f api/team/invite.js
+          test -f api/team/accept.js
+          test -f api/team/list.js
+          test -f api/team/update.js
+          test -f api/team/remove.js
+          test -f api/team/revoke-invite.js
           test -f api/account/delete.js
           test -f api/cron/automations.js
           test -f scripts/verify-tenant-isolation.mjs
@@ -56,3 +65,9 @@ jobs:
           grep -q "verifyHmac" api/billing/verify-payment.js
           grep -q "RAZORPAY_WEBHOOK_SECRET" api/billing/webhook.js
           grep -q "has_active_subscription" supabase/migrations/20260910_salesdesk_scale_100.sql
+      - name: Ensure business actions enforce server-side permissions
+        shell: bash
+        run: |
+          grep -q "salesdesk_can" supabase/migrations/202609111005_salesdesk_role_rpc_hardening.sql
+          grep -q "salesdesk_has_branch_access" supabase/migrations/202609111006_salesdesk_branch_scoped_intelligence.sql
+          grep -q "business owner cannot be removed" api/team/remove.js
