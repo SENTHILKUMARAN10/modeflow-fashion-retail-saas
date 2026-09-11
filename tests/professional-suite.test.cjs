@@ -21,7 +21,7 @@ test('professional UI exposes command centre, CRM, documents, branches and autom
 });
 
 test('team invitation endpoints hash tokens and enforce authenticated acceptance',()=>{
-  const invite=read('api/team/invite.js'),accept=read('api/team/accept.js');
+  const invite=read('server/api/team/invite.js'),accept=read('server/api/team/accept.js');
   assert.match(invite,/randomBytes\(32\)/);
   assert.match(invite,/sha256/);
   assert.match(invite,/owner.*admin|admin.*owner/s);
