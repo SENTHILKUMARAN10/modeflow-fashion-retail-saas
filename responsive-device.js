@@ -8,7 +8,7 @@
   function addScript(selector,src,attr){if(document.querySelector(selector))return;var js=document.createElement('script');js.src=src;js.async=false;js.setAttribute(attr,'1');document.body.appendChild(js)}
   function loadDeviceLayer(){
     if(!document.querySelector('link[data-mf-premium-fonts]')){var fonts=document.createElement('link');fonts.rel='stylesheet';fonts.href='https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';fonts.setAttribute('data-mf-premium-fonts','1');document.head.appendChild(fonts)}
-    var v='20260910-pro1';
+    var v='20260911-pro2';
     addCss('link[data-mf-premium]','premium-v5.css?v='+v,'data-mf-premium');
     addCss('link[data-mf-mobile-drawer]','mobile-drawer-v1.css?v='+v,'data-mf-mobile-drawer');
     addCss('link[data-mf-billing]','ui/billing-v1.css?v='+v,'data-mf-billing');
@@ -17,6 +17,7 @@
     addCss('link[data-salesdesk-operations]','ui/salesdesk-operations-v1.css?v='+v,'data-salesdesk-operations');
     addCss('link[data-salesdesk-market-suite]','ui/salesdesk-market-suite-v2.css?v='+v,'data-salesdesk-market-suite');
     addCss('link[data-salesdesk-pro-suite]','ui/salesdesk-pro-suite-v1.css?v='+v,'data-salesdesk-pro-suite');
+    addCss('link[data-salesdesk-operations-pro2]','ui/salesdesk-operations-pro-v2.css?v='+v,'data-salesdesk-operations-pro2');
 
     addScript('script[data-velora-public-v2],script[src*="ui/public-experience-v2.js"]','ui/public-experience-v2.js?v='+v,'data-velora-public-v2');
     addScript('script[data-salesdesk-public-pro],script[src*="ui/salesdesk-public-pro-v1.js"]','ui/salesdesk-public-pro-v1.js?v='+v,'data-salesdesk-public-pro');
@@ -39,6 +40,7 @@
     addScript('script[data-salesdesk-observability],script[src*="ui/observability-v1.js"]','ui/observability-v1.js?v='+v,'data-salesdesk-observability');
     addScript('script[data-salesdesk-brand],script[src*="ui/salesdesk-brand-v1.js"]','ui/salesdesk-brand-v1.js?v='+v,'data-salesdesk-brand');
     addScript('script[data-salesdesk-invoice-pro],script[src*="ui/salesdesk-invoice-pro-v1.js"]','ui/salesdesk-invoice-pro-v1.js?v='+v,'data-salesdesk-invoice-pro');
+    addScript('script[data-salesdesk-operations-pro2],script[src*="ui/salesdesk-operations-pro-v2.js"]','ui/salesdesk-operations-pro-v2.js?v='+v,'data-salesdesk-operations-pro2');
   }
   applyDeviceClass();window.addEventListener('resize',applyDeviceClass,{passive:true});window.addEventListener('orientationchange',applyDeviceClass,{passive:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadDeviceLayer,{once:true});else loadDeviceLayer();
