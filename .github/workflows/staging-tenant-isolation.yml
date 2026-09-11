@@ -1,0 +1,33 @@
+name: SalesDesk staging tenant isolation
+
+on:
+  push:
+    branches:
+      - salesdesk-production-v1
+    paths:
+      - '.github/workflows/staging-tenant-isolation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tenant-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Baseline quality checks
+        run: npm run quality
+      - name: Verify staging tenant isolation
+        env:
+          SUPABASE_URL: ${{ secrets.SALESDESK_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SALESDESK_TEST_SUPABASE_ANON_KEY }}
+          SALESDESK_TEST_A_EMAIL: ${{ secrets.SALESDESK_TEST_A_EMAIL }}
+          SALESDESK_TEST_A_PASSWORD: ${{ secrets.SALESDESK_TEST_A_PASSWORD }}
+          SALESDESK_TEST_B_EMAIL: ${{ secrets.SALESDESK_TEST_B_EMAIL }}
+          SALESDESK_TEST_B_PASSWORD: ${{ secrets.SALESDESK_TEST_B_PASSWORD }}
+        run: npm run test:isolation
