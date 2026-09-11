@@ -1,13 +1,15 @@
 // SalesDesk live/staging role-capability verifier.
 // Use a dedicated test account and repeat for each role.
 // Required: SUPABASE_URL, SUPABASE_ANON_KEY, SALESDESK_ROLE_EMAIL,
-// SALESDESK_ROLE_PASSWORD, SALESDESK_ROLE_BUSINESS_ID, SALESDESK_EXPECTED_ROLE.
+// SALESDESK_ROLE_PASSWORD, SALESDESK_EXPECTED_ROLE.
+// Optional: SALESDESK_ROLE_BUSINESS_ID. If omitted, the verifier discovers the
+// active membership for the expected role automatically.
 
-const need=['SUPABASE_URL','SUPABASE_ANON_KEY','SALESDESK_ROLE_EMAIL','SALESDESK_ROLE_PASSWORD','SALESDESK_ROLE_BUSINESS_ID','SALESDESK_EXPECTED_ROLE'];
+const need=['SUPABASE_URL','SUPABASE_ANON_KEY','SALESDESK_ROLE_EMAIL','SALESDESK_ROLE_PASSWORD','SALESDESK_EXPECTED_ROLE'];
 for(const k of need)if(!process.env[k]){console.error(`Missing ${k}`);process.exit(2);}
 const base=process.env.SUPABASE_URL.replace(/\/$/,'');
 const anon=process.env.SUPABASE_ANON_KEY;
-const business=process.env.SALESDESK_ROLE_BUSINESS_ID;
+let business=process.env.SALESDESK_ROLE_BUSINESS_ID||'';
 const expected=process.env.SALESDESK_EXPECTED_ROLE;
 const allCaps=['workspace.read','reports.read','products.read','customers.read','suppliers.read','products.manage','customers.manage','sales.create','sales.manage','crm.manage','expenses.manage','purchases.manage','finance.manage','inventory.manage','branches.manage','goals.manage','automation.manage'];
 const matrix={
@@ -34,8 +36,15 @@ async function request(token,path,body){
 try{
  const token=await signIn();
  const u=await (await fetch(`${base}/auth/v1/user`,{headers:{apikey:anon,authorization:`Bearer ${token}`}})).json();
- const m=await request(token,`business_members?business_id=eq.${encodeURIComponent(business)}&user_id=eq.${encodeURIComponent(u.id)}&select=role,is_active&limit=1`);
- if(!m.ok||!m.body?.[0])throw new Error('Membership not found');
+ let m;
+ if(business){
+   m=await request(token,`business_members?business_id=eq.${encodeURIComponent(business)}&user_id=eq.${encodeURIComponent(u.id)}&select=business_id,role,is_active&limit=1`);
+ }else{
+   m=await request(token,`business_members?user_id=eq.${encodeURIComponent(u.id)}&role=eq.${encodeURIComponent(expected)}&is_active=eq.true&select=business_id,role,is_active&limit=2`);
+   if(m.ok&&Array.isArray(m.body)&&m.body.length===1)business=m.body[0].business_id;
+ }
+ if(!m.ok||!m.body?.[0]||!business)throw new Error('Membership not found');
+ if(m.body.length>1&&!process.env.SALESDESK_ROLE_BUSINESS_ID)throw new Error('Multiple matching memberships found; set SALESDESK_ROLE_BUSINESS_ID');
  if(m.body[0].role!==expected||m.body[0].is_active===false)throw new Error(`Expected active ${expected} membership`);
  const allowed=new Set(matrix[expected]);let failed=false;
  for(const cap of allCaps){
