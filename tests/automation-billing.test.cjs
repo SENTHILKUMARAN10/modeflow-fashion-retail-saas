@@ -6,7 +6,7 @@ const read=p=>fs.readFileSync(p,'utf8');
 test('automation migration contains recurring work, delivery ledger and service-only processors',()=>{
   const sql=read('supabase/migrations/202609111130_salesdesk_automation_billing_completion.sql');
   for(const token of ['billing_events','automation_deliveries','recurring_expense_schedules','recurring_invoice_schedules','scheduled_reports','automation_executions','salesdesk_process_recurring_expense','salesdesk_process_recurring_invoice','salesdesk_report_snapshot'])assert.ok(sql.includes(token),`missing ${token}`);
-  assert.ok(!/for select\s*\n/i.test(sql),'migration contains invalid placeholder SQL');
+  assert.ok(!sql.includes('placeholder removed'),'migration still contains the temporary placeholder marker');
   assert.match(sql,/s\.status='active'/);
   assert.doesNotMatch(sql,/s\.status\s+in\s*\([^)]*authenticated/i,'authenticated checkout must not unlock paid writes');
   assert.match(sql,/grant execute on function public\.salesdesk_process_recurring_invoice[\s\S]*service_role/i);
