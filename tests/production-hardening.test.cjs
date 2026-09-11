@@ -19,6 +19,15 @@ test('anonymous callers cannot execute tenant security helpers',()=>{
   assert.ok(sql.includes('to authenticated'));
 });
 
+test('scale polish narrows public RLS policies and covers foreign-key indexes',()=>{
+  const sql=read('supabase/migrations/202609111520_salesdesk_security_and_scale_polish.sql');
+  assert.ok(sql.includes("alter policy %I on public.%I to authenticated"));
+  assert.ok(sql.includes('(select auth.uid())'));
+  assert.ok(sql.includes("con.contype='f'"));
+  assert.ok(sql.includes('create index if not exists'));
+  assert.ok(sql.includes('drop index if exists public.idx_invoices_business_created'));
+});
+
 test('tenant verifier covers new production tables and cross-tenant RPC access',()=>{
   const js=read('scripts/verify-tenant-isolation.mjs');
   for(const token of ['recurring_expense_schedules','recurring_invoice_schedules','scheduled_reports','automation_deliveries','automation_executions','salesdesk_role_capabilities','salesdesk_daily_brief_v2'])assert.ok(js.includes(token),`missing ${token}`);
