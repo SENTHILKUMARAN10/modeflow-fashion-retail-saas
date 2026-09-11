@@ -42,9 +42,18 @@ jobs:
           test -f supabase/migrations/202609111000_salesdesk_people_permissions_intelligence.sql
           test -f supabase/migrations/202609111005_salesdesk_role_rpc_hardening.sql
           test -f supabase/migrations/202609111006_salesdesk_branch_scoped_intelligence.sql
+          test -f supabase/migrations/202609111130_salesdesk_automation_billing_completion.sql
+          test -f supabase/migrations/202609111131_salesdesk_billing_plan_changes.sql
+          test -f supabase/migrations/202609111132_salesdesk_recurring_branch_inventory.sql
           test -f ui/salesdesk-pro-suite-v1.js
           test -f ui/salesdesk-operations-pro-v2.js
           test -f ui/salesdesk-people-intelligence-v1.js
+          test -f ui/salesdesk-automation-center-v1.js
+          test -f api/automation/_delivery.js
+          test -f api/automation/status.js
+          test -f api/automation/test-delivery.js
+          test -f api/billing/change-plan.js
+          test -f api/billing/sync.js
           test -f api/team/invite.js
           test -f api/team/accept.js
           test -f api/team/list.js
@@ -53,18 +62,38 @@ jobs:
           test -f api/team/revoke-invite.js
           test -f api/account/delete.js
           test -f api/cron/automations.js
+          test -f .github/workflows/salesdesk-automation-cron.yml
           test -f scripts/verify-tenant-isolation.mjs
           test -f scripts/load/k6-salesdesk.js
           test -f scripts/backup/backup.sh
           test -f scripts/backup/restore-test.sh
           test -f api/health.js
           test -f api/client-error.js
-      - name: Ensure production billing cannot trust client-only activation
+      - name: Ensure production billing is provider authoritative
         shell: bash
         run: |
           grep -q "verifyHmac" api/billing/verify-payment.js
+          grep -q "payment.status!=='captured'" api/billing/verify-payment.js
           grep -q "RAZORPAY_WEBHOOK_SECRET" api/billing/webhook.js
-          grep -q "has_active_subscription" supabase/migrations/20260910_salesdesk_scale_100.sql
+          grep -q "x-razorpay-event-id" api/billing/webhook.js
+          grep -q "billing_events" api/billing/webhook.js
+          grep -q "schedule_change_at:'cycle_end'" api/billing/change-plan.js
+          grep -q "cancel_at_period_end:true" api/billing/cancel.js
+          grep -q "s.status='active'" supabase/migrations/202609111130_salesdesk_automation_billing_completion.sql
+          if grep -qE "s\.status[[:space:]]+in[[:space:]]*\([^)]*authenticated" supabase/migrations/202609111130_salesdesk_automation_billing_completion.sql; then
+            echo 'Authenticated checkout must not unlock paid access.'
+            exit 1
+          fi
+      - name: Ensure production automation is protected
+        shell: bash
+        run: |
+          grep -q "CRON_SECRET" api/cron/automations.js
+          grep -q "RESEND_API_KEY" api/automation/_delivery.js
+          grep -q "WHATSAPP_ACCESS_TOKEN" api/automation/_delivery.js
+          grep -q "type:'template'" api/automation/_delivery.js
+          grep -q "SALESDESK_CRON_SECRET" .github/workflows/salesdesk-automation-cron.yml
+          grep -q "salesdesk_process_recurring_invoice" supabase/migrations/202609111132_salesdesk_recurring_branch_inventory.sql
+          grep -q "inventory_balances" supabase/migrations/202609111132_salesdesk_recurring_branch_inventory.sql
       - name: Ensure business actions enforce server-side permissions
         shell: bash
         run: |
