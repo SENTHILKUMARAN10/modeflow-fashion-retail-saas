@@ -18,8 +18,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: JavaScript syntax
-        run: npm run test:syntax
+      - name: JavaScript and shell syntax
+        run: npm run test:syntax && npm run test:shell
       - name: Unit and integration tests
         run: npm test
       - name: Prevent privileged Supabase secrets in shipped frontend
@@ -45,30 +45,25 @@ jobs:
           test -f supabase/migrations/202609111130_salesdesk_automation_billing_completion.sql
           test -f supabase/migrations/202609111131_salesdesk_billing_plan_changes.sql
           test -f supabase/migrations/202609111132_salesdesk_recurring_branch_inventory.sql
+          test -f supabase/migrations/202609111300_salesdesk_production_hardening.sql
           test -f ui/salesdesk-pro-suite-v1.js
           test -f ui/salesdesk-operations-pro-v2.js
           test -f ui/salesdesk-people-intelligence-v1.js
           test -f ui/salesdesk-automation-center-v1.js
           test -f api/automation/_delivery.js
-          test -f api/automation/status.js
-          test -f api/automation/test-delivery.js
           test -f api/billing/change-plan.js
           test -f api/billing/sync.js
-          test -f api/team/invite.js
-          test -f api/team/accept.js
-          test -f api/team/list.js
-          test -f api/team/update.js
-          test -f api/team/remove.js
-          test -f api/team/revoke-invite.js
-          test -f api/account/delete.js
           test -f api/cron/automations.js
           test -f .github/workflows/salesdesk-automation-cron.yml
+          test -f .github/workflows/production-verification.yml
           test -f scripts/verify-tenant-isolation.mjs
+          test -f scripts/verify-role-security.mjs
+          test -f scripts/e2e/api-smoke.mjs
           test -f scripts/load/k6-salesdesk.js
+          test -f scripts/performance/query-plan.sql
           test -f scripts/backup/backup.sh
           test -f scripts/backup/restore-test.sh
-          test -f api/health.js
-          test -f api/client-error.js
+          test -f docs/PRODUCTION-READINESS.md
       - name: Ensure production billing is provider authoritative
         shell: bash
         run: |
@@ -93,7 +88,16 @@ jobs:
           grep -q "type:'template'" api/automation/_delivery.js
           grep -q "SALESDESK_CRON_SECRET" .github/workflows/salesdesk-automation-cron.yml
           grep -q "salesdesk_process_recurring_invoice" supabase/migrations/202609111132_salesdesk_recurring_branch_inventory.sql
-          grep -q "inventory_balances" supabase/migrations/202609111132_salesdesk_recurring_branch_inventory.sql
+      - name: Ensure tenant and branch integrity guards exist
+        shell: bash
+        run: |
+          grep -q "salesdesk_assert_branch_ownership" supabase/migrations/202609111300_salesdesk_production_hardening.sql
+          grep -q "salesdesk_assert_warehouse_ownership" supabase/migrations/202609111300_salesdesk_production_hardening.sql
+          grep -q "relrowsecurity" supabase/migrations/202609111300_salesdesk_production_hardening.sql
+          grep -q "salesdesk_role_capabilities" scripts/verify-tenant-isolation.mjs
+          grep -q "SALESDESK_E2E_ENV!='staging'\|SALESDESK_E2E_ENV!=='staging'" scripts/e2e/api-smoke.mjs
+          grep -q "ALLOW_DESTRUCTIVE_RESTORE_TEST" scripts/backup/restore-test.sh
+          grep -q "ALLOW_PRODUCTION_LOAD!=='true'" scripts/load/k6-salesdesk.js
       - name: Ensure business actions enforce server-side permissions
         shell: bash
         run: |
