@@ -32,7 +32,7 @@ try{
    ['branches',`branches?business_id=eq.${id}&select=id,name&limit=20`],
    ['automation rules',`automation_rules?business_id=eq.${id}&select=id,name,is_enabled&limit=20`]
  ])assertOk(await rest(token,path),`${label} loads under RLS`);
- const brief=await rpc(token,'salesdesk_daily_brief_v2',{p_business_id:businessId,p_branch_id:null});assertOk(brief,'Daily Brief RPC works');
+ const brief=await rpc(token,'salesdesk_daily_brief_v2',{p_business_id:businessId});assertOk(brief,'Daily Brief RPC works');
  if(writes){
    const productId=process.env.SALESDESK_E2E_PRODUCT_ID;const nonce=Date.now();
    const quote=await rpc(token,'create_sales_document_v2',{p_business_id:businessId,p_branch_id:null,p_document_type:'quote',p_customer_name:`E2E Customer ${nonce}`,p_customer_phone:'',p_items:[{product_id:productId,quantity:1,rate:Number(process.env.SALESDESK_E2E_RATE||1)}],p_expiry_date:null,p_notes:'SalesDesk staging E2E'});assertOk(quote,'quotation can be created');
