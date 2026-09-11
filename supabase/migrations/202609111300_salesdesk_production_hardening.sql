@@ -30,7 +30,8 @@ create index if not exists idx_sales_documents_business_status
 create index if not exists idx_automation_deliveries_status_created
   on public.automation_deliveries(business_id,status,created_at desc);
 create index if not exists idx_notifications_unread_created
-  on public.business_notifications(business_id,is_read,created_at desc);
+  on public.business_notifications(business_id,created_at desc)
+  where read_at is null;
 create index if not exists idx_inventory_balances_business_product
   on public.inventory_balances(business_id,product_id,warehouse_id);
 
