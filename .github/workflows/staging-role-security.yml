@@ -1,0 +1,33 @@
+name: SalesDesk staging role security
+
+on:
+  push:
+    branches:
+      - salesdesk-production-v1
+    paths:
+      - '.github/workflows/staging-role-security.yml'
+      - 'scripts/verify-role-security.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  role-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Baseline quality checks
+        run: npm run quality
+      - name: Verify staging staff permissions
+        env:
+          SUPABASE_URL: ${{ secrets.SALESDESK_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SALESDESK_TEST_SUPABASE_ANON_KEY }}
+          SALESDESK_ROLE_EMAIL: senthilkumaran539+salesdesk-staff@gmail.com
+          SALESDESK_ROLE_PASSWORD: ${{ secrets.SALESDESK_ROLE_PASSWORD }}
+          SALESDESK_EXPECTED_ROLE: staff
+        run: npm run test:roles
