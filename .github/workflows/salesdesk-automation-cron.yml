@@ -1,0 +1,37 @@
+name: SalesDesk automation scheduler
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: salesdesk-production-automation
+  cancel-in-progress: false
+
+jobs:
+  run-automation:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate scheduler configuration
+        env:
+          SALESDESK_CRON_URL: ${{ secrets.SALESDESK_CRON_URL }}
+          SALESDESK_CRON_SECRET: ${{ secrets.SALESDESK_CRON_SECRET }}
+        run: |
+          test -n "$SALESDESK_CRON_URL" || { echo "SALESDESK_CRON_URL is not configured"; exit 1; }
+          test -n "$SALESDESK_CRON_SECRET" || { echo "SALESDESK_CRON_SECRET is not configured"; exit 1; }
+      - name: Run SalesDesk workflows
+        env:
+          SALESDESK_CRON_URL: ${{ secrets.SALESDESK_CRON_URL }}
+          SALESDESK_CRON_SECRET: ${{ secrets.SALESDESK_CRON_SECRET }}
+        run: |
+          base="${SALESDESK_CRON_URL%/}"
+          curl --fail-with-body --silent --show-error \
+            --retry 2 --retry-all-errors --max-time 90 \
+            -H "Authorization: Bearer $SALESDESK_CRON_SECRET" \
+            "$base/api/cron/automations"
