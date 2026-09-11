@@ -43,7 +43,7 @@ limit 250;
 explain (analyze,buffers,format text)
 select id,kind,title,created_at
 from public.business_notifications
-where business_id=:'business_id'::uuid and is_read=false
+where business_id=:'business_id'::uuid and read_at is null
 order by created_at desc
 limit 100;
 
