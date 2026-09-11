@@ -1,0 +1,60 @@
+name: SalesDesk staging tenant isolation
+
+on:
+  push:
+    branches:
+      - salesdesk-production-v1
+    paths:
+      - '.github/workflows/staging-tenant-isolation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tenant-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Baseline quality checks
+        run: npm run quality
+      - name: Membership visibility preflight
+        env:
+          SUPABASE_URL: ${{ secrets.SALESDESK_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SALESDESK_TEST_SUPABASE_ANON_KEY }}
+          SALESDESK_TEST_A_EMAIL: ${{ secrets.SALESDESK_TEST_A_EMAIL }}
+          SALESDESK_TEST_A_PASSWORD: ${{ secrets.SALESDESK_TEST_A_PASSWORD }}
+          SALESDESK_TEST_B_EMAIL: ${{ secrets.SALESDESK_TEST_B_EMAIL }}
+          SALESDESK_TEST_B_PASSWORD: ${{ secrets.SALESDESK_TEST_B_PASSWORD }}
+        run: |
+          node <<'NODE'
+          const base=process.env.SUPABASE_URL.replace(/\/$/,'');
+          const anon=process.env.SUPABASE_ANON_KEY;
+          async function check(label,email,password){
+            const auth=await fetch(`${base}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:anon,'content-type':'application/json'},body:JSON.stringify({email,password})});
+            const body=await auth.json();
+            if(!auth.ok||!body.access_token){console.log(`${label}: sign-in HTTP ${auth.status}`);return;}
+            const headers={apikey:anon,authorization:`Bearer ${body.access_token}`};
+            const m=await fetch(`${base}/rest/v1/business_members?select=business_id,role,is_active`,{headers});
+            const mt=await m.text();let mb;try{mb=JSON.parse(mt)}catch{mb=mt}
+            console.log(`${label}: business_members HTTP ${m.status}; rows ${Array.isArray(mb)?mb.length:'n/a'}`);
+            const b=await fetch(`${base}/rest/v1/businesses?select=id,name`,{headers});
+            const bt=await b.text();let bb;try{bb=JSON.parse(bt)}catch{bb=bt}
+            console.log(`${label}: businesses HTTP ${b.status}; rows ${Array.isArray(bb)?bb.length:'n/a'}`);
+          }
+          await check('Test A',process.env.SALESDESK_TEST_A_EMAIL,process.env.SALESDESK_TEST_A_PASSWORD);
+          await check('Test B',process.env.SALESDESK_TEST_B_EMAIL,process.env.SALESDESK_TEST_B_PASSWORD);
+          NODE
+      - name: Verify staging tenant isolation
+        env:
+          SUPABASE_URL: ${{ secrets.SALESDESK_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SALESDESK_TEST_SUPABASE_ANON_KEY }}
+          SALESDESK_TEST_A_EMAIL: ${{ secrets.SALESDESK_TEST_A_EMAIL }}
+          SALESDESK_TEST_A_PASSWORD: ${{ secrets.SALESDESK_TEST_A_PASSWORD }}
+          SALESDESK_TEST_B_EMAIL: ${{ secrets.SALESDESK_TEST_B_EMAIL }}
+          SALESDESK_TEST_B_PASSWORD: ${{ secrets.SALESDESK_TEST_B_PASSWORD }}
+        run: npm run test:isolation

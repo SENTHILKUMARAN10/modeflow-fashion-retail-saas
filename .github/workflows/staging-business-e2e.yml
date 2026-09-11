@@ -1,0 +1,36 @@
+name: SalesDesk staging business E2E
+
+on:
+  push:
+    branches:
+      - salesdesk-production-v1
+    paths:
+      - '.github/workflows/staging-business-e2e.yml'
+      - 'scripts/e2e/api-smoke.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  business-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify staging business journey
+        env:
+          SUPABASE_URL: ${{ secrets.SALESDESK_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SALESDESK_TEST_SUPABASE_ANON_KEY }}
+          SALESDESK_E2E_EMAIL: ${{ secrets.SALESDESK_TEST_A_EMAIL }}
+          SALESDESK_E2E_PASSWORD: ${{ secrets.SALESDESK_TEST_A_PASSWORD }}
+          SALESDESK_E2E_ENV: staging
+          SALESDESK_E2E_WRITES: 'true'
+          SALESDESK_E2E_SKIP_APP_HEALTH: 'true'
+          SALESDESK_E2E_BUSINESS_ID: e80b5635-95d7-4c43-8035-5081aa07a8d8
+          SALESDESK_E2E_PRODUCT_ID: 1f466b35-06ab-4f62-b7a2-b754e1134f60
+          SALESDESK_E2E_RATE: '100'
+        run: node scripts/e2e/api-smoke.mjs

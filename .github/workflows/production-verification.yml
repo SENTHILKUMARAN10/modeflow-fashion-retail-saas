@@ -1,0 +1,119 @@
+name: SalesDesk production verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_tenant_isolation:
+        description: Run two-workspace RLS isolation test
+        type: boolean
+        default: false
+      run_role_matrix:
+        description: Run configured role test account
+        type: boolean
+        default: false
+      run_e2e:
+        description: Run staging E2E smoke test
+        type: boolean
+        default: false
+      run_load:
+        description: Run guarded k6 staging load test
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm run quality
+
+  tenant-isolation:
+    if: ${{ inputs.run_tenant_isolation }}
+    runs-on: ubuntu-latest
+    needs: baseline
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify tenant isolation
+        env:
+          SUPABASE_URL: ${{ secrets.SALESDESK_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SALESDESK_TEST_SUPABASE_ANON_KEY }}
+          SALESDESK_TEST_A_EMAIL: ${{ secrets.SALESDESK_TEST_A_EMAIL }}
+          SALESDESK_TEST_A_PASSWORD: ${{ secrets.SALESDESK_TEST_A_PASSWORD }}
+          SALESDESK_TEST_B_EMAIL: ${{ secrets.SALESDESK_TEST_B_EMAIL }}
+          SALESDESK_TEST_B_PASSWORD: ${{ secrets.SALESDESK_TEST_B_PASSWORD }}
+        run: npm run test:isolation
+
+  role-matrix:
+    if: ${{ inputs.run_role_matrix }}
+    runs-on: ubuntu-latest
+    needs: baseline
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify configured role
+        env:
+          SUPABASE_URL: ${{ secrets.SALESDESK_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SALESDESK_TEST_SUPABASE_ANON_KEY }}
+          SALESDESK_ROLE_EMAIL: ${{ secrets.SALESDESK_ROLE_EMAIL }}
+          SALESDESK_ROLE_PASSWORD: ${{ secrets.SALESDESK_ROLE_PASSWORD }}
+          SALESDESK_ROLE_BUSINESS_ID: ${{ secrets.SALESDESK_ROLE_BUSINESS_ID }}
+          SALESDESK_EXPECTED_ROLE: ${{ vars.SALESDESK_EXPECTED_ROLE }}
+        run: npm run test:roles
+
+  e2e:
+    if: ${{ inputs.run_e2e }}
+    runs-on: ubuntu-latest
+    needs: baseline
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Staging E2E smoke
+        env:
+          BASE_URL: ${{ vars.SALESDESK_STAGING_BASE_URL }}
+          SUPABASE_URL: ${{ secrets.SALESDESK_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SALESDESK_TEST_SUPABASE_ANON_KEY }}
+          SALESDESK_E2E_EMAIL: ${{ secrets.SALESDESK_E2E_EMAIL }}
+          SALESDESK_E2E_PASSWORD: ${{ secrets.SALESDESK_E2E_PASSWORD }}
+          SALESDESK_E2E_ENV: staging
+          SALESDESK_E2E_WRITES: ${{ vars.SALESDESK_E2E_WRITES }}
+          SALESDESK_E2E_BUSINESS_ID: ${{ secrets.SALESDESK_E2E_BUSINESS_ID }}
+          SALESDESK_E2E_PRODUCT_ID: ${{ secrets.SALESDESK_E2E_PRODUCT_ID }}
+        run: npm run test:e2e
+
+  load:
+    if: ${{ inputs.run_load }}
+    runs-on: ubuntu-latest
+    needs: baseline
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Guarded staging load test
+        env:
+          BASE_URL: ${{ vars.SALESDESK_STAGING_BASE_URL }}
+          SUPABASE_URL: ${{ secrets.SALESDESK_TEST_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SALESDESK_TEST_SUPABASE_ANON_KEY }}
+          TEST_EMAIL: ${{ secrets.SALESDESK_E2E_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.SALESDESK_E2E_PASSWORD }}
+          TEST_BUSINESS_ID: ${{ secrets.SALESDESK_E2E_BUSINESS_ID }}
+        run: |
+          test -n "$BASE_URL"
+          docker run --rm --network host \
+            -e BASE_URL -e SUPABASE_URL -e SUPABASE_ANON_KEY -e TEST_EMAIL -e TEST_PASSWORD -e TEST_BUSINESS_ID \
+            -v "$PWD:/work" -w /work grafana/k6:0.49.0 run scripts/load/k6-salesdesk.js
