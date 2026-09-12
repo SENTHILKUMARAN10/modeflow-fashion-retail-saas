@@ -1482,6 +1482,7 @@ var pid = paymentTarget.id;
     var canDelete = caps().deleteSales;
     var receivable = Number(i.balance || 0) > 0;
     var receive = receivable ? '<button class="action-btn" data-act="receive-payment" data-id="' + esc(i.id) + '">Receive</button>' : '';
+    var remind = invoiceOverdue(i) ? '<button class="action-btn" data-act="remind-invoice" data-id="' + esc(i.id) + '">Remind</button>' : '';
     var del = canDelete ? '<button class="action-btn danger" data-act="delete-invoice" data-id="' + esc(i.id) + '">Delete</button>' : '';
     return '<tr>' +
       '<td data-label="Transaction"><b>' + esc(i.id) + '</b></td>' +
@@ -1491,7 +1492,7 @@ var pid = paymentTarget.id;
       due +
       '<td data-label="Payment">' + invoicePayment(i) + '</td>' +
       '<td data-label="Date">' + esc(i.date) + '</td>' +
-      '<td data-label="Actions">' + receive + '<button class="action-btn" data-act="print-invoice" data-id="' + esc(i.id) + '">Print</button><button class="action-btn" data-act="share-invoice" data-id="' + esc(i.id) + '">WhatsApp</button>' + del + '</td>' +
+      '<td data-label="Actions">' + receive + '<button class="action-btn" data-act="print-invoice" data-id="' + esc(i.id) + '">Print</button><button class="action-btn" data-act="share-invoice" data-id="' + esc(i.id) + '">WhatsApp</button>' + remind + del + '</td>' +
       '</tr>';
   }
   function renderInvoices() {
@@ -1609,6 +1610,7 @@ var pid = paymentTarget.id;
     if (!i) return;
     if (btn.dataset.act === 'print-invoice') { printInvoice(i); return; }
     if (btn.dataset.act === 'share-invoice') { shareInvoice(i); return; }
+    if (btn.dataset.act === 'remind-invoice') { remindCustomer(i); return; }
     if (btn.dataset.act === 'receive-payment') { openReceiptDialog(i); return; }
     if (btn.dataset.act === 'delete-invoice') {
       var ok = await confirmDialog('Delete transaction?', 'The transaction ' + i.id + ' will be removed and stock will be restored.');
@@ -1642,6 +1644,15 @@ var pid = paymentTarget.id;
     var phone = String(i.phone || '').replace(/\D/g, '');
     var target = phone.length === 10 ? '91' + phone : phone;
     window.open('https://wa.me/' + target + '?text=' + encodeURIComponent(text), '_blank');
+  }
+  function reminderText(i) {
+    return String(state.businessName).toUpperCase() + '\nReminder: invoice ' + i.id + ' for ' + symbol() + Number(i.balance || 0).toLocaleString('en-IN') + ' (due ' + (i.dueDate || i.date) + ') is still outstanding. Kindly settle the balance at your earliest convenience.\nThank you!';
+  }
+  function remindCustomer(i) {
+    var phone = String(i.phone || '').replace(/\D/g, '');
+    if (phone.length < 10) { toast('No customer phone on file — add one to send reminders'); return; }
+    var target = phone.length === 10 ? '91' + phone : phone;
+    window.open('https://wa.me/' + target + '?text=' + encodeURIComponent(reminderText(i)), '_blank');
   }
 
   /* ============ dashboard ============ */
