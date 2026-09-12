@@ -41,7 +41,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 35 | Warehouses | PLAN | creation, warehouse stock, transfers, reports (schema: warehouses, inventory_transfers) |
 | 39 | CRM | PLAN | leads, follow-ups (schema: customer_followups), tasks, customer value |
 | 42 | WhatsApp | PARTIAL | invoice share + overdue reminders (Transactions) + receipt Share + customer statement Share + catalogue share (copy-to-clipboard formatted catalogue, Products); extend to purchase orders & quotes |
-| 45 | Multi-user | PLAN | invite members (schema: team_invitations), roles, acceptance flow |
+| 45 | Multi-user | PARTIAL | team manage on Settings: invite by email + role (+link copy), live member list with inline role changes, pending invitations with revoke, remove member (owner/admin via server APIs: team/invite, team/list, team/update, remove, revoke-invite); add branch assignment UI, accept flow polish |
 | 46 | Permissions | PARTIAL | client capability map; align with server `salesdesk_can` matrix |
 | 56 | Notifications | PARTIAL | alerts centre on dashboard (low stock/OOS + overdue recv/payables with amounts, Restock/Collect/Pay jump via named hash intents incl. #open=lowstock) + Cash focus strip (due today & overdue recv/payables); add expiry/subscription expiry + push/email delivery |
 | 60 | Quick create + search | PARTIAL | global ＋ New menu (sale/product/customer/supplier/purchase/expense, deep-links & auto-opens dialogs) + global search |

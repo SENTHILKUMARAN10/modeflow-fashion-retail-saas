@@ -121,6 +121,31 @@
           <button id="tallyLedgersBtn" class="btn ghost" type="button">Party ledgers</button>
         </div>
       </article>
+      <article class="panel full" id="teamPanel" hidden>
+        <div class="panel-head">
+          <div><h3>Team &amp; access</h3><span class="micro" style="color:var(--ink-3)">Invite teammates, assign roles and manage access</span></div>
+          <button id="teamRefresh" class="btn ghost" type="button">Refresh</button>
+        </div>
+        <div class="utility-row" style="justify-content:flex-start">
+          <input id="inviteEmail" type="email" class="search-input" style="max-width:220px" placeholder="teammate@company.com" aria-label="Team member email">
+          <select id="inviteRole" class="compact-select" aria-label="Invite role">
+            <option value="manager" selected>Manager</option><option value="admin">Admin</option>
+            <option value="accountant">Accountant</option><option value="cashier">Cashier</option>
+            <option value="sales">Sales</option><option value="staff">Staff</option>
+          </select>
+          <button id="inviteBtn" class="btn primary" type="button">Invite</button>
+        </div>
+        <p id="inviteLink" class="micro" style="color:var(--ink-3);line-height:1.7" hidden></p>
+        <div class="table-wrap" style="margin-top:12px"><table>
+          <thead><tr><th>MEMBER</th><th>ROLE</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <tbody id="teamRows"><tr><td colspan="4" class="empty-cell">Loading team…</td></tr></tbody>
+        </table></div>
+        <p class="kicker" style="margin-top:18px">PENDING INVITATIONS</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>EMAIL</th><th>ROLE</th><th>EXPIRES</th><th>ACTIONS</th></tr></thead>
+          <tbody id="inviteRows"><tr><td colspan="4" class="empty-cell">No pending invitations.</td></tr></tbody>
+        </table></div>
+      </article>
       <article class="panel full" id="auditPanel">
         <div class="panel-head">
           <div><h3>Audit trail</h3><span class="micro" style="color:var(--ink-3)">Immutable change history · owner-only view</span></div>

@@ -2648,6 +2648,7 @@ var pid = paymentTarget.id;
       });
     });
     bindAudit();
+    bindTeam();
     var form = $('#settingsForm');
     if (!form) return;
     form.addEventListener('submit', async function (e) {
@@ -3071,6 +3072,147 @@ var pid = paymentTarget.id;
   var billingState = { interval: 'monthly', currency: 'INR', config: null, ready: false, loading: false, lastAttempt: 0, failTries: 0, error: null };
   var razorpayPromise = null;
 
+  async function apiFetch(path, options) {
+    var token = await authToken();
+    options = options || {};
+    options.headers = Object.assign({ authorization: 'Bearer ' + token }, options.headers || {});
+    var r = await fetch(path, options);
+    var data = await r.json().catch(function () { return {}; });
+    if (!r.ok) { var e = new Error(data.error || 'Request failed (' + r.status + ')'); e.status = r.status; throw e; }
+    return data;
+  }
+  async function apiPost(path, body) {
+    return apiFetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) });
+  }
+  /* ============ team & access ============ */
+  var teamState = { members: [], invitations: [], branches: [], actorRole: null };
+  function bindTeam() {
+    var panel = $('#teamPanel');
+    if (!panel) return;
+    if (state.role !== 'owner' && state.role !== 'admin') { panel.hidden = true; return; }
+    panel.hidden = false;
+    var r = $('#teamRefresh');
+    if (r) r.addEventListener('click', function () { loadTeam(true); });
+    var inviteBtn = $('#inviteBtn');
+    if (inviteBtn) inviteBtn.addEventListener('click', inviteMember);
+    var email = $('#inviteEmail');
+    if (email) email.addEventListener('keydown', function (e) { if (e.key === 'Enter') inviteMember(); });
+    var memRows = $('#teamRows');
+    if (memRows) {
+      memRows.addEventListener('change', function (e) {
+        var sel = e.target.closest('[data-role-select]');
+        if (!sel) return;
+        updateMemberRole(sel.dataset.userId, sel.value, sel);
+      });
+      memRows.addEventListener('click', function (e) {
+        var rm = e.target.closest('[data-remove-user]');
+        if (!rm) return;
+        var uid = rm.dataset.removeUser;
+        var who = (teamState.members || []).find(function (m) { return String(m.user_id) === String(uid); });
+        var name = who ? (who.name || who.email || 'this member') : 'this member';
+        confirmDialog('Remove ' + name + ' from the team?', 'They will lose access to this business immediately.')
+          .then(async function (ok) {
+            if (!ok) return;
+            try { await apiPost('/api/team/remove', { businessId: state.businessId, targetUserId: uid }); toast('Team member removed'); loadTeam(true); }
+            catch (err) { toast(friendly(err)); }
+          });
+      });
+    }
+    var invRows = $('#inviteRows');
+    if (invRows) {
+      invRows.addEventListener('click', function (e) {
+        var rv = e.target.closest('[data-revoke-invite]');
+        if (!rv) return;
+        confirmDialog('Revoke this invitation?', 'The invite link will stop working immediately.')
+          .then(async function (ok) {
+            if (!ok) return;
+            try { await apiPost('/api/team/revoke-invite', { businessId: state.businessId, invitationId: rv.dataset.revokeInvite }); toast('Invitation revoked'); loadTeam(true); }
+            catch (err) { toast(friendly(err)); }
+          });
+      });
+    }
+    loadTeam(false);
+  }
+  async function loadTeam(force) {
+    var memRows = $('#teamRows'), invRows = $('#inviteRows');
+    if (!state.businessId) return;
+    if (!force && teamState.members.length) { renderTeam(); return; }
+    if (memRows) memRows.innerHTML = '<tr><td colspan="4" class="empty-cell">Loading team…</td></tr>';
+    try {
+      teamState = await apiFetch('/api/team/list?businessId=' + encodeURIComponent(state.businessId), { cache: 'no-store' });
+      renderTeam();
+    } catch (err) {
+      if (memRows) memRows.innerHTML = '<tr><td colspan="4" class="empty-cell">' + esc(friendly(err)) + '</td></tr>';
+    }
+  }
+  function renderTeam() {
+    var memRows = $('#teamRows');
+    if (memRows) {
+      var me = state.user ? state.user.id : null;
+      memRows.innerHTML = (teamState.members || []).length
+        ? teamState.members.map(function (m) {
+            var isMe = String(m.user_id) === String(me);
+            var isOwner = m.role === 'owner';
+            var opts = ['admin', 'manager', 'accountant', 'cashier', 'sales', 'staff'].map(function (r) {
+              return '<option value="' + r + '"' + (m.role === r ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
+            }).join('');
+            var roleControl = isOwner
+              ? '<span class="status ok">Owner</span>'
+              : '<select class="compact-select role-select" data-role-select data-user-id="' + esc(m.user_id) + '"' + (isMe ? ' disabled' : '') + '>' + opts + '</select>';
+            var removeBtn = isOwner || isMe ? '' : isMe ? '' : '<button class="action-btn danger" data-remove-user="' + esc(m.user_id) + '" type="button">Remove</button>';
+            return '<tr>' +
+              '<td data-label="Member"><div><b>' + esc(m.name || 'Team member') + '</b><div class="muted">' + esc(m.email || '') + '</div></div></td>' +
+              '<td data-label="Role">' + roleControl + '</td>' +
+              '<td data-label="Status">' + (m.is_active === false ? '<span class="status low">Inactive</span>' : isMe ? '<span class="status ok">You</span>' : '<span class="status ok">Active</span>') + '</td>' +
+              '<td data-label="Actions">' + removeBtn + '</td></tr>';
+          }).join('')
+        : '<tr><td colspan="4" class="empty-cell">No team members yet.</td></tr>';
+    }
+    renderInvites();
+  }
+  function renderInvites() {
+    var invRows = $('#inviteRows');
+    if (!invRows) return;
+    var now = Date.now();
+    invRows.innerHTML = (teamState.invitations || []).length
+      ? teamState.invitations.map(function (iv) {
+          var expired = new Date(iv.expires_at).getTime() <= now;
+          return '<tr>' +
+            '<td data-label="Email"><b>' + esc(iv.email) + '</b></td>' +
+            '<td data-label="Role">' + esc(iv.role.charAt(0).toUpperCase() + iv.role.slice(1)) + '</td>' +
+            '<td data-label="Expires">' + (expired ? '<span class="status low">Expired</span>' : esc(new Date(iv.expires_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))) + '</td>' +
+            '<td data-label="Actions"><button class="action-btn danger" data-revoke-invite="' + esc(iv.id) + '" type="button">Revoke</button></td></tr>';
+        }).join('')
+      : '<tr><td colspan="4" class="empty-cell">No pending invitations.</td></tr>';
+  }
+  async function inviteMember() {
+    var email = $('#inviteEmail');
+    var roleEl = $('#inviteRole');
+    if (!email) return;
+    var to = email.value.trim().toLowerCase();
+    if (!to || to.indexOf('@') === -1) { toast('Enter a valid team email'); return; }
+    var role = roleEl ? roleEl.value : 'staff';
+    try {
+      var res = await apiPost('/api/team/invite', { businessId: state.businessId, email: to, role: role });
+      var link = $('#inviteLink');
+      if (link && res.inviteUrl) {
+        link.hidden = false;
+        link.innerHTML = 'Invite link — share with ' + esc(to) + ': <button class="btn ghost" data-copy-invite="' + esc(res.inviteUrl) + '" type="button" style="margin-left:6px">Copy link</button>';
+        var cp = link.querySelector('[data-copy-invite]');
+        if (cp) cp.addEventListener('click', function () { copyClipboard(res.inviteUrl); toast('Invite link copied'); });
+      }
+      email.value = '';
+      toast('Invitation created');
+      loadTeam(true);
+    } catch (err) { toast(friendly(err)); }
+  }
+  async function updateMemberRole(userId, role, el) {
+    try {
+      await apiPost('/api/team/update', { businessId: state.businessId, targetUserId: userId, role: role });
+      toast('Role updated');
+      loadTeam(true);
+    } catch (err) { if (el) el.value = el.dataset.prev || ''; toast(friendly(err)); }
+  }
   async function authToken() {
     if (!cloud) throw new Error('Open a cloud workspace first.');
     var res = await cloud.auth.session();
