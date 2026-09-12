@@ -12,7 +12,23 @@ function restack(){
   window.SalesventoryFooters?.refresh?.();
   document.querySelectorAll('#login>.velora-site-footer,#login .velora-site-footer').forEach(x=>x.remove());
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restack,{once:true});else restack();
-[80,260,700,1400,2800].forEach(ms=>setTimeout(restack,ms));
-addEventListener('modeflow:workspace',()=>setTimeout(restack,20));
+function bindExport(){
+  const button=document.getElementById('exportData');if(!button||button.dataset.salesventoryExportBound)return;
+  button.dataset.salesventoryExportBound='1';
+  button.addEventListener('click',event=>{
+    event.preventDefault();event.stopImmediatePropagation();
+    try{
+      const data=typeof store!=='undefined'?store:{products:[],invoices:[],expenses:[]};
+      const payload={product:'Salesventory',version:1,exportedAt:new Date().toISOString(),...data};
+      const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='salesventory-business-backup.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      if(typeof toast==='function')toast('Salesventory backup exported');
+    }catch(error){console.error(error);if(typeof toast==='function')toast('Unable to export backup');}
+  },true);
+}
+function refresh(){restack();bindExport();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',refresh,{once:true});else refresh();
+[80,260,700,1400,2800].forEach(ms=>setTimeout(refresh,ms));
+addEventListener('modeflow:workspace',()=>setTimeout(refresh,20));
+document.addEventListener('submit',()=>setTimeout(restack,50),true);
+document.addEventListener('click',e=>{if(e.target.closest?.('.nav,.action-btn,#addProduct,[data-go],[data-view]'))setTimeout(restack,50);},true);
 })();
