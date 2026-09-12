@@ -347,6 +347,7 @@ td .action-btn:last-child{margin-right:0}
 /* ---------- Customer profile / statement ---------- */
 .customer-profile{margin-top:18px}
 .cust-row{cursor:pointer}
+.sup-row{cursor:pointer}
 .customer-profile .profile-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .customer-profile .profile-actions .btn{padding:8px 14px;font-size:12px}
 .customer-profile .panel-head{margin-bottom:16px}

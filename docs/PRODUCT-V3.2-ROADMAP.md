@@ -10,7 +10,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 |---|------|--------|-------|
 | 1 | Main dashboard | DONE | Date filters (today/yesterday/7d/30d/month/lastmonth/year/custom), range KPIs (sales/purchases/expenses/net/gross/margin), balance KPIs (receivables/payables/stock value), today/best/top customer/pending/P&L, sales+expense trends |
 | 2 | Customers | PARTIAL | List + ledger, date-filtered statement, WhatsApp/share, CSV export, print/PDF done. Remaining: full fields, credit limit, groups/tags, email adapters |
-| 3 | Suppliers | PARTIAL | CRUD + purchases + payments + payables exist. Add ledger, statement, POs, returns, debit notes |
+| 3 | Suppliers | PARTIAL | CRUD + purchases + payments + payables + ledger/statement (date-filtered) + copy/CSV/print done. Remaining: POs, returns, debit notes |
 | 4 | Products / services | PARTIAL | name/cost/price/stock/reorder/service/category/sku/barcode/unit done. Add brand, HSN, GST rate, MRP, variants, images, batches, import/export |
 | 5 | Inventory | PARTIAL | stock via RPCs + suppliers/purchases receive. Add warehouses, stock movements, adjustments, transfers, valuation, audit/count, expiry alerts |
 | 7 | Sales billing | PARTIAL | multi-item checkout (complete_multi_item_sale) + single-item; statuses paid/partial/unpaid + overdue (due-date-aware), history filter. Remaining: persist due date/notes on client sales (RPC change), GST, PO#, transport |

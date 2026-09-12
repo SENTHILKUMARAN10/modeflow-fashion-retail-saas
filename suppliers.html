@@ -74,12 +74,41 @@
       <div class="utility-row">
         <input id="supplierSearch" class="search-input" placeholder="Search suppliers" aria-label="Search suppliers">
       </div>
-      <article class="panel table-panel">
+<article class="panel table-panel">
         <div class="table-wrap"><table>
           <thead><tr><th>SUPPLIER</th><th>GSTIN</th><th>PHONE</th><th>PURCHASES</th><th>BALANCE</th><th>ACTIONS</th></tr></thead>
           <tbody id="supplierRows"></tbody>
         </table></div>
       </article>
+      <aside class="panel customer-profile" id="supplierProfile" hidden>
+        <div class="panel-head">
+          <div class="cell-person" style="flex:1">
+            <span class="store-avatar" id="spAvatar">SV</span>
+            <div class="cell-main"><b id="spName"></b><small id="spGst"></small></div>
+          </div>
+          <div class="profile-actions">
+            <button id="spPrint" class="btn" type="button">Print / PDF</button>
+            <button id="spCsv" class="btn" type="button">CSV</button>
+            <button id="spCopy" class="btn" type="button">Copy</button>
+            <button id="spClose" class="btn ghost" type="button">Close</button>
+          </div>
+        </div>
+        <div class="kpi-strip">
+          <section><span>PURCHASES</span><b id="spOrders">0</b></section>
+          <section><span>LIFETIME SPEND</span><b id="spLifetime">₹0</b></section>
+          <section><span>OUTSTANDING</span><b id="spOutstanding">₹0</b></section>
+          <section><span>LAST PURCHASE</span><b id="spLast">—</b></section>
+        </div>
+        <div class="utility-row" style="margin:0 0 14px">
+          <input id="spFrom" type="date" aria-label="Statement from date">
+          <input id="spTo" type="date" aria-label="Statement to date">
+          <span id="spClosing" class="micro" style="align-self:center"></span>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>DATE</th><th>BILL</th><th>ITEMS</th><th>TOTAL</th><th>PAID</th><th>BALANCE</th><th>STATUS</th></tr></thead>
+          <tbody id="spStmtTable"></tbody>
+        </table></div>
+      </aside>
     </section>
   </main>
 </div>

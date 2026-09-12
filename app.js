@@ -927,10 +927,9 @@
       return (s.name + ' ' + (s.phone || '') + ' ' + (s.gst || '')).toLowerCase().indexOf(q) !== -1;
     }).map(function (s) {
       var bal = supplierOutstanding(s);
-      var actions = canManage
-        ? '<button class="action-btn" data-act="edit-supplier" data-id="' + esc(s.id) + '">Edit</button><button class="action-btn danger" data-act="delete-supplier" data-id="' + esc(s.id) + '">Delete</button>'
-        : '';
-      return '<tr>' +
+      var actions = '<button class="action-btn" data-act="statement-supplier" data-id="' + esc(s.id) + '">Statement</button>';
+      if (canManage) actions += '<button class="action-btn" data-act="edit-supplier" data-id="' + esc(s.id) + '">Edit</button><button class="action-btn danger" data-act="delete-supplier" data-id="' + esc(s.id) + '">Delete</button>';
+      return '<tr data-sup="' + esc(s.id) + '" class="sup-row">' +
         '<td data-label="Supplier"><div class="cell-person"><span class="store-avatar">' + esc(initials(s.name)) + '</span><div class="cell-main"><b>' + esc(s.name) + '</b>' + (s.contact ? '<small>' + esc(s.contact) + '</small>' : '') + '</div></div></td>' +
         '<td data-label="GSTIN">' + esc(s.gst || '—') + '</td>' +
         '<td data-label="Phone">' + esc(s.phone || '—') + '</td>' +
@@ -939,6 +938,145 @@
         '<td data-label="Actions">' + actions + '</td>' +
         '</tr>';
     }).join('') || '<tr><td colspan="6" class="empty-cell">No suppliers yet. Click “Add supplier” to get started.</td></tr>';
+  }
+  var selectedSupplierId = null;
+  function supplierStatementRows() {
+    return state.purchases
+      .filter(function (p) { return String(p.supplierId) === String(selectedSupplierId); })
+      .slice()
+      .sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+  }
+  function supplierRange() {
+    var from = $('#spFrom'), to = $('#spTo');
+    var lo = from && from.value ? dayStart(new Date(from.value)).getTime() : 0;
+    var hi = to && to.value ? dayEnd(new Date(to.value)).getTime() : Number.MAX_SAFE_INTEGER;
+    return { lo: lo, hi: hi };
+  }
+  function supplierBalanceOf(p) {
+    return (p.status === 'cancelled') ? 0 : Math.max(Number(p.balance || 0), 0);
+  }
+  function supplierStats(s) {
+    var list = state.purchases.filter(function (p) { return String(p.supplierId) === String(s.id) && p.status !== 'cancelled'; });
+    var total = list.reduce(function (a, p) { return a + Number(p.total || 0); }, 0);
+    var last = list.reduce(function (a, p) { return (!a || (p.ts || 0) > a.ts) ? p : a; }, null);
+    return { orders: list.length, total: total, outstanding: list.reduce(function (a, p) { return a + supplierBalanceOf(p); }, 0), last: last ? last.date : null };
+  }
+  function renderSupplierProfile() {
+    var s = state.suppliers.filter(function (x) { return String(x.id) === String(selectedSupplierId); })[0];
+    if (!s) { closeSupplierProfile(); return; }
+    if ($('#spAvatar')) $('#spAvatar').textContent = initials(s.name);
+    if ($('#spName')) $('#spName').textContent = s.name;
+    if ($('#spGst')) $('#spGst').textContent = s.gst ? 'GSTIN · ' + s.gst : (s.phone ? 'Phone · ' + s.phone : (s.email ? s.email : 'No contact on record'));
+    var stats = supplierStats(s);
+    if ($('#spOrders')) $('#spOrders').textContent = stats.orders;
+    if ($('#spLifetime')) $('#spLifetime').textContent = money(stats.total);
+    if ($('#spOutstanding')) $('#spOutstanding').textContent = money(stats.outstanding);
+    if ($('#spLast')) $('#spLast').textContent = stats.last || '—';
+    var range = supplierRange();
+    var win = supplierStatementRows().filter(function (p) { return (p.ts || 0) >= range.lo && (p.ts || 0) <= range.hi; });
+    var table = $('#spStmtTable');
+    if (table) {
+      table.innerHTML = win.length
+        ? win.map(function (p) {
+            var bal = supplierBalanceOf(p);
+            var pill = p.status === 'cancelled' ? '<span class="status low">cancelled</span>' : '<span class="status' + (p.paymentStatus === 'paid' ? '' : p.paymentStatus === 'partial' ? ' warn' : ' low') + '">' + esc(p.paymentStatus || 'unpaid') + '</span>';
+            return '<tr>' +
+              '<td data-label="Date">' + esc(p.date || '—') + '</td>' +
+              '<td data-label="Bill"><span class="sku-tag">' + esc(p.number || '') + '</span></td>' +
+              '<td data-label="Items">' + esc(purchaseItemsLabel(p)) + '</td>' +
+              '<td data-label="Total">' + money(p.total) + '</td>' +
+              '<td data-label="Paid">' + money(p.paid || 0) + '</td>' +
+              '<td data-label="Balance">' + (bal > 0 ? '<b>' + money(bal) + '</b>' : '—') + '</td>' +
+              '<td data-label="Status">' + pill + '</td>' +
+              '</tr>';
+          }).join('')
+        : '<tr><td colspan="7" class="empty-cell">No purchases in this period.</td></tr>';
+    }
+    var closing = win.reduce(function (a, p) { return a + supplierBalanceOf(p); }, 0);
+    if ($('#spClosing')) $('#spClosing').textContent = 'Closing: ' + money(closing);
+    if ($('#supplierProfile')) $('#supplierProfile').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  function openSupplierProfile(id) {
+    selectedSupplierId = id;
+    var box = $('#supplierProfile');
+    if (box) box.hidden = false;
+    renderSupplierProfile();
+  }
+  function closeSupplierProfile() {
+    selectedSupplierId = null;
+    var box = $('#supplierProfile');
+    if (box) box.hidden = true;
+    var rows = $('#supplierRows');
+    if (rows) rows.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  function supplierStatementText() {
+    var s = state.suppliers.filter(function (x) { return String(x.id) === String(selectedSupplierId); })[0];
+    if (!s) return '';
+    var range = supplierRange();
+    var win = supplierStatementRows().filter(function (p) { return (p.ts || 0) >= range.lo && (p.ts || 0) <= range.hi; });
+    var closing = win.reduce(function (a, p) { return a + supplierBalanceOf(p); }, 0);
+    var lines = [];
+    lines.push('Salesventory — Supplier statement');
+    lines.push(s.name + (s.phone ? ' · ' + s.phone : ''));
+    lines.push('Created ' + fmtDay(Date.now()));
+    lines.push('');
+    lines.push('Date'.padEnd(12) + 'Bill'.padEnd(16) + 'Total'.padEnd(12) + 'Paid'.padEnd(10) + 'Balance');
+    win.forEach(function (p) {
+      lines.push((p.date || '').padEnd(12) + String(p.number || '').slice(0, 15).padEnd(16) + money(p.total).padEnd(12) + money(p.paid || 0).padEnd(10) + money(supplierBalanceOf(p)));
+    });
+    lines.push('');
+    lines.push('Closing balance: ' + money(closing));
+    return lines.join('\n');
+  }
+  function copySupplierStatement() {
+    var txt = supplierStatementText();
+    if (!txt) { toast('Nothing to copy'); return; }
+    function done() { toast('Statement copied'); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function () { fallbackCopy(txt, done); });
+    } else { fallbackCopy(txt, done); }
+  }
+  function downloadSupplierStatementCSV() {
+    var s = state.suppliers.filter(function (x) { return String(x.id) === String(selectedSupplierId); })[0];
+    if (!s) return;
+    var range = supplierRange();
+    var win = supplierStatementRows().filter(function (p) { return (p.ts || 0) >= range.lo && (p.ts || 0) <= range.hi; });
+    var rows = [['Date', 'Bill', 'Items', 'Total', 'Paid', 'Balance', 'Status']];
+    win.forEach(function (p) {
+      rows.push([p.date || '', p.number || '', purchaseItemsLabel(p), p.total, p.paid || 0, supplierBalanceOf(p), p.status === 'cancelled' ? 'cancelled' : (p.paymentStatus || '')]);
+    });
+    var csv = rows.map(function (r) { return r.map(function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+    var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'supplier-statement-' + (s.name || 'supplier').replace(/\s+/g, '-').toLowerCase() + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 500);
+    toast('Statement exported as CSV');
+  }
+  function printSupplierStatement() {
+    var s = state.suppliers.filter(function (x) { return String(x.id) === String(selectedSupplierId); })[0];
+    if (!s) { toast('Nothing to print'); return; }
+    var range = supplierRange();
+    var win = supplierStatementRows().filter(function (p) { return (p.ts || 0) >= range.lo && (p.ts || 0) <= range.hi; });
+    var closing = win.reduce(function (a, p) { return a + supplierBalanceOf(p); }, 0);
+    var html = '<!doctype html><html><head><meta charset="utf-8"><title>Supplier statement — ' + esc(s.name) + '</title>' +
+      '<style>body{font:13px/1.6 system-ui,sans-serif;color:#0F172A;margin:36px}h1{font-size:20px;margin:0 0 2px}p{color:#46566D;margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #E4EAF2}th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#46566D}.sum{margin-top:16px;font-weight:700}</style></head><body>' +
+      '<h1>Salesventory — Supplier statement</h1>' +
+      '<p><b>' + esc(s.name) + '</b></p>' +
+      '<p>' + (s.phone ? esc(s.phone) : 'No phone on record') + '</p>' +
+      '<p>Prepared ' + fmtDay(Date.now()) + '</p>' +
+      '<table><thead><tr><th>Date</th><th>Bill</th><th>Items</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead><tbody>' +
+      (win.map(function (p) {
+        var bal = supplierBalanceOf(p);
+        return '<tr><td>' + esc(p.date || '') + '</td><td>' + esc(p.number || '') + '</td><td>' + esc(purchaseItemsLabel(p)) + '</td><td>' + money(p.total) + '</td><td>' + money(p.paid || 0) + '</td><td>' + (bal > 0 ? money(bal) : '—') + '</td><td>' + esc(p.status === 'cancelled' ? 'cancelled' : (p.paymentStatus || '')) + '</td></tr>';
+      }).join('') || '<tr><td colspan="7">No purchases in this period.</td></tr>') +
+      '</tbody></table>' +
+      '<p class="sum">Closing balance: ' + money(closing) + '</p>' +
+      '</body></html>';
+    var pw = window.open('', '_blank', 'width=760,height=900');
+    if (pw) { pw.document.write(html); pw.document.close(); pw.focus(); setTimeout(function () { pw.print(); }, 350); }
+    else toast('Allow pop-ups to print');
   }
   var supplierEditId = null;
   function openSupplierDialog(s) {
@@ -980,9 +1118,14 @@
     });
     if ($('#supplierSearch')) $('#supplierSearch').addEventListener('input', renderSuppliers);
     $('#supplierRows').addEventListener('click', async function (e) {
-      var btn = e.target.closest('[data-act="edit-supplier"], [data-act="delete-supplier"]');
+      var btn = e.target.closest('[data-act]');
+      if (!btn && e.target.closest('[data-sup]')) {
+        openSupplierProfile(e.target.closest('[data-sup]').dataset.sup);
+        return;
+      }
       if (!btn) return;
       var id = btn.dataset.id;
+      if (btn.dataset.act === 'statement-supplier') { openSupplierProfile(id); return; }
       if (btn.dataset.act === 'edit-supplier') {
         var found = state.suppliers.find(function (x) { return String(x.id) === String(id); });
         if (found) openSupplierDialog(found);
@@ -993,6 +1136,22 @@
       try { await cloud.suppliers.remove(id); await refreshCloudData(); toast('Supplier removed'); }
       catch (err) { toast(friendly(err)); }
     });
+    var pf = $('#supplierProfile');
+    if (pf) {
+      var byId = function (id) { return $(id); };
+      var close = byId('#spClose');
+      if (close) close.addEventListener('click', closeSupplierProfile);
+      var copy = byId('#spCopy');
+      if (copy) copy.addEventListener('click', copySupplierStatement);
+      var csv = byId('#spCsv');
+      if (csv) csv.addEventListener('click', downloadSupplierStatementCSV);
+      var pr = byId('#spPrint');
+      if (pr) pr.addEventListener('click', printSupplierStatement);
+      ['#spFrom', '#spTo'].forEach(function (sel) {
+        var el = $(sel);
+        if (el) el.addEventListener('change', renderSupplierProfile);
+      });
+    }
   }
 
   /* ============ purchases ============ */
