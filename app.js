@@ -1578,7 +1578,14 @@ var pid = paymentTarget.id;
   function invoiceFilterMatch(i) {
     if (invoiceFilter === 'all') return true;
     if (invoiceFilter === 'overdue') return invoiceOverdue(i);
+    if (invoiceFilter === 'due') return dueSoon(i);
     return (i.paymentStatus || 'paid') === invoiceFilter;
+  }
+  function dueSoon(i) {
+    if (!(invBal(i) > 0) || invoiceOverdue(i)) return false;
+    if (!i.dueDate) return false;
+    var d = new Date(i.dueDate).getTime();
+    return d >= Date.now() - 864e5 && d <= Date.now() + 3 * 864e5;
   }
   function invoiceRow(i, compact) {
     var due = '<td data-label="Due">' + esc(i.dueDate || '—') + '</td>';
@@ -1596,7 +1603,7 @@ var pid = paymentTarget.id;
     var canDelete = caps().deleteSales;
     var receivable = Number(i.balance || 0) > 0;
     var receive = receivable ? '<button class="action-btn" data-act="receive-payment" data-id="' + esc(i.id) + '">Receive</button>' : '';
-    var remind = invoiceOverdue(i) ? '<button class="action-btn" data-act="remind-invoice" data-id="' + esc(i.id) + '">Remind</button>' : '';
+    var remind = (invoiceOverdue(i) || dueSoon(i)) ? '<button class="action-btn" data-act="remind-invoice" data-id="' + esc(i.id) + '">Remind</button>' : '';
     var del = canDelete ? '<button class="action-btn danger" data-act="delete-invoice" data-id="' + esc(i.id) + '">Delete</button>' : '';
     return '<tr data-row-id="i-' + esc(i.id) + '">' +
       '<td data-label="Transaction"><b>' + esc(i.id) + '</b></td>' +
@@ -1781,7 +1788,10 @@ var pid = paymentTarget.id;
     window.open('https://wa.me/' + target + '?text=' + encodeURIComponent(text), '_blank');
   }
   function reminderText(i) {
-    return String(state.businessName).toUpperCase() + '\nReminder: invoice ' + i.id + ' for ' + symbol() + Number(i.balance || 0).toLocaleString('en-IN') + ' (due ' + (i.dueDate || i.date) + ') is still outstanding. Kindly settle the balance at your earliest convenience.\nThank you!';
+    if (invoiceOverdue(i)) {
+      return String(state.businessName).toUpperCase() + '\nReminder: invoice ' + i.id + ' for ' + symbol() + Number(i.balance || 0).toLocaleString('en-IN') + ' (due ' + (i.dueDate || i.date) + ') is still outstanding. Kindly settle the balance at your earliest convenience.\nThank you!';
+    }
+    return String(state.businessName).toUpperCase() + '\nGentle reminder: invoice ' + i.id + ' for ' + symbol() + Number(i.balance || 0).toLocaleString('en-IN') + ' is due on ' + (i.dueDate || i.date) + '. Please arrange payment in time.\nThank you!';
   }
   function remindCustomer(i) {
     var phone = String(i.phone || '').replace(/\D/g, '');

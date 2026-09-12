@@ -35,7 +35,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 12 | Delivery challan | PLAN | items, driver/vehicle, signature, print/WhatsApp |
 | 13 | Sales returns | PLAN | select invoice/items, credit note, stock & balance update (schema: sales_returns) |
 | 15 | Purchase returns | PLAN | debit note, supplier refund, stock adjust |
-| 21 | Payment reminders | PLAN | due-date aware, WhatsApp/Email templates (server automation exists) |
+| 21 | Payment reminders | PARTIAL | due-date aware: Remind on overdue + due-soon (≤3 days) invoices with tailored messages, Due-soon filter on Transactions |
 | 28 | GST | PLAN | CGST/SGST/IGST/cess, HSN/SAC, inclusive/exclusive, place of supply, reverse charge |
 | 29 | GST reports | PLAN | GSTR-1/3B summaries, HSN summary, input/output tax |
 | 35 | Warehouses | PLAN | creation, warehouse stock, transfers, reports (schema: warehouses, inventory_transfers) |
