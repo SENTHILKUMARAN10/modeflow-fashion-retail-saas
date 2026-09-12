@@ -3,10 +3,7 @@
   function addCss(selector,href,attr){if(document.querySelector(selector))return;var css=document.createElement('link');css.rel='stylesheet';css.href=href;css.setAttribute(attr,'1');document.head.appendChild(css)}
   function addScript(selector,src,attr){if(document.querySelector(selector))return;var js=document.createElement('script');js.src=src;js.async=false;js.setAttribute(attr,'1');document.body.appendChild(js)}
   function loadDeviceLayer(){
-    if(!document.querySelector('link[data-mf-premium-fonts]')){var fonts=document.createElement('link');fonts.rel='stylesheet';fonts.href='https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Playfair+Display:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';fonts.setAttribute('data-mf-premium-fonts','1');document.head.appendChild(fonts)}
     var v='20260911-pro4';
-    addCss('link[data-mf-premium]','premium-v5.css?v='+v,'data-mf-premium');
-    addCss('link[data-mf-mobile-drawer]','mobile-drawer-v1.css?v='+v,'data-mf-mobile-drawer');
     addCss('link[data-mf-billing]','ui/billing-v1.css?v='+v,'data-mf-billing');
     addCss('link[data-velora-public-hotfix]','ui/public-hotfix-v3.css?v='+v,'data-velora-public-hotfix');
     addCss('link[data-salesdesk-business-suite]','ui/salesdesk-business-suite-v1.css?v='+v,'data-salesdesk-business-suite');
@@ -40,6 +37,7 @@
     addScript('script[data-salesdesk-operations-pro2],script[src*="ui/salesdesk-operations-pro-v2.js"]','ui/salesdesk-operations-pro-v2.js?v='+v,'data-salesdesk-operations-pro2');
     addScript('script[data-salesdesk-people-intelligence],script[src*="ui/salesdesk-people-intelligence-v1.js"]','ui/salesdesk-people-intelligence-v1.js?v='+v,'data-salesdesk-people-intelligence');
     addScript('script[data-salesdesk-automation-center],script[src*="ui/salesdesk-automation-center-v1.js"]','ui/salesdesk-automation-center-v1.js?v='+v,'data-salesdesk-automation-center');
+    addCss('link[data-salesdesk-redesign]','ui/salesdesk-redesign-v1.css?v=1','data-salesdesk-redesign');
   }
   applyDeviceClass();window.addEventListener('resize',applyDeviceClass,{passive:true});window.addEventListener('orientationchange',applyDeviceClass,{passive:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadDeviceLayer,{once:true});else loadDeviceLayer();
