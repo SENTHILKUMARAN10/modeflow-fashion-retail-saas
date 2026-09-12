@@ -1837,6 +1837,18 @@ var pid = paymentTarget.id;
       $('#kpiPendingMeta').textContent = (overdueCount ? overdueCount + ' overdue · ' : '') + (pendCount ? pendCount + ' invoice(s) with balance' : 'No outstanding amounts');
     }
 
+    /* due today / overdue focus strip */
+    var todayS2 = new Date().toISOString().slice(0, 10);
+    var dueToday = function (d) { return d && String(d).slice(0, 10) === todayS2; };
+    var recvDue = state.invoices.filter(function (i) { return invBal(i) > 0 && dueToday(i.dueDate); });
+    var recvOver = state.invoices.filter(invoiceOverdue);
+    var payDue = state.purchases.filter(function (p) { return p.status !== 'cancelled' && Number(p.balance || 0) > 0 && dueToday(p.dueDate); });
+    var payOver = state.purchases.filter(purchaseOverdue);
+    if ($('#dColDue')) $('#dColDue').textContent = 'Receivables due today · ' + money(recvDue.reduce(function (a, i) { return a + invBal(i); }, 0)) + (recvDue.length ? ' (' + recvDue.length + ')' : '');
+    if ($('#dColOver')) $('#dColOver').textContent = 'Receivables overdue · ' + money(recvOver.reduce(function (a, i) { return a + invBal(i); }, 0)) + (recvOver.length ? ' (' + recvOver.length + ')' : '');
+    if ($('#dPayDue')) $('#dPayDue').textContent = 'Payables due today · ' + money(payDue.reduce(function (a, p) { return a + Math.max(Number(p.balance || 0), 0); }, 0)) + (payDue.length ? ' (' + payDue.length + ')' : '');
+    if ($('#dPayOver')) $('#dPayOver').textContent = 'Payables overdue · ' + money(payOver.reduce(function (a, p) { return a + Math.max(Number(p.balance || 0), 0); }, 0)) + (payOver.length ? ' (' + payOver.length + ')' : '');
+
     /* top product + top customer (range) */
     var perProduct = {}, perCustomer = {};
     rangeInvs.forEach(function (i) {
