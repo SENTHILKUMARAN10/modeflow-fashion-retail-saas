@@ -69,3 +69,17 @@ A concise explanation:
 
 ## Trade-offs
 The portfolio demo deliberately retains local storage so a recruiter can open and test the product immediately. The `/supabase/schema.sql` file represents the production data/security architecture and can be connected to a Supabase project without committing secrets.
+
+## Frontend rebuild (v2)
+A parallel, from-scratch rebuild of the frontend lives in `v2/` and runs **on top of the existing backend** (Supabase schema + RPCs + Vercel API untouched). The current site remains live and untouched — everything lives behind a separate entry so the swap is a single step.
+
+Why: the earlier architecture injected ~30 UI "suites" with overlapping CSS overlays (`!important` arms race), multiple controllers fighting over duplicate `sd*` element IDs and late-injected styles that fought the design system. v2 replaces that with:
+
+- **One entry** — `v2/index.html` loads only `v2/app.css`, `v2/cloud.js`, `v2/app.js` + the Supabase SDK/`supabase/config.js`.
+- **One design system** — `v2/app.css`: a single tokenized stylesheet (plus Jakarta Sans / DM Serif Display, responsive breakpoints 1100/840/680px, card-table collapse, dialog/toast/login/dashboard/preview, print + reduced-motion). No overlays, no `!important`.
+- **One controller** — `v2/app.js`: bootstrap + routing + `VIEW_REGISTRY`, a unified store (demo = `velora_*` localStorage seeds reused verbatim; cloud = `window.SDCloud`), delegation-based actions (`data-act`/`data-go`), toast/dialog utilities, greeting, live realtime reload.
+- **One cloud adapter** — `v2/cloud.js` exposes `window.SDCloud`: auth (sign-in/sign-out/restore), businesses (membership + `create_business` on first login), products/customers/invoices/expenses CRUD, stock-guarded checkout via `complete_sale` RPC, delete via `delete_sale` RPC, and a single `postgres_changes` channel across the four operation tables. No legacy CSS injection, no controller scripts, no service-role markers.
+
+Cloud parity is preserved end-to-end (auth, session restore, workspace activation, checkout, realtime). Verified by `node --check` on every v2 file, the full `npm run quality` gate (67/67, old site untouched), and a scripted check that all 62 element IDs referenced by the controller exist in the shell.
+
+To activate: test `v2/index.html` in parallel, then either point the static host at `v2/` or swap it in as the root `index.html` (relative `../supabase/…` paths become `supabase/…`). Afterwards the `ui/*` suites, premium modules, loader injections and the `salesdesk-redesign-v1.css` layer can be retired — nothing is deleted in the v2 PR. Deferred to follow-ups: billing/plan view, team/invites, settings/account centre, automation centre, CRM, branches/warehouses, import/backup — all map onto the `VIEW_REGISTRY` as thin additions.
