@@ -11,4 +11,5 @@
   js('script[data-salesdesk-market-v3],script[src*="ui/salesdesk-market-suite-v3.js"]','ui/salesdesk-market-suite-v3.js?v='+v,'data-salesdesk-market-v3');
   js('script[data-salesdesk-customer-production],script[src*="ui/customer-production-v1.js"]','ui/customer-production-v1.js?v='+v,'data-salesdesk-customer-production');
   js('script[data-salesventory-production],script[src*="ui/salesventory-production-v1.js"]','ui/salesventory-production-v1.js?v='+v,'data-salesventory-production');
+  js('script[data-salesventory-cascade-guard],script[src*="ui/salesventory-cascade-guard-v1.js"]','ui/salesventory-cascade-guard-v1.js?v='+v,'data-salesventory-cascade-guard');
 })();
