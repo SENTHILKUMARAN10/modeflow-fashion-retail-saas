@@ -1109,6 +1109,25 @@
     });
   }
 
+  /* ============ theme ============ */
+  function themeMeta() {
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', document.documentElement.getAttribute('data-theme') === 'light' ? '#F4F6FB' : '#070B14');
+  }
+  function bindTheme() {
+    var btn = $('#themeToggle');
+    if (btn) btn.addEventListener('click', function () {
+      var cur = document.documentElement.getAttribute('data-theme');
+      var next = cur === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('sv-theme', next); } catch (e) { }
+      themeMeta();
+    });
+    themeMeta();
+    if (window.matchMedia) window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function (ev) {
+      try { if (!localStorage.getItem('sv-theme')) document.documentElement.setAttribute('data-theme', ev.matches ? 'light' : 'dark'); } catch (e) { }
+    });
+  }
   /* ============ render all ============ */
   function renderAll() {
     productOptions(); renderInventory(); renderCustomers(); renderExpenses();
@@ -1121,6 +1140,7 @@
     $$('.nav[data-view]').forEach(function (b) { b.addEventListener('click', function () { gotoView(b.dataset.view); }); });
     $$('.goto-billing').forEach(function (b) { b.addEventListener('click', function () { gotoView('billing'); }); });
     $$('[data-go]').forEach(function (b) { b.addEventListener('click', function () { gotoView(b.dataset.go); }); });
+    bindTheme();
     bindAuth(); bindSale(); bindInventory(); bindExpenses(); bindInvoices(); bindExport(); bindPlans();
     initAuth();
   }
