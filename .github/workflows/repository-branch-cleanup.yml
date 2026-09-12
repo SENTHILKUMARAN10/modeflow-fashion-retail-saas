@@ -1,0 +1,26 @@
+name: One-branch repository cleanup
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  delete-old-branches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Delete every remote branch except main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git ls-remote --heads origin | awk '{sub("refs/heads/", "", $2); print $2}' | while IFS= read -r branch; do
+            if [ -n "$branch" ] && [ "$branch" != "main" ]; then
+              echo "Deleting $branch"
+              git push origin --delete "$branch"
+            fi
+          done
