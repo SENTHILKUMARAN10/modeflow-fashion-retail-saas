@@ -2,7 +2,7 @@
 // Preserves secure sessions and the current workspace view while applying one final customer-facing brand.
 (function(){
   'use strict';
-  const v='20260912-salesventory3';
+  const v='20260912-salesventory4';
   const $=s=>document.querySelector(s);
 
   function css(selector,href,attr){
@@ -69,24 +69,33 @@
     if(routeRetries++<50)setTimeout(restoreRememberedView,80);else{routeRetries=0;writeRoute(activeView()||'dashboard','replace')}
   }
 
+  // Run expensive brand/footer passes only at stable checkpoints, not on every DOM/class mutation.
   function brand(){
     window.SalesventoryBrand?.apply?.();
     window.SalesventoryFooters?.refresh?.();
-    window.SalesDeskFooters?.refresh?.();
     window.SalesventoryLogoSystem?.apply?.();
   }
-  function reveal(){if(ready)return;brand();ready=true;document.body.classList.add('sv-ui-ready','sd-ui-ready')}
+  function reveal(){
+    if(ready)return;
+    brand();
+    ready=true;
+    document.body.classList.add('sv-ui-ready','sd-ui-ready');
+  }
   function publicExperienceReady(){
-    const landing=$('#veloraLanding');if(!landing)return false;brand();
-    const name=landing.querySelector('.ve-word')?.textContent?.trim();
-    const branded=!!landing.querySelector('.ve-logo img[data-salesventory-full-logo]')||name==='Salesventory';
-    return branded&&!!landing.querySelector('#sdPublicCommand');
+    const landing=$('#veloraLanding');
+    if(!landing)return false;
+    // The full official logo intentionally replaces the old text wordmark, so do not require .ve-word here.
+    return !!landing.querySelector('#sdPublicCommand,.ve-hero,.ve-nav');
   }
   function revealPublic(showLogin){
-    const apply=()=>{
-      if(showLogin)window.VeloraPublic?.showLogin?.();else window.VeloraPublic?.showHome?.();brand();
-      if(publicExperienceReady()||showLogin){reveal();return}if(!ready)setTimeout(apply,60);
-    };apply();
+    if(showLogin)window.VeloraPublic?.showLogin?.();else window.VeloraPublic?.showHome?.();
+    brand();
+    let tries=0;
+    const check=()=>{
+      if(showLogin||publicExperienceReady()||tries++>=40){reveal();return}
+      setTimeout(check,100);
+    };
+    check();
   }
 
   async function decideInitialScreen(){
@@ -95,31 +104,60 @@
     const callback=/access_token|refresh_token|error_description|type=recovery/i.test(initialHash+initialSearch);
     const explicitLogin=initialHash==='#login'||callback;
     if(session){
-      let waits=0;const waitForWorkspace=()=>{
-        brand();
-        if(appVisible()){restoreRememberedView();requestAnimationFrame(()=>requestAnimationFrame(reveal));return}
-        if(waits++<120){setTimeout(waitForWorkspace,50);return}reveal();
-      };waitForWorkspace();
+      let waits=0;
+      const waitForWorkspace=()=>{
+        if(appVisible()){
+          brand();
+          restoreRememberedView();
+          requestAnimationFrame(()=>requestAnimationFrame(reveal));
+          return;
+        }
+        if(waits++<120){setTimeout(waitForWorkspace,50);return}
+        reveal();
+      };
+      waitForWorkspace();
     }else{
-      try{sessionStorage.removeItem(routeKey)}catch{}rememberedView=null;revealPublic(explicitLogin);
+      try{sessionStorage.removeItem(routeKey)}catch{}
+      rememberedView=null;
+      revealPublic(explicitLogin);
     }
   }
 
   document.addEventListener('click',event=>{
-    if(event.target.closest?.('#logout,#sdMarketLogout')){try{sessionStorage.removeItem(routeKey)}catch{}rememberedView=null;try{history.replaceState(null,'',`${location.pathname}#login`)}catch{}return}
-    if(replayingHistory||!appVisible())return;const id=targetViewFromClick(event.target);if(validView(id))writeRoute(id,'push');
+    if(event.target.closest?.('#logout,#sdMarketLogout')){
+      try{sessionStorage.removeItem(routeKey)}catch{}
+      rememberedView=null;
+      try{history.replaceState(null,'',`${location.pathname}#login`)}catch{}
+      return;
+    }
+    if(replayingHistory||!appVisible())return;
+    const id=targetViewFromClick(event.target);
+    if(validView(id))writeRoute(id,'push');
   },true);
 
-  const app=$('#app');if(app)new MutationObserver(()=>{
-    brand();if(!appVisible())return;const id=activeView();if(validView(id)){storeView(id);if(!replayingHistory&&routeFromHash(location.hash)!==id)writeRoute(id,'replace')}
+  // Track only the active workspace route. Branding is handled independently and is not run from this observer.
+  const app=$('#app');
+  if(app)new MutationObserver(()=>{
+    if(!appVisible())return;
+    const id=activeView();
+    if(validView(id)){
+      storeView(id);
+      if(!replayingHistory&&routeFromHash(location.hash)!==id)writeRoute(id,'replace');
+    }
   }).observe(app,{subtree:true,attributes:true,attributeFilter:['class']});
 
   addEventListener('popstate',async()=>{
-    const id=routeFromHash(location.hash);if(id&&appVisible()){activateView(id,false);storeView(id);return}
+    const id=routeFromHash(location.hash);
+    if(id&&appVisible()){activateView(id,false);storeView(id);return}
     let session=null;try{session=(await window.tkCloud?.auth?.session?.())?.data?.session||null}catch{}
-    if(session&&appVisible()){const fallback=rememberedView||activeView()||'dashboard';activateView(fallback,false);writeRoute(fallback,'replace')}
+    if(session&&appVisible()){
+      const fallback=rememberedView||activeView()||'dashboard';
+      activateView(fallback,false);
+      writeRoute(fallback,'replace');
+    }
   });
 
-  setTimeout(()=>{if(!ready){if(appVisible())restoreRememberedView();brand();reveal()}},7000);
+  // Final fail-safe: never leave users trapped on the boot screen.
+  setTimeout(()=>{if(!ready){if(appVisible())restoreRememberedView();reveal()}},5000);
   setTimeout(decideInitialScreen,0);
 })();
