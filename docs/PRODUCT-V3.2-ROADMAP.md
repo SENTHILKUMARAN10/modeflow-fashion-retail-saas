@@ -11,7 +11,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 1 | Main dashboard | DONE | Date filters (today/yesterday/7d/30d/month/lastmonth/year/custom), range KPIs (sales/purchases/expenses/net/gross/margin), balance KPIs (receivables/payables/stock value), today/best/top customer/pending/P&L, sales+expense trends |
 | 2 | Customers | PARTIAL | Directory done: add/edit/archive from DB, full fields (phone/email/company/address/tags/notes), merged purchase stats, status pill, tag-group & active/archived filter chips. Remaining: credit limit, email adapters |
 | 3 | Suppliers | PARTIAL | CRUD + purchases + payments + payables + ledger/statement (date-filtered) + copy/CSV/print done. Remaining: POs, returns, debit notes |
-| 4 | Products / services | PARTIAL | name/cost/price/stock/reorder/service/category/sku/barcode/unit done. Add brand, HSN, GST rate, MRP, variants, images, batches, import/export |
+| 4 | Products / services | PARTIAL | name/cost/price/stock/reorder/service/category/sku/barcode/unit + WhatsApp catalogue share + printable Restock list (items below reorder level with suggested order qty) done. Add brand, HSN, GST rate, MRP, variants, images, batches |
 | 5 | Inventory | PARTIAL | stock via RPCs + suppliers/purchases receive. Add warehouses, stock movements, adjustments, transfers, valuation, audit/count, expiry alerts |
 | 7 | Sales billing | PARTIAL | multi-item checkout (complete_multi_item_sale) + single-item; statuses paid/partial/unpaid + overdue (due-date-aware), history filter, full item-line invoice print. Remaining: persist due date/notes on client sales (RPC change), GST, PO#, transport |
 | 14 | Purchases | PARTIAL | PO→bill flow done: “Receive stock & bill now” at creation or keep open PO; printable bill/PO document, notes, BILL/PO tags, due date + overdue/status. Add GST, freight, supplier invoice #, batch/expiry capture |
@@ -40,7 +40,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 29 | GST reports | PLAN | GSTR-1/3B summaries, HSN summary, input/output tax |
 | 35 | Warehouses | PLAN | creation, warehouse stock, transfers, reports (schema: warehouses, inventory_transfers) |
 | 39 | CRM | PLAN | leads, follow-ups (schema: customer_followups), tasks, customer value |
-| 42 | WhatsApp | PARTIAL | invoice share + overdue reminders (Transactions) + receipt Share + customer statement Share; extend to catalogue |
+| 42 | WhatsApp | PARTIAL | invoice share + overdue reminders (Transactions) + receipt Share + customer statement Share + catalogue share (copy-to-clipboard formatted catalogue, Products); extend to purchase orders & quotes |
 | 45 | Multi-user | PLAN | invite members (schema: team_invitations), roles, acceptance flow |
 | 46 | Permissions | PARTIAL | client capability map; align with server `salesdesk_can` matrix |
 | 56 | Notifications | PARTIAL | alerts centre on dashboard (low stock/OOS + overdue recv/payables with amounts, Restock/Collect/Pay jump via named hash intents incl. #open=lowstock) + Cash focus strip (due today & overdue recv/payables); add expiry/subscription expiry + push/email delivery |

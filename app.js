@@ -756,6 +756,10 @@
   });
   function bindInventory() {
     bindCsvImport('product');
+    var reorder = $('#reorderListBtn');
+    if (reorder) reorder.addEventListener('click', printRestockList);
+    var catalogue = $('#catalogueShareBtn');
+    if (catalogue) catalogue.addEventListener('click', shareCatalogue);
     if ($('#productSearch')) $('#productSearch').addEventListener('input', renderInventory);
     $$('.filter-chip').forEach(function (c) {
       c.addEventListener('click', function () {
@@ -2722,6 +2726,59 @@ var pid = paymentTarget.id;
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 500);
     toast('Report exported');
   }
+
+  /* ============ catalogue & restock list ============ */
+  function shareCatalogue() {
+    var biz = state.businessProfile || {};
+    var cat = biz.name || state.businessName || 'Our store';
+    var list = state.products.slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
+    if (!list.length) { toast('Add products before sharing a catalogue'); return; }
+    var text = '*' + cat + ' — Catalogue*\n\n' + list.filter(function (p) { return !isService(p); }).map(function (p) {
+      return '• ' + p.name + ' — ' + money(p.price) + (p.category ? ' (' + p.category + ')' : '');
+    }).join('\n') + '\n\n' + 'Prices in ' + symbol() + '. Message us for availability & orders!';
+    copyClipboard(text);
+    toast('Catalogue copied — paste it in WhatsApp');
+  }
+  function printRestockList() {
+    var low = state.products.filter(function (p) { return !isService(p); })
+      .filter(function (p) { return p.stock <= p.reorder; })
+      .sort(function (a, b) { return (a.stock / Math.max(a.reorder, 1)) - (b.stock / Math.max(b.reorder, 1)); });
+    if (!low.length) { toast('Nothing to restock — stock looks healthy'); return; }
+    var biz = state.businessProfile || {};
+    var rows = low.map(function (p) {
+      var suggest = Math.max(p.reorder - p.stock, 1);
+      return '<tr><td>' + esc(p.name) + (p.sku ? ' · ' + esc(p.sku) : '') + '</td><td>' + (p.category ? esc(p.category) : '—') + '</td><td>' + p.stock + '</td><td>' + p.reorder + '</td><td><b>' + suggest + '</b> ' + esc(p.unit || 'units') + '</td></tr>';
+    }).join('');
+    var w = window.open('', '_blank', 'width=700,height=800');
+    if (!w) { toast('Pop-up blocked. Allow pop-ups to print.'); return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Restock list</title><style>' +
+      'body{font-family:system-ui,sans-serif;margin:24px;color:#111}h1{font-size:20px;margin:0 0 4px}' +
+      'p.muted{color:#555;margin:4px 0 14px}table{width:100%;border-collapse:collapse;font-size:14px}' +
+      'th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #ddd}th{background:#f4f4f4;text-transform:uppercase;font-size:11px;letter-spacing:.04em}' +
+      '</style></head><body>' +
+      '<h1>Restock list</h1><p class="muted">' + esc(biz.name || state.businessName || 'Store') + ' · ' + low.length + ' items below reorder level · ' + new Date().toDateString() + '</p>' +
+      '<table><thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Reorder level</th><th>Suggested order</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<script>print()<\/script></body></html>');
+    w.document.close();
+  }
+  function copyClipboard(text) {
+    function legacy() {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        return true;
+      } catch (e) { return false; }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(function () { legacy(); });
+    } else legacy();
+  }
+
   function exportTally(kind) {
     var now = new Date().toISOString().slice(0, 10);
     if (kind === 'sales') {
