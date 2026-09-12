@@ -1135,12 +1135,39 @@
     renderPlans(); updatePreview();
   }
 
+/* ============ mobile menu ============ */
+  function bindMenu() {
+    var sidebar = document.getElementById('sidebar');
+    var btn = document.getElementById('menuToggle');
+    var backdrop = document.getElementById('menuBackdrop');
+    function close() {
+      if (!sidebar) return;
+      sidebar.classList.remove('open');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+      if (backdrop) backdrop.classList.remove('show');
+      document.body.classList.remove('menu-open');
+    }
+    if (btn && sidebar) {
+      btn.addEventListener('click', function () {
+        var open = sidebar.classList.toggle('open');
+        if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (backdrop) backdrop.classList.toggle('show', open);
+        document.body.classList.toggle('menu-open', open);
+      });
+      if (backdrop) backdrop.addEventListener('click', close);
+      document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') close(); });
+      sidebar.addEventListener('click', function (ev) { if (ev.target && ev.target.closest && ev.target.closest('.nav')) close(); });
+    }
+    close();
+    window.addEventListener('resize', function () { if (window.innerWidth > 840) close(); });
+  }
   /* ============ boot ============ */
   function boot() {
     $$('.nav[data-view]').forEach(function (b) { b.addEventListener('click', function () { gotoView(b.dataset.view); }); });
     $$('.goto-billing').forEach(function (b) { b.addEventListener('click', function () { gotoView('billing'); }); });
     $$('[data-go]').forEach(function (b) { b.addEventListener('click', function () { gotoView(b.dataset.go); }); });
     bindTheme();
+    bindMenu();
     bindAuth(); bindSale(); bindInventory(); bindExpenses(); bindInvoices(); bindExport(); bindPlans();
     initAuth();
   }
