@@ -1,13 +1,31 @@
-// Compatibility loader for the Salesventory production workspace.
+// Salesventory compatibility loader — complete branded production UI.
 (function(){
   'use strict';
-  const v='20260912-salesventory-production1';
+  const v='20260912-salesventory-production-v3';
+  window.__SALESVENTORY_COMPLETE_UI__=true;
   function css(selector,href,attr){if(document.querySelector(selector))return;const x=document.createElement('link');x.rel='stylesheet';x.href=href;x.setAttribute(attr,'1');document.head.appendChild(x)}
   function js(selector,src,attr){if(document.querySelector(selector))return;const x=document.createElement('script');x.src=src;x.async=false;x.setAttribute(attr,'1');document.body.appendChild(x)}
-  css('link[data-velora-final18]','ui/velora-final-v18.css?v='+v,'data-velora-final18');
-  css('link[data-salesdesk-market-suite]','ui/salesdesk-market-suite-v2.css?v='+v,'data-salesdesk-market-suite');
-  js('script[data-velora-final18],script[src*="ui/velora-final-v18.js"]','ui/velora-final-v18.js?v='+v,'data-velora-final18');
-  js('script[data-salesdesk-market-v3],script[src*="ui/salesdesk-market-suite-v3.js"]','ui/salesdesk-market-suite-v3.js?v='+v,'data-salesdesk-market-v3');
-  js('script[data-salesdesk-customer-production],script[src*="ui/customer-production-v1.js"]','ui/customer-production-v1.js?v='+v,'data-salesdesk-customer-production');
+
+  (function preRoute(){
+    try{
+      const q=new URL(location.href).searchParams.get('view');
+      const saved=localStorage.getItem('salesventory-active-view-v3');
+      const view=q||saved;
+      if(!view||!document.getElementById(view))return;
+      document.querySelectorAll('#app .view').forEach(x=>x.classList.toggle('active-view',x.id===view));
+      document.querySelectorAll('.sidebar .nav[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
+    }catch{}
+  })();
+
+  css('link[data-salesventory-logo-blend]','ui/salesventory-logo-blend-v1.css?v='+v,'data-salesventory-logo-blend');
+  css('link[data-salesventory-complete-ui]','ui/salesventory-complete-ui-v1.css?v='+v,'data-salesventory-complete-ui');
+
+  js('script[data-salesventory-site-footer],script[src*="ui/site-footer-v1.js"]','ui/site-footer-v1.js?v='+v,'data-salesventory-site-footer');
+  js('script[data-salesinventory-customer-production],script[src*="ui/customer-production-v1.js"]','ui/customer-production-v1.js?v='+v,'data-salesinventory-customer-production');
   js('script[data-salesventory-production],script[src*="ui/salesventory-production-v1.js"]','ui/salesventory-production-v1.js?v='+v,'data-salesventory-production');
+  js('script[data-salesventory-invoice-reference],script[src*="ui/salesventory-invoice-reference-v1.js"]','ui/salesventory-invoice-reference-v1.js?v='+v,'data-salesventory-invoice-reference');
+  js('script[data-salesventory-cascade-guard],script[src*="ui/salesventory-cascade-guard-v1.js"]','ui/salesventory-cascade-guard-v1.js?v='+v,'data-salesventory-cascade-guard');
+  js('script[data-salesventory-complete-ui],script[src*="ui/salesventory-complete-ui-v1.js"]','ui/salesventory-complete-ui-v1.js?v='+v,'data-salesventory-complete-ui');
+  js('script[data-salesventory-dashboard-authority],script[src*="ui/salesventory-dashboard-authority-v1.js"]','ui/salesventory-dashboard-authority-v1.js?v='+v,'data-salesventory-dashboard-authority');
+  js('script[data-salesventory-copy-fix],script[src*="ui/salesventory-copy-fix-v1.js"]','ui/salesventory-copy-fix-v1.js?v='+v,'data-salesventory-copy-fix');
 })();
