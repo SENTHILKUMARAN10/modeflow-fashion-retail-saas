@@ -49,12 +49,12 @@ test('invoice items preserve historical cost for profit calculations',()=>{
 });
 
 test('Salesventory dashboard contains live business KPI modules',()=>{
-  const index=read('index.html');
+  const dash=read('dashboard.html');
   const fixes=read('supabase/runtime-fixes.js');
-  assert.match(index,/Today['’]s sales/);
-  assert.match(index,/Best seller/);
-  assert.match(index,/Pending payments/);
-  assert.match(index,/Profit &amp; loss/);
+  assert.match(dash,/Today['’]s sales/);
+  assert.match(dash,/Best seller/);
+  assert.match(dash,/Pending payments/);
+  assert.match(dash,/Profit &amp; loss/);
   assert.doesNotMatch(fixes,/Good evening, Senthil/);
 });
 

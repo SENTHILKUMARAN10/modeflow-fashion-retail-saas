@@ -17,6 +17,7 @@ test('professional workspace keeps sales tooling in one controller with server-e
   const index=read('index.html');
   for(const token of ['manageProducts','deleteSales','deleteExpenses'])assert.match(app,new RegExp(token));
   assert.doesNotMatch(index,/ui\/|salesdesk-|velora-/i);
+  for(const p of ['dashboard.html','sales.html','products.html','customers.html','suppliers.html','purchases.html','expenses.html','history.html','reports.html','plans.html'])assert.doesNotMatch(read(p),/ui\/|salesdesk-|velora-/i,p);
   assert.doesNotMatch(app,/salesdesk-pro-suite|salesdesk-operations-pro|salesdesk-market-suite/i);
   const people=read('supabase/migrations/202609111000_salesdesk_people_permissions_intelligence.sql');
   assert.match(people,/salesdesk_role_capabilities/);

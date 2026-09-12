@@ -1,75 +1,28 @@
-/* Salesventory v3 — single controller for demo and Supabase-cloud workspaces.
-   One store, one renderer, one clear flow. No runtime style injection. */
+/* Salesventory v3 — workspace controller for Supabase-cloud businesses.
+   One controller, per-section pages, one clear flow. Real records only. */
 (function () {
   'use strict';
   var $ = function (s) { return document.querySelector(s); };
   var $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
   var cloud = window.SDCloud && window.SDCloud.enabled ? window.SDCloud : null;
 
-  /* ============ demo seed (fashion retail workspace) ============ */
-  var dayTs = function (n, hour) {
-    var d = new Date(); d.setDate(d.getDate() - (n || 0));
-    if (hour !== undefined) d.setHours(hour, 12, 0, 0);
-    return d.getTime();
-  };
+  /* ============ date helpers ============ */
   var fmtDay = function (ts) { return new Date(ts).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); };
 
-  var seedProducts = [
-    { id: 1, name: 'Kanchipuram Silk Saree', cost: 3600, price: 5999, stock: 14, reorder: 5 },
-    { id: 2, name: 'Cotton Handloom Saree', cost: 980, price: 1899, stock: 26, reorder: 8 },
-    { id: 3, name: 'Embroidered Kurta Set', cost: 1300, price: 2599, stock: 20, reorder: 6 },
-    { id: 4, name: 'A-line Anarkali Dress', cost: 1750, price: 3299, stock: 11, reorder: 4 },
-    { id: 5, name: 'Silk Dupatta', cost: 420, price: 899, stock: 34, reorder: 10 },
-    { id: 6, name: 'Kada & Jhumka Bridal Set', cost: 700, price: 1499, stock: 17, reorder: 5 },
-    { id: 7, name: 'Kolhapuri Chappals', cost: 550, price: 1199, stock: 22, reorder: 6 },
-    { id: 8, name: 'Designer Potli Bag', cost: 380, price: 799, stock: 15, reorder: 4 },
-    { id: 9, name: 'Styling & Alteration Service', cost: 200, price: 999, stock: 999, reorder: 0 }
-  ];
-  var seedInvoices = [
-    { id: 'SV-2026-0184', customer: 'Priya Raman', phone: '9876543210', product: 'Kanchipuram Silk Saree', productId: 1, qty: 1, rate: 5999, cost: 3600, discount: 500, subtotal: 5999, total: 5499, paymentMethod: 'upi', paymentStatus: 'paid', date: fmtDay(dayTs(0, 11)), ts: dayTs(0, 11) },
-    { id: 'SV-2026-0180', customer: 'Nithya S', phone: '9123456780', product: 'Embroidered Kurta Set', productId: 3, qty: 2, rate: 2599, cost: 1300, discount: 298, subtotal: 5198, total: 4900, paymentMethod: 'card', paymentStatus: 'paid', date: fmtDay(dayTs(1, 10)), ts: dayTs(1, 10) },
-    { id: 'SV-2026-0176', customer: 'Harini M', phone: '9988776655', product: 'Styling & Alteration Service', productId: 9, qty: 1, rate: 999, cost: 200, discount: 0, subtotal: 999, total: 999, paymentMethod: 'upi', paymentStatus: 'unpaid', date: fmtDay(dayTs(2, 15)), ts: dayTs(2, 15) },
-    { id: 'SV-2026-0171', customer: 'Aishwarya K', phone: '9000011111', product: 'Silk Dupatta', productId: 5, qty: 3, rate: 899, cost: 420, discount: 197, subtotal: 2697, total: 2500, paymentMethod: 'cash', paymentStatus: 'paid', date: fmtDay(dayTs(3, 12)), ts: dayTs(3, 12) },
-    { id: 'SV-2026-0166', customer: 'Divya R', phone: '9444455555', product: 'Kolhapuri Chappals', productId: 7, qty: 2, rate: 1199, cost: 550, discount: 98, subtotal: 2398, total: 2300, paymentMethod: 'cash', paymentStatus: 'partial', date: fmtDay(dayTs(4, 17)), ts: dayTs(4, 17) }
-  ];
-  var seedExpenses = [
-    { id: 1, category: 'Digital Marketing', amount: 3200, note: 'September campaign', date: fmtDay(dayTs(2, 9)), ts: dayTs(2, 9) },
-    { id: 2, category: 'Store & Display', amount: 1450, note: 'New mannequin props', date: fmtDay(dayTs(1, 9)), ts: dayTs(1, 9) }
-  ];
-  var seedSuppliers = [
-    { id: 1, name: 'Kanchipuram Weaver Co-op', phone: '9876500001', email: 'orders@kanchiweave.in', gst: '33AABCT1234F1Z5', address: 'Kanchipuram, Tamil Nadu', contact: 'Lakshmi A', terms: 0, notes: '', cloud: false },
-    { id: 2, name: 'House of Chanderi', phone: '9876500002', email: 'billing@chanderi.in', gst: '23AABCS5678F1Z2', address: 'Chanderi, Madhya Pradesh', contact: 'Meera B', terms: 15, notes: 'Net monthly statement', cloud: false }
-  ];
-  var seedPurchases = [
-    { id: 1, number: 'PO-20260911-001', supplierId: 1, supplier: 'Kanchipuram Weaver Co-op', status: 'received', paymentStatus: 'paid', subtotal: 93600, total: 93600, paid: 93600, balance: 0, date: fmtDay(dayTs(6, 10)), items: [{ name: 'Kanchipuram Silk Saree', qty: 26, cost: 3600, lineTotal: 93600 }], payments: [{ amount: 93600, method: 'bank', ref: 'NEFT-8812' }], cloud: false },
-    { id: 2, number: 'PO-20260912-002', supplierId: 2, supplier: 'House of Chanderi', status: 'draft', paymentStatus: 'unpaid', subtotal: 16900, total: 16900, paid: 0, balance: 16900, date: fmtDay(dayTs(1, 9)), items: [{ name: 'Embroidered Kurta Set', qty: 13, cost: 1300, lineTotal: 16900 }], payments: [], cloud: false }
-  ];
-
-  var readStored = function (key, fallback) {
-    try { var v = JSON.parse(localStorage.getItem(key) || 'null'); return v || fallback; } catch (e) { return fallback; }
-  };
-  var saveLocal = function () {
-    localStorage.setItem('sv_products', JSON.stringify(state.products));
-    localStorage.setItem('sv_invoices', JSON.stringify(state.invoices));
-    localStorage.setItem('sv_expenses', JSON.stringify(state.expenses));
-    localStorage.setItem('sv_suppliers', JSON.stringify(state.suppliers));
-    localStorage.setItem('sv_purchases', JSON.stringify(state.purchases));
-  };
-
   var state = {
-    mode: 'demo',
-    demo: true,
+    mode: 'cloud',
+    demo: false,
     role: 'owner',
     businessId: null,
     businessName: 'Salesventory Workspace',
     currency: 'INR',
     user: null,
     channel: null,
-    products: readStored('sv_products', seedProducts),
-    invoices: readStored('sv_invoices', seedInvoices),
-    expenses: readStored('sv_expenses', seedExpenses),
-    suppliers: readStored('sv_suppliers', seedSuppliers),
-    purchases: readStored('sv_purchases', seedPurchases),
+    products: [],
+    invoices: [],
+    expenses: [],
+    suppliers: [],
+    purchases: [],
     billing: null
   };
 
@@ -139,7 +92,26 @@
     reports: ['BUSINESS INTELLIGENCE', 'Performance analytics'],
     plans: ['PLANS & BILLING', 'Manage your subscription']
   };
+  var PAGE_FILES = {
+    dashboard: 'dashboard.html', billing: 'sales.html', inventory: 'products.html',
+    customers: 'customers.html', suppliers: 'suppliers.html', purchases: 'purchases.html',
+    expenses: 'expenses.html', history: 'history.html', reports: 'reports.html',
+    plans: 'plans.html', login: 'index.html'
+  };
+  var SECTION_PAGE = {
+    dashboard: 'dashboard.html', billing: 'sales.html', inventory: 'products.html',
+    customers: 'customers.html', suppliers: 'suppliers.html', purchases: 'purchases.html',
+    expenses: 'expenses.html', history: 'history.html', reports: 'reports.html', plans: 'plans.html'
+  };
+  function currentPage() {
+    return (document.body && document.body.dataset && document.body.dataset.page) || 'login';
+  }
   function gotoView(id) {
+    var here = currentPage();
+    if (here !== 'login' && SECTION_PAGE[id] && here !== id) {
+      location.href = SECTION_PAGE[id];
+      return;
+    }
     $$('.view').forEach(function (v) { v.classList.toggle('active-view', v.id === id); });
     $$('.nav[data-view]').forEach(function (n) {
       var on = n.dataset.view === id;
@@ -158,24 +130,25 @@
     if (id === 'plans') renderPlans();
     if (innerWidth < 900) scrollTo({ top: 0, behavior: 'smooth' });
   }
-  function showApp(modeLabel) {
-    $('#login').classList.add('hidden');
-    $('#app').classList.remove('hidden');
-    $('#modeBadge').textContent = modeLabel;
-    $('#businessName').textContent = state.businessName;
-    $('#storeName').textContent = state.businessName;
-    var meta = $('#storeMeta'), roleEl = $('#roleBadge');
-    if (meta) meta.textContent = (state.mode === 'cloud' ? 'Business · cloud' : 'Demo · sample data') + ' · ' + (state.currency || 'INR');
-    if (roleEl) { roleEl.textContent = state.role; roleEl.hidden = state.mode !== 'cloud'; }
+  function showApp() {
+    var login = $('#login'); if (login) login.classList.add('hidden');
+    var app = $('#app'); if (app) app.classList.remove('hidden');
+    var mb = $('#modeBadge'); if (mb) mb.textContent = 'Cloud workspace';
+    var bn = $('#businessName'); if (bn) bn.textContent = state.businessName;
+    var sn = $('#storeName'); if (sn) sn.textContent = state.businessName;
+    var meta = $('#storeMeta'); if (meta) meta.textContent = 'Business · cloud · ' + (state.currency || 'INR');
+    var roleEl = $('#roleBadge'); if (roleEl) { roleEl.textContent = state.role; roleEl.hidden = false; }
     var initialsText = initials(state.businessName);
-    $('#storeAvatar').textContent = initialsText;
-    $('#profileBadge').textContent = initialsText;
+    var sa = $('#storeAvatar'); if (sa) sa.textContent = initialsText;
+    var pb = $('#profileBadge'); if (pb) pb.textContent = initialsText;
     renderAll();
-    gotoView('dashboard');
+    gotoView(currentPage());
   }
   function showLogin() {
-    $('#app').classList.add('hidden');
-    $('#login').classList.remove('hidden');
+    var app = $('#app'); if (app) app.classList.add('hidden');
+    var login = $('#login');
+    if (login) login.classList.remove('hidden');
+    else if (currentPage() !== 'login') location.replace('index.html');
   }
 
   /* ============ cloud data mapping ============ */
@@ -224,6 +197,7 @@
   async function loadCloudWorkspaceInner() {
     var sessionRes = await cloud.auth.session();
     if (!sessionRes || !sessionRes.data || !sessionRes.data.session) return;
+    if (currentPage() === 'login') { location.href = 'dashboard.html'; return; }
     var userRes = await cloud.auth.user();
     state.user = userRes && userRes.data ? userRes.data.user : null;
     var members = [];
@@ -253,7 +227,7 @@
     await refreshCloudData();
     state.channel = cloud.realtime.subscribe(id, function () { clearTimeout(state._rt); state._rt = setTimeout(refreshCloudData, 300); });
     toast('Workspace loaded');
-    showApp('Cloud workspace');
+    showApp();
   }
   async function refreshCloudData() {
     if (!state.businessId || !cloud) return;
@@ -273,7 +247,8 @@
       state.suppliers = results[3].map(supplierFromCloud);
       state.purchases = results[4].map(purchaseFromCloud);
       var el = $('#cloudStatus');
-      if (el && !$('#app').classList.contains('hidden')) el.textContent = '';
+      var appEl = $('#app');
+      if (el && appEl && !appEl.classList.contains('hidden')) el.textContent = '';
       renderAll();
     } catch (e) {
       var err = $('#cloudStatus');
@@ -313,6 +288,7 @@
     if (!cloud) {
       var s = $('#cloudStatus');
       if (s) s.textContent = (window.SDCloud && window.SDCloud.reason) || 'Cloud login is not configured.';
+      if (currentPage() !== 'login') location.replace('index.html');
       return;
     }
     cloud.auth.onChange(function (event) {
@@ -327,44 +303,74 @@
     cloud.auth.session().then(function (res) {
       if (res && res.data && res.data.session) loadCloudWorkspace();
       else {
-        var el = $('#cloudStatus');
-        if (el) el.textContent = 'Secure cloud workspace ready.';
+        if (currentPage() !== 'login') location.replace('index.html');
+        else {
+          var el = $('#cloudStatus');
+          if (el) el.textContent = 'Secure cloud workspace ready.';
+        }
       }
     });
   }
   function bindAuth() {
     var cloudAuthPending = false;
-    $('#demoLogin').addEventListener('click', function () {
-      cloudWorkspaceLoading = false;
+    var isSignUp = false;
+    var logout = $('#logout');
+    if (logout) logout.addEventListener('click', async function () {
       if (state.channel) { cloud.realtime.unsubscribe(state.channel); state.channel = null; }
-      state.mode = 'demo'; state.demo = true; state.role = 'owner';
-      state.businessId = null;
-      state.products = readStored('sv_products', seedProducts);
-      state.invoices = readStored('sv_invoices', seedInvoices);
-      state.expenses = readStored('sv_expenses', seedExpenses);
-      state.businessName = 'Salesventory Workspace';
-      state.currency = 'INR';
-      showApp('Demo workspace');
-    });
-    $('#logout').addEventListener('click', async function () {
       if (cloud) { try { await cloud.auth.signOut(); } catch (e) {} }
-      if (state.channel) { cloud.realtime.unsubscribe(state.channel); state.channel = null; }
-      showLogin();
+      location.href = 'index.html';
     });
-    $('#cloudLogin').addEventListener('submit', async function (e) {
+    var cloudLogin = $('#cloudLogin');
+    if (cloudLogin) cloudLogin.addEventListener('submit', async function (e) {
       e.preventDefault();
-      if (cloudAuthPending) return;
       if (!cloud) { toast('Cloud connection is unavailable'); return; }
+      if (cloudAuthPending) return;
+      var email = $('#loginEmail').value.trim();
+      var password = $('#loginPassword').value;
+      if (!email || !password) { toast('Enter your email and password'); return; }
+      if (isSignUp) {
+        if (password.length < 8) { toast('Password must be at least 8 characters'); return; }
+        cloudAuthPending = true;
+        try {
+          var res = await cloud.auth.signUp(email, password, location.origin + '/' + 'dashboard.html');
+          if (res.error) throw res.error;
+          if (res.data && res.data.session) location.href = 'dashboard.html';
+          else {
+            toast('Account created. Check your email to verify it, then sign in.');
+            isSignUp = false;
+            var h = $('#loginHeading');
+            if (h) h.textContent = 'Continue your workspace.';
+            var s = cloudLogin.querySelector('button[type=submit]');
+            if (s) s.textContent = 'Sign in to workspace';
+            var l = $('#signUpToggle');
+            if (l) l.textContent = 'New here? Create an account';
+          }
+        } catch (err) { toast(friendly(err)); }
+        finally { cloudAuthPending = false; }
+        return;
+      }
       cloudAuthPending = true;
       try {
-        var email = $('#loginEmail').value.trim();
-        var password = $('#loginPassword').value;
-        if (!email || !password) { toast('Enter your email and password'); return; }
-        var res = await cloud.auth.signIn(email, password);
-        if (res.error) throw res.error;
-        await loadCloudWorkspace();
+        var res2 = await cloud.auth.signIn(email, password);
+        if (res2.error) throw res2.error;
+        location.href = 'dashboard.html';
       } catch (err) { toast(friendly(err)); }
       finally { cloudAuthPending = false; }
+    });
+    var google = $('#googleLogin');
+    if (google) google.addEventListener('click', function () {
+      if (!cloud) { toast('Cloud connection is unavailable'); return; }
+      cloud.auth.signInGoogle(location.origin + '/' + 'dashboard.html');
+    });
+    var signUpLink = $('#signUpToggle');
+    if (signUpLink) signUpLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      isSignUp = !isSignUp;
+      var h = $('#loginHeading');
+      if (h) h.textContent = isSignUp ? 'Create your workspace.' : 'Continue your workspace.';
+      var submitBtn = cloudLogin ? cloudLogin.querySelector('button[type=submit]') : null;
+      if (submitBtn) submitBtn.textContent = isSignUp ? 'Create account' : 'Sign in to workspace';
+      signUpLink.textContent = isSignUp ? 'Already have an account? Sign in' : 'New here? Create an account';
     });
   }
   function friendly(err) {
@@ -385,7 +391,7 @@
     if (current && state.products.some(function (p) { return String(p.id) === current; })) s.value = current;
     syncRate();
   }
-  function selectedProduct() { return state.products.find(function (p) { return String(p.id) === String($('#product').value); }) || state.products[0]; }
+  function selectedProduct() { var s = $('#product'); if (!s) return null; return state.products.find(function (p) { return String(p.id) === String(s.value); }) || state.products[0]; }
   function syncRate() { var p = selectedProduct(); if (p && $('#rate')) $('#rate').value = p.price; updatePreview(); }
   function calcTotal() {
     var qty = Number($('#qty').value) || 0;
@@ -424,7 +430,7 @@
       var qty = Number($('#qty').value);
       if (!p) { toast('Add at least one product first'); return; }
       if (qty <= 0) { toast('Enter a valid quantity'); return; }
-      if (!isService(p) && !state.demo && !cloud) { toast('Cloud checkout is not available'); return; }
+      if (!isService(p) && !cloud) { toast('Cloud checkout is not available'); return; }
       if (!isService(p) && qty > p.stock) { toast('Not enough stock for this sale'); return; }
       var rate = Number($('#rate').value || p.price);
       if (rate < 0) { toast('Enter a valid selling price'); return; }
@@ -437,37 +443,23 @@
         toast('Sale completed successfully');
         gotoView('history');
       };
-      if (state.demo) {
-        var t = calcTotal();
-        state.invoices.unshift({
-          id: 'SV-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-4),
-          customer: $('#customerName').value.trim() || 'Walk-in customer',
-          phone: $('#phone').value.trim(), product: p.name, productId: p.id, qty: qty,
-          rate: rate, cost: Number(p.cost || 0), discount: discount, subtotal: qty * rate, total: t.total,
-          paymentMethod: $('#paymentMethod').value, paymentStatus: $('#paymentStatus').value,
-          date: fmtDay(Date.now()), ts: Date.now()
+      if (!cloud) { toast('Cloud checkout is not available'); return; }
+      var submit = $('#invoiceForm').querySelector('button[type=submit]');
+      if (submit) submit.disabled = true;
+      try {
+        await cloud.invoices.checkout({
+          p_business_id: state.businessId,
+          p_product_id: p.id,
+          p_customer_name: $('#customerName').value.trim() || 'Walk-in customer',
+          p_customer_phone: $('#phone').value.trim(),
+          p_quantity: qty, p_rate: rate, p_discount: discount,
+          p_payment_method: $('#paymentMethod').value, p_payment_status: $('#paymentStatus').value,
+          p_idempotency_key: window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : null
         });
-        if (!isService(p)) p.stock = Math.max(0, Number(p.stock) - qty);
-        saveLocal();
+        await refreshCloudData();
         done();
-      } else {
-        var submit = $('#invoiceForm').querySelector('button[type=submit]');
-        if (submit) submit.disabled = true;
-        try {
-          await cloud.invoices.checkout({
-            p_business_id: state.businessId,
-            p_product_id: p.id,
-            p_customer_name: $('#customerName').value.trim() || 'Walk-in customer',
-            p_customer_phone: $('#phone').value.trim(),
-            p_quantity: qty, p_rate: rate, p_discount: discount,
-            p_payment_method: $('#paymentMethod').value, p_payment_status: $('#paymentStatus').value,
-            p_idempotency_key: window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : null
-          });
-          await refreshCloudData();
-          done();
-        } catch (err) { toast(friendly(err)); }
-        finally { if (submit) submit.disabled = false; }
-      }
+      } catch (err) { toast(friendly(err)); }
+      finally { if (submit) submit.disabled = false; }
     });
   }
 
@@ -556,22 +548,13 @@
       };
       if (!data.name) { toast('Enter a product or service name'); return; }
       if (data.price < 0 || data.cost < 0) { toast('Enter valid price values'); return; }
-      if (state.demo) {
-        if (id) Object.assign(state.products.find(function (p) { return String(p.id) === id; }), data);
-        else state.products.push({ id: Date.now(), ...data });
-        saveLocal();
+      try {
+        if (id) await cloud.products.update(id, data);
+        else await cloud.products.create(state.businessId, data);
         $('#productDialog').close();
-        renderAll();
+        await refreshCloudData();
         toast(id ? 'Product updated' : 'Product added');
-      } else {
-        try {
-          if (id) await cloud.products.update(id, data);
-          else await cloud.products.create(state.businessId, data);
-          $('#productDialog').close();
-          await refreshCloudData();
-          toast(id ? 'Product updated' : 'Product added');
-        } catch (err) { toast(friendly(err)); }
-      }
+      } catch (err) { toast(friendly(err)); }
     });
     $('#inventoryRows').addEventListener('click', onInventoryAction);
   }
@@ -585,13 +568,8 @@
       var p = state.products.find(function (x) { return String(x.id) === String(id); });
       var ok = await confirmDialog('Delete product?', p ? '“' + p.name + '” and its stock history will be removed.' : 'Delete this product?');
       if (!ok) return;
-      if (state.demo) {
-        state.products = state.products.filter(function (x) { return String(x.id) !== String(id); });
-        saveLocal(); renderAll(); toast('Product deleted');
-      } else {
-        try { await cloud.products.remove(id); await refreshCloudData(); toast('Product deleted'); }
-        catch (err) { toast(friendly(err)); }
-      }
+      try { await cloud.products.remove(id); await refreshCloudData(); toast('Product deleted'); }
+      catch (err) { toast(friendly(err)); }
     }
   }
 
@@ -643,15 +621,10 @@
         note: $('#expenseNote').value.trim()
       };
       if (!data.category || !(data.amount > 0)) { toast('Enter a category and amount'); return; }
-      if (state.demo) {
-        state.expenses.unshift({ id: Date.now(), ...data, date: fmtDay(Date.now()), ts: Date.now() });
-        saveLocal(); e.target.reset(); renderAll(); toast('Expense added');
-      } else {
-        try {
-          await cloud.expenses.create(state.businessId, state.user ? state.user.id : null, data);
-          await refreshCloudData(); e.target.reset(); toast('Expense added');
-        } catch (err) { toast(friendly(err)); }
-      }
+      try {
+        await cloud.expenses.create(state.businessId, state.user ? state.user.id : null, data);
+        await refreshCloudData(); e.target.reset(); toast('Expense added');
+      } catch (err) { toast(friendly(err)); }
     });
     $('#expenseList').addEventListener('click', async function (e) {
       var btn = e.target.closest('[data-act="delete-expense"]');
@@ -659,13 +632,8 @@
       var ok = await confirmDialog('Delete expense?', 'This expense record will be removed. This cannot be undone.');
       if (!ok) return;
       var id = btn.dataset.id;
-      if (state.demo) {
-        state.expenses = state.expenses.filter(function (x) { return String(x.id) !== String(id); });
-        saveLocal(); renderAll(); toast('Expense deleted');
-      } else {
-        try { await cloud.expenses.remove(id); await refreshCloudData(); toast('Expense deleted'); }
-        catch (err) { toast(friendly(err)); }
-      }
+      try { await cloud.expenses.remove(id); await refreshCloudData(); toast('Expense deleted'); }
+      catch (err) { toast(friendly(err)); }
     });
   }
 
@@ -730,26 +698,12 @@
         notes: $('#sNotes').value.trim()
       };
       if (!data.name) { toast('Enter a supplier name'); return; }
-      if (!state.demo) {
-        try {
-          if (supplierEditId) await cloud.suppliers.update(supplierEditId, data);
-          else await cloud.suppliers.create(state.businessId, state.user ? state.user.id : null, data);
-          await refreshCloudData();
-          $('#supplierDialog').close(); toast(supplierEditId ? 'Supplier updated' : 'Supplier added');
-        } catch (err) { toast(friendly(err)); }
-        return;
-      }
-      if (supplierEditId) {
-        var found = state.suppliers.find(function (x) { return String(x.id) === String(supplierEditId); });
-        if (found) Object.assign(found, data);
-        toast('Supplier updated');
-      } else {
-        state.suppliers.push(Object.assign({ id: Date.now(), cloud: false }, data));
-        toast('Supplier added');
-      }
-      saveLocal();
-      $('#supplierDialog').close();
-      renderAll();
+      try {
+        if (supplierEditId) await cloud.suppliers.update(supplierEditId, data);
+        else await cloud.suppliers.create(state.businessId, state.user ? state.user.id : null, data);
+        await refreshCloudData();
+        $('#supplierDialog').close(); toast(supplierEditId ? 'Supplier updated' : 'Supplier added');
+      } catch (err) { toast(friendly(err)); }
     });
     if ($('#supplierSearch')) $('#supplierSearch').addEventListener('input', renderSuppliers);
     $('#supplierRows').addEventListener('click', async function (e) {
@@ -763,13 +717,8 @@
       }
       var ok = await confirmDialog('Delete supplier?', 'The supplier is hidden from your workspace. Existing purchase records stay untouched.');
       if (!ok) return;
-      if (state.demo) {
-        state.suppliers = state.suppliers.filter(function (x) { return String(x.id) !== String(id); });
-        saveLocal(); renderAll(); toast('Supplier removed');
-      } else {
-        try { await cloud.suppliers.remove(id); await refreshCloudData(); toast('Supplier removed'); }
-        catch (err) { toast(friendly(err)); }
-      }
+      try { await cloud.suppliers.remove(id); await refreshCloudData(); toast('Supplier removed'); }
+      catch (err) { toast(friendly(err)); }
     });
   }
 
@@ -828,10 +777,6 @@
     recomputePurchaseTotal();
     $('#purchaseDialog').showModal();
   }
-  function demoPurchaseNumber() {
-    var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
-    return 'PO-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + String(Math.floor(Math.random() * 90000) + 10000);
-  }
   function purchaseItemsLabel(p) {
     var first = p.items.slice(0, 2).map(function (it) { return it.name + ' × ' + it.qty; }).join(', ');
     return p.items.length > 2 ? first + ' +' + (p.items.length - 2) + ' more' : first;
@@ -886,42 +831,6 @@
     $('#paymentBalance').textContent = 'Outstanding for ' + p.number + ': ' + money(p.balance);
     $('#paymentDialog').showModal();
   }
-  function createPurchaseDemo(data, notes) {
-    var sup = state.suppliers.find(function (s) { return String(s.id) === String(data.supplierId); });
-    var items = data.items.map(function (it) {
-      var cost = Number(it.cost_price) || 0;
-      var qty = Number(it.quantity) || 1;
-      var prod = state.products.find(function (x) { return String(x.id) === String(it.product_id); });
-      return { productId: it.product_id, name: prod ? prod.name : 'Product', qty: qty, cost: cost, lineTotal: Math.round(qty * cost * 100) / 100 };
-    });
-    var total = items.reduce(function (a, it) { return a + it.lineTotal; }, 0);
-    state.purchases.unshift({
-      id: Date.now(), cloud: false, number: demoPurchaseNumber(),
-      supplierId: data.supplierId, supplier: sup ? sup.name : 'Unknown supplier',
-      status: 'draft', paymentStatus: 'unpaid',
-      subtotal: total, total: total, paid: 0, balance: total,
-      date: fmtDay(Date.now()), items: items, payments: []
-    });
-    saveLocal();
-  }
-  function receivePurchaseDemo(p) {
-    p.status = 'received';
-    (p.items || []).forEach(function (it) {
-      var prod = state.products.find(function (x) { return String(x.id) === String(it.productId); });
-      if (prod) { prod.stock = (prod.stock || 0) + it.qty; prod.cost = it.cost; }
-    });
-    saveLocal();
-  }
-  function payPurchaseDemo(p, amount, method, ref) {
-    var amt = Math.min(Math.max(Number(amount) || 0, 0), Math.max(p.balance || 0, 0));
-    if (amt <= 0) { toast('Nothing outstanding to pay'); return; }
-    p.paid = (p.paid || 0) + amt;
-    p.balance = Math.max(p.total - p.paid, 0);
-    p.payments = p.payments || [];
-    p.payments.push({ amount: amt, method: method, ref: ref || '' });
-    p.paymentStatus = p.balance <= 0 ? 'paid' : 'partial';
-    saveLocal();
-  }
   function bindPurchases() {
     $('#addPurchase').addEventListener('click', function () {
       if (!state.suppliers.length) { toast('Add a supplier before recording purchases'); gotoView('suppliers'); return; }
@@ -952,25 +861,17 @@
       var items = purchaseRowsFromDom();
       if (!items.length) { toast('Add at least one product line'); return; }
       var notes = '';
-      if (state.demo) {
-        createPurchaseDemo({ supplierId: supplierId, items: items }, notes);
+      try {
+        await cloud.purchases.create({
+          p_business_id: state.businessId,
+          p_supplier_id: supplierId,
+          p_items: items,
+          p_notes: notes || null
+        });
+        await refreshCloudData();
         $('#purchaseDialog').close();
-        renderAll();
         toast('Purchase bill recorded');
-        gotoView('purchases');
-      } else {
-        try {
-          await cloud.purchases.create({
-            p_business_id: state.businessId,
-            p_supplier_id: supplierId,
-            p_items: items,
-            p_notes: notes || null
-          });
-          await refreshCloudData();
-          $('#purchaseDialog').close();
-          toast('Purchase bill recorded');
-        } catch (err) { toast(friendly(err)); }
-      }
+      } catch (err) { toast(friendly(err)); }
     });
     $('#purchaseRows').addEventListener('click', async function (e) {
       var btn = e.target.closest('[data-act="receive-purchase"], [data-act="cancel-purchase"], [data-act="pay-purchase"]');
@@ -980,21 +881,15 @@
       if (act === 'receive-purchase') {
         var ok = await confirmDialog('Receive stock?', 'Stock levels are updated with the purchased quantities and product costs are refreshed.');
         if (!ok) return;
-        if (state.demo) { receivePurchaseDemo(found); renderAll(); toast('Stock received'); }
-        else {
-          try { await cloud.purchases.receive(id); await refreshCloudData(); toast('Stock received'); }
-          catch (err) { toast(friendly(err)); }
-        }
+        try { await cloud.purchases.receive(id); await refreshCloudData(); toast('Stock received'); }
+        catch (err) { toast(friendly(err)); }
         return;
       }
       if (act === 'cancel-purchase') {
         ok = await confirmDialog('Cancel this purchase?', 'The bill is marked cancelled. Stock is never changed.');
         if (!ok) return;
-        if (state.demo) { found.status = 'cancelled'; saveLocal(); renderAll(); toast('Purchase cancelled'); }
-        else {
-          try { await cloud.purchases.cancel(id); await refreshCloudData(); toast('Purchase cancelled'); }
-          catch (err) { toast(friendly(err)); }
-        }
+        try { await cloud.purchases.cancel(id); await refreshCloudData(); toast('Purchase cancelled'); }
+        catch (err) { toast(friendly(err)); }
         return;
       }
       openPaymentDialog(found);
@@ -1007,20 +902,13 @@
       var method = $('#paymentMethod2').value;
       var ref = $('#paymentRef').value.trim();
       if (!(amount > 0)) { toast('Enter a payment amount'); return; }
-      var pid = paymentTarget.id;
-      if (state.demo) {
-        payPurchaseDemo(paymentTarget, amount, method, ref);
+var pid = paymentTarget.id;
+      try {
+        await cloud.purchasePayments.create(pid, amount, method, ref);
+        await refreshCloudData();
         $('#paymentDialog').close();
-        renderAll();
         toast('Payment recorded');
-      } else {
-        try {
-          await cloud.purchasePayments.create(pid, amount, method, ref);
-          await refreshCloudData();
-          $('#paymentDialog').close();
-          toast('Payment recorded');
-        } catch (err) { toast(friendly(err)); }
-      }
+      } catch (err) { toast(friendly(err)); }
     });
   }
 
@@ -1053,7 +941,8 @@
       '</tr>';
   }
   function renderInvoices() {
-    var q = ($('#invoiceSearch').value || '').toLowerCase();
+    var searchEl = $('#invoiceSearch');
+    var q = (searchEl ? searchEl.value : '').toLowerCase();
     var filtered = state.invoices.filter(function (i) { return (i.id + ' ' + i.customer + ' ' + i.phone).toLowerCase().indexOf(q) !== -1; });
     if ($('#historyRows')) $('#historyRows').innerHTML = filtered.map(function (i) { return invoiceRow(i, false); }).join('') || '<tr><td colspan="7" class="empty-cell">No matching transactions.</td></tr>';
     if ($('#recent')) $('#recent').innerHTML = state.invoices.slice(0, 5).map(function (i) { return invoiceRow(i, true); }).join('') || '<tr><td colspan="6" class="empty-cell">No transactions yet.</td></tr>';
@@ -1073,15 +962,8 @@
     if (btn.dataset.act === 'delete-invoice') {
       var ok = await confirmDialog('Delete transaction?', 'The transaction ' + i.id + ' will be removed and stock will be restored.');
       if (!ok) return;
-      if (state.demo) {
-        var p = state.products.find(function (x) { return String(x.id) === String(i.productId); });
-        if (p && !isService(p)) p.stock = Number(p.stock) + Number(i.qty);
-        state.invoices = state.invoices.filter(function (x) { return x.id !== i.id; });
-        saveLocal(); renderAll(); toast('Transaction deleted');
-      } else {
-        try { await cloud.invoices.remove(i.cloudId || i.id); await refreshCloudData(); toast('Transaction deleted'); }
-        catch (err) { toast(friendly(err)); }
-      }
+      try { await cloud.invoices.remove(i.cloudId || i.id); await refreshCloudData(); toast('Transaction deleted'); }
+      catch (err) { toast(friendly(err)); }
     }
   }
   function printInvoice(i) {
@@ -1164,7 +1046,8 @@
     }
 
     /* revenue chart */
-    var range = Number($('#rangeSel').value || 7);
+    var rangeSel = $('#rangeSel');
+    var range = Number(rangeSel ? rangeSel.value : 7);
     var now = new Date();
     var cutoff = range >= 30 ? new Date(now.getFullYear(), now.getMonth(), 1).getTime() : Date.now() - range * 864e5;
     var daily = {};
@@ -1221,7 +1104,8 @@
 
   /* ============ export ============ */
   function bindExport() {
-    $('#exportData').addEventListener('click', function () {
+    var btn = $('#exportData');
+    if (btn) btn.addEventListener('click', function () {
       var blob = new Blob([JSON.stringify({
         product: 'Salesventory', exportedAt: new Date().toISOString(),
         mode: state.mode, businessId: state.businessId, role: state.role,
@@ -1565,12 +1449,25 @@
   }
   /* ============ boot ============ */
   function boot() {
-    $$('.nav[data-view]').forEach(function (b) { b.addEventListener('click', function () { gotoView(b.dataset.view); }); });
+    var page = currentPage();
+    $$('.nav[data-view]').forEach(function (b) { b.addEventListener('click', function (e) { e.preventDefault(); gotoView(b.dataset.view); }); });
     $$('.goto-billing').forEach(function (b) { b.addEventListener('click', function () { gotoView('billing'); }); });
     $$('[data-go]').forEach(function (b) { b.addEventListener('click', function () { gotoView(b.dataset.go); }); });
+    $$('.nav[data-view]').forEach(function (b) {
+      var on = b.dataset.view === page;
+      if (on) { b.classList.add('active'); b.setAttribute('aria-current', 'page'); }
+    });
     bindTheme();
     bindMenu();
-    bindAuth(); bindSale(); bindInventory(); bindSuppliers(); bindPurchases(); bindExpenses(); bindInvoices(); bindExport(); bindPlans();
+    bindAuth();
+    bindExport();
+    if (page === 'billing') bindSale();
+    if (page === 'inventory') bindInventory();
+    if (page === 'suppliers') bindSuppliers();
+    if (page === 'purchases') bindPurchases();
+    if (page === 'expenses') bindExpenses();
+    if (page === 'history') bindInvoices();
+    if (page === 'plans') bindPlans();
     initAuth();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });

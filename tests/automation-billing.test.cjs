@@ -53,13 +53,13 @@ test('plan changes are scheduled at cycle end and cancellation preserves access 
 
 test('billing UI wires the provider payment flow and never treats authenticated as active access',()=>{
   const billing=read('app.js');
-  const index=read('index.html');
+  const plans=read('plans.html');
   assert.ok(billing.includes('pendingActivation'));
   assert.ok(billing.includes("status === 'authenticated'"));
   assert.ok(!billing.includes("['active','authenticated'].includes"),'authenticated must not unlock paid access');
   assert.ok(!billing.includes("['active','created','authenticated'].includes"),'pending statuses must not unlock paid access');
   for(const endpoint of ['/api/billing/create-subscription','/api/billing/verify-payment','/api/upi-config','/api/manual-payment','/api/billing/sync','/api/billing/cancel'])assert.ok(billing.includes(endpoint),`missing ${endpoint}`);
-  assert.match(index,/PLANS &amp; BILLING|PLANS & BILLING/);
+  assert.match(plans,/PLANS &amp; BILLING|PLANS & BILLING/);
   assert.match(billing,/pendingActivation = /);
 });
 

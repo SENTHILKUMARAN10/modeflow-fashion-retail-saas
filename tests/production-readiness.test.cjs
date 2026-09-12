@@ -76,11 +76,13 @@ test('current professional business OS migration contains core expansion modules
   assert.match(migration, /create table if not exists public\.sales_returns/i);
 });
 
-test('professional workspace exposes the complete sales workflow in one self-contained controller', () => {
-  const index = read('index.html');
+test('professional workspace exposes the complete sales workflow across per-section pages', () => {
+  const pages = ['dashboard.html','sales.html','products.html','customers.html','suppliers.html','purchases.html','expenses.html','history.html','reports.html','plans.html'];
+  const all = pages.map(p => read(p)).join('\n');
   const app = read('app.js');
   const cloud = read('cloud.js');
-  for (const feature of ['New sale', 'Products', 'Customers', 'Expenses', 'Transactions', 'Analytics', 'Plans']) assert.match(index, new RegExp(feature));
+  for (const feature of ['New sale', 'Products', 'Customers', 'Expenses', 'Transactions', 'Analytics', 'Plans']) assert.match(all, new RegExp(feature));
+  for (const p of pages) assert.ok(fs.existsSync(p), p + ' missing');
   assert.match(cloud, /complete_sale/);
   assert.match(cloud, /delete_sale/);
   assert.match(app, /WhatsApp/);
@@ -124,9 +126,23 @@ test('regression migration preserves RPC security grants', () => {
 });
 
 test('frontend contains no privileged Supabase secret patterns', () => {
-  for (const file of ['index.html','app.js','cloud.js','supabase/config.js','supabase/client.js']) {
+  const pages = ['dashboard.html','sales.html','products.html','customers.html','suppliers.html','purchases.html','expenses.html','history.html','reports.html','plans.html'];
+  for (const file of ['index.html','app.js','cloud.js','supabase/config.js','supabase/client.js'].concat(pages)) {
     const src = read(file);
     assert.doesNotMatch(src, /SUPABASE_SERVICE_ROLE|sb_secret_/i, `${file} must not expose privileged Supabase secrets`);
+  }
+});
+
+test('every per-section page is wired to the shared controller and cloud bootstrap', () => {
+  const pages = ['dashboard.html','sales.html','products.html','customers.html','suppliers.html','purchases.html','expenses.html','history.html','reports.html','plans.html'];
+  for (const p of pages) {
+    const src = read(p);
+    assert.match(src, /<script src="cloud\.js/, p + ' loads cloud.js');
+    assert.match(src, /<script src="app\.js/, p + ' loads app.js');
+    assert.match(src, /<link rel="stylesheet" href="app\.css/, p + ' loads app.css');
+    assert.match(src, /data-page="/, p + ' declares a page slug');
+    assert.match(src, /id="sidebar"/, p + ' keeps the sidebar shell');
+    assert.match(src, /id="app"/, p + ' keeps the app shell');
   }
 });
 
@@ -160,10 +176,10 @@ test('invoice items preserve historical cost for profit calculations', () => {
 });
 
 test('Salesventory dashboard authority keeps the canonical KPI module wiring', () => {
-  const index = read('index.html');
-  for (const kpi of ['kpiToday', 'kpiBest', 'kpiPending', 'kpiPnL']) assert.match(index, new RegExp('id="' + kpi + '"'));
-  assert.match(index, /Today['’]s sales/);
-  assert.match(index, /Profit &amp; loss/);
+  const dash = read('dashboard.html');
+  for (const kpi of ['kpiToday', 'kpiBest', 'kpiPending', 'kpiPnL']) assert.match(dash, new RegExp('id="' + kpi + '"'));
+  assert.match(dash, /Today['’]s sales/);
+  assert.match(dash, /Profit &amp; loss/);
   const app = read('app.js');
   assert.match(app, /#kpiToday/);
   assert.match(app, /#kpiPnL/);

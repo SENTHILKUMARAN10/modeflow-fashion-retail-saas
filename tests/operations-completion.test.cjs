@@ -15,12 +15,12 @@ test('professional operations migration contains adaptive onboarding and branch 
 test('frontend closes the sale and stock loop through hardened RPCs',()=>{
   const cloud=read('cloud.js');
   const app=read('app.js');
-  const index=read('index.html');
+  const sales=read('sales.html');
   assert.match(cloud,/complete_sale/);
   assert.match(cloud,/delete_sale/);
   assert.match(app,/p_idempotency_key/);
   assert.match(app,/track_stock/);
-  assert.match(index,/New sale/);
+  assert.match(sales,/New sale/);
 });
 
 test('legacy local-only onboarding is removed from the production frontend',()=>{
