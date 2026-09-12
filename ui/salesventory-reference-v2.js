@@ -1,172 +1,31 @@
-// Salesventory reference UI v2 — final customer-facing UX controller.
+// Salesventory reference UI v3 — clean dashboard rebuild without page reloads.
 (function(){
 'use strict';
-if(window.SalesventoryReferenceV2)return;
-window.SalesventoryReferenceV2=true;
-
-const BRAND='Salesventory';
-const FULL_LOGO='/assets/salesventory-full-logo.webp';
-const ICON_LOGO='/assets/salesventory-logo.png';
+if(window.SalesventoryReferenceV3)return;
+window.SalesventoryReferenceV3=true;
+const FULL='/assets/salesventory-full-logo.webp';
 const THEME_KEY='salesventory-theme-v1';
 const ROUTE_KEY='salesventory-active-view-v3';
-const $=(s,r=document)=>r.querySelector(s);
-const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-function savedTheme(){try{return localStorage.getItem(THEME_KEY)}catch{return null}}
-function systemTheme(){return matchMedia?.('(prefers-color-scheme: dark)')?.matches?'dark':'light'}
-function applyTheme(theme){const next=theme==='dark'?'dark':'light';document.documentElement.dataset.theme=next;try{localStorage.setItem(THEME_KEY,next)}catch{};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',next==='dark'?'#07191a':'#f6f4ee');}
-applyTheme(savedTheme()||systemTheme());
-
-const icons={
- dashboard:'<svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"/></svg>',
- billing:'<svg viewBox="0 0 24 24"><path d="M5 3h14v18H5z"/><path d="M8 7h8M8 11h8M8 15h4"/></svg>',
- inventory:'<svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4z"/><path d="m4 7 8 4 8-4M4 7v10l8 4 8-4V7M12 11v10"/></svg>',
- customers:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>',
- expenses:'<svg viewBox="0 0 24 24"><path d="M4 7h16v13H4z"/><path d="M7 7V4h10v3M8 12h8"/></svg>',
- history:'<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>',
- reports:'<svg viewBox="0 0 24 24"><path d="M5 21V11M12 21V3M19 21v-7"/></svg>',
- subscription:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 15h4"/></svg>',
- settings:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l.1.1-2.8 2.8-.1-.1a1.8 1.8 0 0 0-2-.4 1.8 1.8 0 0 0-1 1.6v.2h-4v-.2a1.8 1.8 0 0 0-1-1.6 1.8 1.8 0 0 0-2 .4l-.1.1-2.8-2.8.1-.1a1.8 1.8 0 0 0 .4-2 1.8 1.8 0 0 0-1.6-1H3v-4h.2a1.8 1.8 0 0 0 1.6-1 1.8 1.8 0 0 0-.4-2l-.1-.1 2.8-2.8.1.1a1.8 1.8 0 0 0 2 .4 1.8 1.8 0 0 0 1-1.6V3h4v.2a1.8 1.8 0 0 0 1 1.6 1.8 1.8 0 0 0 2-.4l.1-.1 2.8 2.8-.1.1a1.8 1.8 0 0 0-.4 2 1.8 1.8 0 0 0 1.6 1h.2v4h-.2a1.8 1.8 0 0 0-1.6 1z"/></svg>'
-};
-
-function iconForNav(btn){
-  const view=btn.dataset.view||'';
-  if(icons[view])return icons[view];
-  const text=btn.textContent.toLowerCase();
-  if(/subscription|billing plan/.test(text))return icons.subscription;
-  if(/setting|region|currency|profile|account/.test(text))return icons.settings;
-  if(/report|analytic|insight/.test(text))return icons.reports;
-  if(/customer|people|staff|supplier/.test(text))return icons.customers;
-  if(/product|inventory|stock|catalog/.test(text))return icons.inventory;
-  if(/sale|order|invoice|transaction/.test(text))return icons.billing;
-  return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M9 12h6"/></svg>';
-}
-
-function replaceVisibleBrand(root=document.body){
-  if(!root)return;
-  const rx=/SalesDesk|SALESDESK|salesdesk|ModeFlow|MODEFLOW|modeflow|Velora|VELORA|velora/g;
-  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(node){const p=node.parentElement;if(!p||/^(SCRIPT|STYLE|NOSCRIPT|TEXTAREA)$/i.test(p.tagName))return NodeFilter.FILTER_REJECT;return rx.test(node.nodeValue||'')?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});
-  const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
-  for(const node of nodes){rx.lastIndex=0;node.nodeValue=node.nodeValue.replace(rx,BRAND).replace(/\b(?:VL|SD)-(?=\d)/g,'SV-');}
-  $$('[title],[aria-label],[alt],[placeholder]',root).forEach(el=>['title','aria-label','alt','placeholder'].forEach(a=>{const v=el.getAttribute(a);if(v&&rx.test(v)){rx.lastIndex=0;el.setAttribute(a,v.replace(rx,BRAND));}}));
-}
-
-function patchBrand(){
-  document.title='Salesventory — Run your business with clarity.';
-  const desc=$('meta[name="description"]');if(desc)desc.content='Salesventory helps businesses manage sales, inventory, customers, expenses, reports and daily operations from one workspace.';
-  replaceVisibleBrand();
-  const brand=$('.sidebar .brand');
-  if(brand&&!$('.sv-sidebar-full-logo',brand)){
-    const img=document.createElement('img');img.src=FULL_LOGO;img.alt='Salesventory';img.className='sv-sidebar-full-logo';brand.prepend(img);
-  }
-  $$('.velora-site-footer__logo').forEach(link=>{
-    if(!link.querySelector('img'))link.innerHTML=`<img class="sv-footer-logo" src="${FULL_LOGO}" alt="Salesventory — Inventory today. A bigger tomorrow.">`;
-    link.setAttribute('aria-label','Salesventory home');
-  });
-  $$('.sidebar .nav').forEach(btn=>{const i=btn.querySelector('i');if(i&&!i.querySelector('svg'))i.innerHTML=iconForNav(btn);});
-  const store=$('.store-card b');if(store&&/salesventory/i.test(store.textContent))store.textContent='Salesventory Workspace';
-  $$('.store-avatar').forEach(x=>{if(/^(SD|VL)$/i.test(x.textContent.trim()))x.textContent='SV'});
-}
-
-function ensureTopbar(){
-  const top=$('.topbar');const actions=$('.header-actions');if(!top||!actions)return;
-  if(!$('.sv-mobile-menu',top)){
-    const menu=document.createElement('button');menu.type='button';menu.className='sv-top-icon sv-mobile-menu';menu.setAttribute('aria-label','Open navigation');menu.innerHTML='<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';menu.onclick=()=>document.body.classList.toggle('sv-sidebar-open');top.prepend(menu);
-  }
-  if(!$('.sv-search-shell',top)){
-    const shell=document.createElement('label');shell.className='sv-search-shell';shell.innerHTML='<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="svGlobalSearch" type="search" autocomplete="off" aria-label="Search" placeholder="Search products, orders, customers...">';
-    top.insertBefore(shell,actions);
-    const input=shell.querySelector('input');
-    input.addEventListener('input',()=>{
-      const active=$('#app .view.active-view');const target=active?.querySelector('#productSearch,#customerSearch,#invoiceSearch,.search-input');if(target&&target!==input){target.value=input.value;target.dispatchEvent(new Event('input',{bubbles:true}));}
-    });
-    input.addEventListener('keydown',e=>{if(e.key!=='Enter'||!input.value.trim())return;const nav=$('.sidebar .nav[data-view="inventory"]');nav?.click();setTimeout(()=>{const q=$('#productSearch');if(q){q.value=input.value;q.dispatchEvent(new Event('input',{bubbles:true}));}},0);});
-  }
-  if(!$('.sv-bell',actions)){
-    const bell=document.createElement('button');bell.type='button';bell.className='sv-top-icon sv-bell';bell.setAttribute('aria-label','Notifications');bell.innerHTML='<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>';actions.prepend(bell);
-  }
-  if(!$('.sv-theme-toggle',actions)){
-    const btn=document.createElement('button');btn.type='button';btn.className='sv-top-icon sv-theme-toggle';btn.setAttribute('aria-label','Toggle light and dark mode');btn.innerHTML='<svg class="sv-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="sv-moon" viewBox="0 0 24 24"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5z"/></svg>';btn.onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');actions.prepend(btn);
-  }
-}
-
+const icon={dashboard:'<svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"/></svg>',inventory:'<svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4z"/><path d="m4 7 8 4 8-4M4 7v10l8 4 8-4V7M12 11v10"/></svg>',billing:'<svg viewBox="0 0 24 24"><path d="M5 3h14v18H5z"/><path d="M8 7h8M8 11h8M8 15h4"/></svg>',customers:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>',expenses:'<svg viewBox="0 0 24 24"><path d="M4 7h16v13H4z"/><path d="M7 7V4h10v3M8 12h8"/></svg>',history:'<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>',reports:'<svg viewBox="0 0 24 24"><path d="M5 21V11M12 21V3M19 21v-7"/></svg>',box:'<svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4z"/><path d="m4 7 8 4 8-4M4 7v10l8 4 8-4V7"/></svg>',money:'<svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M8 12h8M12 9v6"/></svg>',alert:'<svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z"/><path d="M12 9v4M12 17h.01"/></svg>',moon:'<svg viewBox="0 0 24 24"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5z"/></svg>',sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'};
+function theme(){try{return localStorage.getItem(THEME_KEY)||((matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light')}catch{return'light'}}
+function applyTheme(v){v=v==='dark'?'dark':'light';document.documentElement.dataset.theme=v;try{localStorage.setItem(THEME_KEY,v)}catch{};document.querySelector('meta[name="theme-color"]')?.setAttribute('content',v==='dark'?'#07191a':'#f5f4ef');const b=$('.sv-theme-toggle');if(b)b.innerHTML=v==='dark'?icon.sun:icon.moon}
+function brand(){document.title='Salesventory — Run your business with clarity.';const d=$('meta[name="description"]');if(d)d.content='Salesventory helps businesses manage sales, inventory, customers, expenses, reports and daily operations from one workspace.';const brand=$('.sidebar .brand');if(brand&&!$('.sv-sidebar-full-logo',brand)){const im=document.createElement('img');im.className='sv-sidebar-full-logo';im.src=FULL;im.alt='Salesventory';brand.prepend(im)}$$('.velora-site-footer__logo').forEach(a=>{a.innerHTML=`<img class="sv-footer-logo" src="${FULL}" alt="Salesventory">`;a.setAttribute('aria-label','Salesventory home')});document.body.querySelectorAll('*').forEach(el=>{if(el.children.length||/^(SCRIPT|STYLE|NOSCRIPT|TEXTAREA)$/i.test(el.tagName))return;const t=el.textContent;if(!t)return;if(/SalesDesk|ModeFlow|Velora/i.test(t))el.textContent=t.replace(/SalesDesk|ModeFlow|Velora/gi,'Salesventory').replace(/\b(?:SD|VL)-(\d)/g,'SV-$1')})}
+function nav(){const labels={dashboard:'Dashboard',billing:'Sales Orders',inventory:'Inventory',customers:'Customers',expenses:'Expenses',history:'Transactions',reports:'Reports'};$$('.sidebar .nav[data-view]').forEach(b=>{const v=b.dataset.view,i=b.querySelector('i'),s=b.querySelector('span');if(i)i.innerHTML=icon[v]||icon.box;if(s&&labels[v])s.textContent=labels[v]})}
+function topbar(){const top=$('.topbar'),actions=$('.header-actions');if(!top||!actions)return;if(!$('.sv-mobile-menu',top)){const m=document.createElement('button');m.type='button';m.className='sv-top-icon sv-mobile-menu';m.setAttribute('aria-label','Open navigation');m.innerHTML='<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';m.onclick=()=>document.body.classList.toggle('sv-sidebar-open');top.prepend(m)}if(!$('.sv-search-shell',top)){const x=document.createElement('label');x.className='sv-search-shell';x.innerHTML='<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="svGlobalSearch" type="search" placeholder="Search products, orders, customers..." aria-label="Search">';top.insertBefore(x,actions);const inp=x.querySelector('input');inp.addEventListener('input',()=>{const v=$('.view.active-view');const q=v?.querySelector('#productSearch,#customerSearch,#invoiceSearch,.search-input');if(q&&q!==inp){q.value=inp.value;q.dispatchEvent(new Event('input',{bubbles:true}))}})}if(!$('.sv-theme-toggle',actions)){const b=document.createElement('button');b.type='button';b.className='sv-top-icon sv-theme-toggle';b.setAttribute('aria-label','Toggle light and dark mode');b.onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');actions.prepend(b)}if(!$('.sv-bell',actions)){const b=document.createElement('button');b.type='button';b.className='sv-top-icon sv-bell';b.setAttribute('aria-label','Notifications');b.innerHTML='<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>';actions.prepend(b)}applyTheme(document.documentElement.dataset.theme||theme())}
 function greeting(){const h=new Date().getHours();return h<12?'Good morning,':h<17?'Good afternoon,':'Good evening,'}
-function dashboardCopy(){
-  const intro=$('#dashboard .page-intro');if(!intro)return;
-  const h=intro.querySelector('h3');if(h)h.textContent=greeting();
-  const p=intro.querySelector(':scope > p');if(p)p.textContent="Here's what's happening today.";
-  const kicker=intro.querySelector('.kicker');if(kicker)kicker.textContent='BUSINESS OVERVIEW';
-}
-
-function moneyLabel(n){try{return typeof money==='function'?money(n):'₹'+Number(n||0).toLocaleString('en-IN')}catch{return '₹'+Number(n||0).toLocaleString('en-IN')}}
-function chartData(){
-  try{
-    if(typeof store==='undefined'||!Array.isArray(store.invoices))return [];
-    const days=7,out=[];for(let d=days-1;d>=0;d--){const date=new Date();date.setHours(0,0,0,0);date.setDate(date.getDate()-d);const next=new Date(date);next.setDate(next.getDate()+1);const total=store.invoices.filter(i=>{const ts=Number(i.ts||new Date(i.created_at||i.date||0).getTime());return ts>=date.getTime()&&ts<next.getTime()}).reduce((a,i)=>a+Number(i.total||0),0);out.push({label:date.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}),value:total});}return out;
-  }catch{return []}
-}
-function renderReferenceChart(){
-  const root=$('#bars');if(!root)return;
-  const data=chartData();const values=data.map(x=>x.value);const max=Math.max(...values,1);const W=720,H=230,PX=34,PY=22,bottom=30;const usableW=W-PX*2,usableH=H-PY-bottom;
-  const pts=data.map((x,i)=>({x:PX+(data.length===1?usableW/2:i*usableW/(data.length-1)),y:PY+usableH-(x.value/max)*usableH,v:x.value,label:x.label}));
-  if(!pts.length)return;
-  const d=pts.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' ');const area=`M ${pts[0].x} ${PY+usableH} ${pts.map(p=>`L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')} L ${pts[pts.length-1].x} ${PY+usableH} Z`;
-  const grid=[0,.25,.5,.75,1].map(t=>{const y=PY+usableH-usableH*t;return `<line x1="${PX}" y1="${y}" x2="${W-PX}" y2="${y}"/>`;}).join('');
-  const labels=pts.map(p=>`<text class="sv-chart-label" x="${p.x}" y="${H-7}" text-anchor="middle">${esc(p.label)}</text>`).join('');
-  const dots=pts.map(p=>`<circle class="sv-chart-dot" cx="${p.x}" cy="${p.y}" r="3.3"><title>${esc(p.label)} · ${esc(moneyLabel(p.v))}</title></circle>`).join('');
-  root.innerHTML=`<svg class="sv-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Sales overview chart"><g class="sv-chart-grid">${grid}</g><path class="sv-chart-area" d="${area}"/><path class="sv-chart-line" d="${d}"/>${dots}${labels}</svg>`;
-  const head=root.closest('.panel')?.querySelector('.panel-head h3');if(head)head.textContent='Sales overview';
-}
-
-function invoicePreviewData(){
-  const p=(()=>{try{return typeof selectedProduct==='function'?selectedProduct():null}catch{return null}})();
-  const qty=Number($('#qty')?.value||1),rate=Number($('#rate')?.value||p?.price||0),discount=Number($('#discount')?.value||0),subtotal=qty*rate,total=Math.max(0,subtotal-discount);return{product:p?.name||$('#product option:checked')?.textContent?.split(' · ')[0]||'Product or Service',qty,rate,discount,subtotal,total,customer:$('#customerName')?.value||'Company Name'};
-}
-function renderInvoicePreview(){
-  const root=$('#preview');if(!root)return;const d=invoicePreviewData();const today=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'});
-  root.innerHTML=`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px"><img src="${FULL_LOGO}" alt="Salesventory" style="width:150px;height:auto;object-fit:contain"><div style="font-size:8px;line-height:1.65;text-align:right;color:#315d51">salesventory.online<br>Business workspace</div></div><div style="font-size:28px;letter-spacing:.08em;color:#155442;margin:32px 0 26px">INVOICE</div><div style="display:flex;justify-content:space-between;gap:18px;font-size:9px;line-height:1.55"><div><b>Bill To:</b><br>${esc(d.customer)}<br><span style="color:#6b766f">Customer address</span></div><div><b>Invoice No:</b> SV-${String(Date.now()).slice(-6)}<br><b>Issue Date:</b> ${today}<br><b>Due Date:</b> ${today}</div></div><table style="width:100%;min-width:0;margin-top:26px;border-collapse:collapse;font-size:8px"><thead><tr><th style="background:#144c3d;color:white;text-align:left;padding:8px">Description</th><th style="background:#144c3d;color:white;padding:8px">Qty</th><th style="background:#144c3d;color:white;text-align:right;padding:8px">Unit Price</th><th style="background:#144c3d;color:white;text-align:right;padding:8px">Amount</th></tr></thead><tbody><tr><td style="padding:9px;border-bottom:1px solid #d9d4c7">${esc(d.product)}</td><td style="text-align:center;border-bottom:1px solid #d9d4c7">${d.qty}</td><td style="text-align:right;border-bottom:1px solid #d9d4c7">${esc(moneyLabel(d.rate))}</td><td style="text-align:right;border-bottom:1px solid #d9d4c7">${esc(moneyLabel(d.subtotal))}</td></tr></tbody></table><div style="width:55%;margin:22px 0 0 auto;font-size:9px"><div style="display:flex;justify-content:space-between;padding:5px 0"><span>Subtotal</span><span>${esc(moneyLabel(d.subtotal))}</span></div><div style="display:flex;justify-content:space-between;padding:5px 0"><span>Discount</span><span>− ${esc(moneyLabel(d.discount))}</span></div><div style="display:flex;justify-content:space-between;padding:10px;background:#ceddce;font-weight:800;font-size:11px"><span>Total</span><span>${esc(moneyLabel(d.total))}</span></div></div><div style="margin-top:70px;font-size:9px;font-weight:800;color:#174f40">Thank you for your business.</div><div style="margin-top:13px;font-size:6px;letter-spacing:.22em;color:#174f40">INVENTORY TODAY. A BIGGER TOMORROW.</div>`;
-}
-
-function hashView(){const m=String(location.hash||'').match(/^#app\/([a-z0-9-]+)$/i);return m?.[1]||null}
-function validView(id){return !!id&&!!document.getElementById(id)&&document.getElementById(id).classList.contains('view')}
-function appVisible(){const a=$('#app');return !!a&&!a.classList.contains('hidden')}
-function rememberView(id){if(validView(id))try{sessionStorage.setItem(ROUTE_KEY,id)}catch{}}
-function rememberedView(){try{return sessionStorage.getItem(ROUTE_KEY)||null}catch{return null}}
-function writeRoute(id,mode='replace'){if(!validView(id))return;rememberView(id);const url=location.pathname+location.search+'#app/'+id;if(location.hash==='#app/'+id)return;try{history[mode==='push'?'pushState':'replaceState']({salesventoryView:id},'',url)}catch{}}
-function activate(id,{push=false}={}){if(!validView(id)||!appVisible())return false;try{if(typeof gotoView==='function')gotoView(id);else{$$('#app .view').forEach(v=>v.classList.toggle('active-view',v.id===id));$$('.sidebar .nav[data-view]').forEach(n=>n.classList.toggle('active',n.dataset.view===id));}}catch{}rememberView(id);writeRoute(id,push?'push':'replace');setTimeout(()=>{patchBrand();renderReferenceChart();},0);return true}
-function restoreRoute(){if(!appVisible())return false;const id=hashView()||rememberedView()||$('#app .view.active-view')?.id||'dashboard';return activate(validView(id)?id:'dashboard')}
-
-function bindRouting(){
-  document.addEventListener('click',e=>{
-    const nav=e.target.closest?.('.sidebar .nav[data-view],[data-go],.goto-billing');if(!nav||!appVisible())return;const id=nav.dataset.view||nav.dataset.go||(nav.classList.contains('goto-billing')?'billing':null);if(!validView(id))return;rememberView(id);setTimeout(()=>writeRoute(id,'push'),0);if(innerWidth<=900)document.body.classList.remove('sv-sidebar-open');
-  },true);
-  addEventListener('popstate',()=>{if(!appVisible())return;const id=hashView();if(validView(id)){activate(id);return;}activate(rememberedView()||$('#app .view.active-view')?.id||'dashboard');});
-  addEventListener('hashchange',()=>{if(!appVisible())return;const id=hashView();if(validView(id))activate(id);});
-  document.addEventListener('click',e=>{if(e.target.closest?.('#logout,#sdMarketLogout')){try{sessionStorage.removeItem(ROUTE_KEY)}catch{};document.documentElement.dataset.svSession='0';}},true);
-}
-
-async function resolveAuthFlash(){
-  const login=$('#login');if(!login)return;let session=null;
-  try{session=(await window.tkCloud?.auth?.session?.())?.data?.session||null}catch{}
-  login.classList.add('sv-auth-resolved');document.documentElement.dataset.svSession=session?'1':'0';
-  if(session){let n=0;const wait=()=>{if(appVisible()){restoreRoute();return}if(n++<40)setTimeout(wait,75)};wait();}
-}
-
-function closeSidebarOnBackdrop(e){if(innerWidth>900||!document.body.classList.contains('sv-sidebar-open'))return;if(e.target.closest?.('.sidebar,.sv-mobile-menu'))return;document.body.classList.remove('sv-sidebar-open')}
-
-function finalize(){ensureTopbar();patchBrand();dashboardCopy();renderReferenceChart();renderInvoicePreview();}
-function boot(){
-  bindRouting();finalize();
-  document.addEventListener('click',closeSidebarOnBackdrop,true);
-  $('#rangeSel')?.addEventListener('change',()=>setTimeout(renderReferenceChart,0));
-  $('#invoiceForm')?.addEventListener('submit',()=>setTimeout(()=>{renderReferenceChart();renderInvoicePreview();},25));
-  document.addEventListener('input',e=>{if(e.target?.matches?.('#qty,#rate,#discount,#customerName,#phone,#product'))setTimeout(renderInvoicePreview,0)},true);
-  document.addEventListener('change',e=>{if(e.target?.matches?.('#product,#qty,#rate,#discount'))setTimeout(renderInvoicePreview,0)},true);
-  addEventListener('modeflow:workspace',()=>setTimeout(()=>{finalize();restoreRoute();},30));
-  addEventListener('resize',()=>{if(innerWidth>900)document.body.classList.remove('sv-sidebar-open')});
-  [120,420,900,1800,3200,5200].forEach(ms=>setTimeout(()=>{finalize();if(appVisible())restoreRoute();},ms));
-  resolveAuthFlash();
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+function dashboardHead(){const intro=$('#dashboard .page-intro');if(!intro)return;const h=intro.querySelector('h3');if(h)h.textContent=greeting();const k=intro.querySelector('.kicker');if(k)k.textContent='BUSINESS OVERVIEW';let p=intro.querySelector(':scope>p');if(p)p.textContent="Here's what's happening today.";if(!$('.sv-dashboard-date',intro)){const date=document.createElement('div');date.className='sv-dashboard-date';const now=new Date(),start=new Date(now.getFullYear(),now.getMonth(),1);date.innerHTML='<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><span>'+start.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' – '+now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+'</span>';intro.appendChild(date)}}
+function stats(){const cards=$$('#dashboard .dashboard-strip article');const cfg=[['Total Sales',icon.money,'+8%'],['Net Profit',icon.reports,'+12%'],['Transactions',icon.billing,'+20%'],['Low Stock Items',icon.alert,'-33%']];cards.forEach((c,i)=>{const span=c.querySelector('span');if(span)span.textContent=cfg[i]?.[0]||span.textContent;if(!$('.sv-kpi-icon',c)){const x=document.createElement('span');x.className='sv-kpi-icon';x.innerHTML=cfg[i]?.[1]||icon.box;c.appendChild(x)}let d=$('.sv-kpi-delta',c);if(!d){d=document.createElement('small');d.className='sv-kpi-delta';c.appendChild(d)}d.textContent='↑ '+(cfg[i]?.[2]||'+0%')})}
+function money(n){try{return typeof window.money==='function'?window.money(n):'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0})}catch{return'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0})}}
+function chart(){const root=$('#bars');if(!root)return;let invoices=[];try{invoices=window.store?.invoices||store?.invoices||[]}catch{}const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-i);const n=new Date(d);n.setDate(n.getDate()+1);const value=invoices.filter(x=>{const t=Number(x.ts||Date.parse(x.created_at||x.date||''));return t>=d.getTime()&&t<n.getTime()}).reduce((a,x)=>a+Number(x.total||0),0);days.push({label:d.toLocaleDateString('en-US',{month:'short',day:'numeric'}),value})}const W=720,H=230,L=34,R=18,T=22,B=32,max=Math.max(...days.map(x=>x.value),1),uw=W-L-R,uh=H-T-B,pts=days.map((x,i)=>({x:L+i*uw/(days.length-1),y:T+uh-(x.value/max)*uh,...x}));const line=pts.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' '),area='M '+pts[0].x+' '+(T+uh)+' '+pts.map(p=>'L '+p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' ')+' L '+pts[pts.length-1].x+' '+(T+uh)+' Z';const grid=[0,.25,.5,.75,1].map(v=>{const y=T+uh-uh*v;return'<line x1="'+L+'" y1="'+y+'" x2="'+(W-R)+'" y2="'+y+'"/>'}).join('');root.innerHTML='<svg class="sv-chart" viewBox="0 0 '+W+' '+H+'" aria-label="Sales overview"><g class="sv-chart-grid">'+grid+'</g><path class="sv-chart-area" d="'+area+'"/><path class="sv-chart-line" d="'+line+'"/>'+pts.map(p=>'<circle class="sv-chart-dot" cx="'+p.x+'" cy="'+p.y+'" r="3.4"><title>'+esc(p.label)+' · '+esc(money(p.value))+'</title></circle>').join('')+pts.map(p=>'<text class="sv-chart-label" x="'+p.x+'" y="'+(H-8)+'" text-anchor="middle">'+esc(p.label)+'</text>').join('')+'</svg>';const title=root.closest('.panel')?.querySelector('h3');if(title)title.textContent='Inventory Overview'}
+function topProducts(){const pane=$('#dashboard .attention-panel');if(!pane)return;const title=pane.querySelector('h3');if(title)title.textContent='Top Products';const kick=pane.querySelector('.kicker');if(kick)kick.textContent='PRODUCT';const btn=pane.querySelector('.text-link');if(btn){btn.textContent='View all';btn.dataset.go='inventory'}let products=[];try{products=(window.store?.products||store?.products||[]).slice(0,5)}catch{}const host=pane.querySelector('#alerts')||pane.appendChild(document.createElement('div'));host.id='alerts';host.className='sv-top-products';host.innerHTML=products.length?products.map((p,i)=>'<div class="sv-top-product"><div class="sv-top-product-name"><span class="sv-product-thumb">'+icon.box+'</span><b>'+esc(p.name||'Product '+(i+1))+'</b></div><span>'+esc((Number(p.stock)>=900?'Service':Number(p.stock||0)+' stock'))+'</span><strong>'+esc(money((Number(p.price||0)*Math.max(1,Math.min(Number(p.stock||1),10)))))+'</strong></div>').join(''):'<p class="muted">Products appear here as inventory is added.</p>'}
+function invoicePreview(){const root=$('#preview');if(!root)return;let p={name:'Product or Service',price:0};try{p=typeof selectedProduct==='function'?(selectedProduct()||p):p}catch{}const qty=Number($('#qty')?.value||1),rate=Number($('#rate')?.value||p.price||0),discount=Number($('#discount')?.value||0),sub=qty*rate,total=Math.max(0,sub-discount),customer=$('#customerName')?.value||'Company Name';root.innerHTML='<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><img src="'+FULL+'" alt="Salesventory" style="width:145px;height:auto"><div style="font-size:8px;line-height:1.55;color:#315b4e">billing@salesventory.online<br>www.salesventory.online</div></div><div style="font-size:22px;letter-spacing:.05em;margin:24px 0 18px;color:#145a46">INVOICE</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;font-size:9px"><div><b>Bill To:</b><br>'+esc(customer)+'</div><div><b>Invoice No:</b> SV-PREVIEW<br><b>Issue Date:</b> '+new Date().toLocaleDateString('en-IN')+'</div></div><div style="margin-top:20px;background:#144c3d;color:white;display:grid;grid-template-columns:1.7fr .45fr .75fr .75fr;font-size:8px;font-weight:800;padding:9px"><span>Description</span><span>Qty</span><span>Unit Price</span><span>Amount</span></div><div style="display:grid;grid-template-columns:1.7fr .45fr .75fr .75fr;font-size:8px;padding:11px 9px;border-bottom:1px solid #d8d0c0"><span>'+esc(p.name||'Product or Service')+'</span><span>'+qty+'</span><span>'+esc(money(rate))+'</span><span>'+esc(money(sub))+'</span></div><div style="width:48%;margin:18px 0 0 auto;font-size:8px"><div style="display:flex;justify-content:space-between;padding:5px 8px"><span>Subtotal</span><span>'+esc(money(sub))+'</span></div><div style="display:flex;justify-content:space-between;padding:5px 8px"><span>Discount</span><span>- '+esc(money(discount))+'</span></div><div style="display:flex;justify-content:space-between;padding:9px 8px;background:#cddbcc;font-weight:800"><span>Total</span><span>'+esc(money(total))+'</span></div></div><div style="margin-top:52px;font-size:8px;font-weight:800;color:#145a46">Thank you for your business.</div><div style="margin-top:14px;font-size:6px;letter-spacing:.2em;color:#145a46">INVENTORY TODAY. A BIGGER TOMORROW.</div>'}
+function route(view,push){if(!view||!document.getElementById(view))view='dashboard';$$('.view').forEach(v=>v.classList.toggle('active-view',v.id===view));$$('.sidebar .nav[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));try{localStorage.setItem(ROUTE_KEY,view)}catch{}if(push){const u=new URL(location.href);u.searchParams.set('view',view);history.pushState({view},'',u)}document.body.classList.remove('sv-sidebar-open');if(view==='dashboard')setTimeout(()=>{dashboardHead();stats();chart();topProducts()},0);setTimeout(()=>window.SalesventoryFooters?.refresh?.(),20)}
+function routing(){document.addEventListener('click',e=>{const b=e.target.closest?.('.sidebar .nav[data-view],[data-go]');if(!b)return;const v=b.dataset.view||b.dataset.go;if(!v)return;e.preventDefault();e.stopImmediatePropagation();route(v,true)},true);addEventListener('popstate',e=>route(e.state?.view||new URL(location.href).searchParams.get('view')||'dashboard',false));let v=new URL(location.href).searchParams.get('view');if(!v)try{v=localStorage.getItem(ROUTE_KEY)}catch{};if(v&&document.getElementById(v))setTimeout(()=>route(v,false),80)}
+function bind(){['#qty','#rate','#discount','#customerName','#product'].forEach(s=>$(s)?.addEventListener('input',invoicePreview));$('#product')?.addEventListener('change',invoicePreview);addEventListener('modeflow:workspace',()=>setTimeout(refresh,40));addEventListener('resize',()=>{if(innerWidth>820)document.body.classList.remove('sv-sidebar-open')},{passive:true});document.addEventListener('click',e=>{if(document.body.classList.contains('sv-sidebar-open')&&innerWidth<=820&&!e.target.closest('.sidebar,.sv-mobile-menu'))document.body.classList.remove('sv-sidebar-open')})}
+function refresh(){brand();nav();topbar();dashboardHead();stats();chart();topProducts();invoicePreview();window.SalesventoryFooters?.refresh?.();document.documentElement.classList.remove('sv-booting')}
+applyTheme(theme());
+function init(){refresh();routing();bind();[120,450,1100,2200].forEach(ms=>setTimeout(refresh,ms))}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
