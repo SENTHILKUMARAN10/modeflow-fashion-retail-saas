@@ -17,7 +17,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 14 | Purchases | PARTIAL | PO→bill flow done: “Receive stock & bill now” at creation or keep open PO; printable bill/PO document, notes, BILL/PO tags, due date + overdue/status. Add GST, freight, supplier invoice #, batch/expiry capture |
 | 16 | Payments In | PARTIAL | customer receipts against invoices (amount/method/ref, auto outstanding → paid/partial) + Receipts list on Transactions with total + printable receipt per payment. Add advance, USD |
 | 17 | Payments Out | PARTIAL | Purchase payments exist; generalise to supplier payment out with ledger effect |
-| 18 | Payment modes | PARTIAL | cash/bank/upi/card/other selectable on sale + purchase + receipt flows; add cheque/wallet + custom modes + cheques lifecycle |
+| 18 | Payment modes | PARTIAL | cash/bank/upi/card/cheque/wallet/custom selectable on sale + purchase + receipt flows; add cheques lifecycle |
 | 19 | Receivables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics with due-today/overdue chips + payments in. Add advance, credit note application |
 | 20 | Payables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics with due-today/overdue chips + payment out + supplier payables reconciliation (bills/billed/paid/outstanding/overdue/status, CSV, total outstanding); overdue surfaced on dashboard alerts |
 | 22 | Expenses | PARTIAL | category/vendor/amount/mode/date/notes + category filter chips (per-cat totals) + Analytics spend-by-category (share, CSV) + category presets. Add receipt image, GST, recurring, vendor field |
