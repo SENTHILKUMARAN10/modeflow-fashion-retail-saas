@@ -13,7 +13,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 3 | Suppliers | PARTIAL | CRUD + purchases + payments + payables + ledger/statement (date-filtered) + copy/CSV/print done. Remaining: POs, returns, debit notes |
 | 4 | Products / services | PARTIAL | name/cost/price/stock/reorder/service/category/sku/barcode/unit done. Add brand, HSN, GST rate, MRP, variants, images, batches, import/export |
 | 5 | Inventory | PARTIAL | stock via RPCs + suppliers/purchases receive. Add warehouses, stock movements, adjustments, transfers, valuation, audit/count, expiry alerts |
-| 7 | Sales billing | PARTIAL | multi-item checkout (complete_multi_item_sale) + single-item; statuses paid/partial/unpaid + overdue (due-date-aware), history filter. Remaining: persist due date/notes on client sales (RPC change), GST, PO#, transport |
+| 7 | Sales billing | PARTIAL | multi-item checkout (complete_multi_item_sale) + single-item; statuses paid/partial/unpaid + overdue (due-date-aware), history filter, full item-line invoice print. Remaining: persist due date/notes on client sales (RPC change), GST, PO#, transport |
 | 14 | Purchases | PARTIAL | PO→bill flow done: “Receive stock & bill now” at creation or keep open PO; printable bill/PO document, notes, BILL/PO tags, due date + overdue/status. Add GST, freight, supplier invoice #, batch/expiry capture |
 | 16 | Payments In | PARTIAL | customer receipts against invoices (amount/method/ref, auto outstanding → paid/partial) + Receipts list on Transactions with total + printable receipt per payment. Add advance, USD |
 | 17 | Payments Out | PARTIAL | Purchase payments exist; generalise to supplier payment out with ledger effect |

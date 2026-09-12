@@ -1623,18 +1623,37 @@ var pid = paymentTarget.id;
     var w = window.open('', '_blank', 'width=720,height=900');
     if (!w) { toast('Pop-up blocked. Allow pop-ups to print invoices.'); return; }
     var sym = symbol();
-    w.document.write('<!doctype html><html><head><title>' + esc(i.id) + '</title><style>' +
-      'body{font-family:' + "'Plus Jakarta Sans'" + ',Arial,sans-serif;padding:42px;color:#171713;max-width:640px;margin:auto}' +
-      '.top{display:flex;justify-content:space-between;border-bottom:2px solid #171713;padding-bottom:18px}' +
-      '.row{display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #ddd}' +
-      '.total{font-size:24px;font-weight:700}.muted{color:#777}' +
+    var biz = state.businessProfile || {};
+    var lines = (i.items && i.items.length)
+      ? i.items.map(function (x) {
+          return '<tr><td>' + esc(x.name) + '</td><td class="num">' + (Number(x.qty) || 0) + '</td><td class="num">' + sym + Number(x.rate || 0).toLocaleString('en-IN') + '</td><td class="num">' + sym + Number(x.lineTotal || x.qty * x.rate || 0).toLocaleString('en-IN') + '</td></tr>';
+        }).join('')
+      : '<tr><td>' + esc(i.product) + '</td><td class="num">' + i.qty + '</td><td class="num">' + sym + Number(i.rate || 0).toLocaleString('en-IN') + '</td><td class="num">' + sym + Number(i.subtotal || i.qty * i.rate || 0).toLocaleString('en-IN') + '</td></tr>';
+    var subtotal = Number(i.subtotal || i.items.reduce(function (a, x) { return a + Number(x.lineTotal || x.qty * x.rate || 0); }, 0));
+    var paid = Number(i.paid || 0);
+    var bal = Math.max(Number(i.balance || 0), 0);
+    var status = invoiceOverdue(i) ? 'OVERDUE' : String(i.paymentStatus || 'paid').toUpperCase();
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(i.id) + '</title><style>' +
+      'body{font-family:Helvetica,Arial,sans-serif;color:#111;margin:40px;max-width:660px}' +
+      'h1{font-size:22px;margin:0}h2{font-size:15px;letter-spacing:.1em;margin:0}.muted{color:#777;font-size:11px;line-height:1.6}' +
+      '.top{display:flex;justify-content:space-between;border-bottom:3px solid #111;padding-bottom:14px}' +
+      'table{width:100%;border-collapse:collapse;margin:18px 0 12px}' +
+      'th,td{border:1px solid #ddd;padding:7px 9px;text-align:left;font-size:12px}th{background:#f4f4f4}.num{text-align:right}' +
+      '.total{font-size:24px;font-weight:700}.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eee}' +
+      '.foot{margin-top:26px;color:#777;font-size:11px}' +
       '</style></head><body>' +
-      '<div class="top"><div><h2>' + esc(state.businessName) + '</h2><div class="muted">Powered by Salesventory</div></div><div><b>' + esc(i.id) + '</b><div>' + esc(i.date) + '</div></div></div>' +
-      '<p><b>Customer:</b> ' + esc(i.customer) + '</p><p><b>Phone:</b> ' + esc(i.phone || '—') + '</p>' +
-      '<div class="row"><span>' + esc(i.product) + ' × ' + i.qty + '</span><b>' + sym + Number(i.subtotal || i.qty * i.rate).toLocaleString('en-IN') + '</b></div>' +
-      '<div class="row"><span>Discount</span><span>− ' + sym + Number(i.discount || 0).toLocaleString('en-IN') + '</span></div>' +
-      '<div class="row total"><span>Total</span><span>' + sym + Number(i.total).toLocaleString('en-IN') + '</span></div>' +
-      '<p>Payment: ' + String(i.paymentMethod || 'upi').toUpperCase() + ' · ' + esc(i.paymentStatus || 'paid') + '</p>' +
+      '<div class="top"><div><h1>' + esc(biz.name || state.businessName || '') + '</h1><div class="muted">' + esc((biz.address || '') + (biz.phone ? (biz.address ? ' · ' : '') + biz.phone : '')) + '</div></div>' +
+      '<div style="text-align:right"><h2>INVOICE</h2><b>' + esc(i.id) + '</b><div class="muted">' + esc(i.date) + (i.dueDate ? '<br>Due: ' + esc(String(i.dueDate).slice(0, 10)) : '') + '</div></div></div>' +
+      '<p class="muted"><b>Customer:</b> ' + esc(i.customer) + (i.phone ? '<br><b>Phone:</b> ' + esc(i.phone) : '') + '</p>' +
+      '<table><thead><tr><th>ITEM</th><th class="num">QTY</th><th class="num">RATE</th><th class="num">LINE TOTAL</th></tr></thead><tbody>' + lines + '</tbody></table>' +
+      '<div style="margin:0 0 8px auto;max-width:300px">' +
+      '<div class="row"><span>Subtotal</span><span>' + sym + subtotal.toLocaleString('en-IN') + '</span></div>' +
+      (i.discount ? '<div class="row"><span>Discount</span><span>− ' + sym + Number(i.discount).toLocaleString('en-IN') + '</span></div>' : '') +
+      '<div class="row total" style="border-bottom:0"><span>Total</span><span>' + sym + Number(i.total).toLocaleString('en-IN') + '</span></div>' +
+      '<div class="row"><span>Paid</span><span>' + sym + paid.toLocaleString('en-IN') + '</span></div>' +
+      '<div class="row"><span>Balance due</span><b>' + sym + bal.toLocaleString('en-IN') + '</b></div>' +
+      '</div>' +
+      '<p>Payment: ' + String(i.paymentMethod || 'upi').toUpperCase() + ' · <b>' + status + '</b></p>' +
       '<p class="muted">Thank you for your business.</p>' +
       '<script>print()<\/script></body></html>');
     w.document.close();
