@@ -1,8 +1,7 @@
 // Salesventory final loader + UI stability controller.
-// Preserves secure sessions and the current workspace view while applying one final customer-facing brand.
 (function(){
   'use strict';
-  const v='20260912-salesventory4';
+  const v='20260912-salesventory5';
   const $=s=>document.querySelector(s);
 
   function css(selector,href,attr){
@@ -14,18 +13,7 @@
     const x=document.createElement('script');x.src=src;x.async=false;x.setAttribute(attr,'1');document.body.appendChild(x);
   }
 
-  const initialHash=location.hash||'';
-  const initialSearch=location.search||'';
-  const routeKey='salesventory-active-view-v1';
-  const viewPattern=/^[a-z0-9-]+$/i;
-  const routeFromHash=hash=>{const m=String(hash||'').match(/^#app\/([a-z0-9-]+)$/i);return m&&viewPattern.test(m[1])?m[1]:null};
-  let rememberedView=routeFromHash(initialHash);
-  try{
-    rememberedView=rememberedView||sessionStorage.getItem(routeKey)||null;
-    if(rememberedView&&viewPattern.test(rememberedView))sessionStorage.setItem(routeKey,rememberedView);else rememberedView=null;
-  }catch{}
-
-  // Compatibility assets keep the mature production feature set; Salesventory owns every visible brand surface.
+  // Mature compatibility assets remain internal; Salesventory owns all visible branding.
   css('link[data-sv-final18]','ui/velora-final-v18.css?v='+v,'data-sv-final18');
   css('link[data-sv-market-suite]','ui/salesdesk-market-suite-v2.css?v='+v,'data-sv-market-suite');
   css('link[data-sv-public-hotfix]','ui/salesdesk-public-hotfix-v1.css?v='+v,'data-sv-public-hotfix');
@@ -38,126 +26,67 @@
   js('script[data-sv-customer-production],script[src*="ui/customer-production-v1.js"]','ui/customer-production-v1.js?v='+v,'data-sv-customer-production');
   js('script[data-salesventory-brand],script[src*="ui/salesventory-brand-v1.js"]','ui/salesventory-brand-v1.js?v='+v,'data-salesventory-brand');
   js('script[data-salesventory-logo-system],script[src*="ui/salesventory-logo-system-v1.js"]','ui/salesventory-logo-system-v1.js?v='+v,'data-salesventory-logo-system');
+  js('script[data-salesventory-navigation],script[src*="ui/salesventory-navigation-v1.js"]','ui/salesventory-navigation-v1.js?v='+v,'data-salesventory-navigation');
 
-  let replayingHistory=false,ready=false,routeRetries=0;
-  const validView=id=>typeof id==='string'&&viewPattern.test(id);
-  const activeView=()=>$('#app .view.active-view')?.id||null;
-  const appVisible=()=>{const app=$('#app');return !!app&&!app.classList.contains('hidden')};
-  const routeUrl=id=>`${location.pathname}#app/${id}`;
+  let ready=false;
+  const appVisible=()=>{const app=$('#app');return !!app&&!app.classList.contains('hidden');};
 
-  function storeView(id){if(!validView(id))return;rememberedView=id;try{sessionStorage.setItem(routeKey,id)}catch{}}
-  function writeRoute(id,mode='replace'){
-    if(!validView(id))return;storeView(id);const wanted=`#app/${id}`;if(location.hash===wanted)return;
-    try{const state={salesventoryView:id};if(mode==='push')history.pushState(state,'',routeUrl(id));else history.replaceState(state,'',routeUrl(id))}catch{}
-  }
-  function targetViewFromClick(target){
-    const nav=target.closest?.('.sidebar .nav[data-view]');if(nav?.dataset?.view)return nav.dataset.view;
-    const go=target.closest?.('[data-go]');if(go?.dataset?.go)return go.dataset.go;
-    const sv=target.closest?.('[data-sd-go]');if(sv?.dataset?.sdGo)return sv.dataset.sdGo;
-    if(target.closest?.('.goto-billing'))return 'billing';return null;
-  }
-  function activateView(id,replace=true){
-    if(!validView(id)||!appVisible())return false;
-    const nav=Array.from(document.querySelectorAll('.sidebar .nav[data-view]')).find(x=>x.dataset.view===id);
-    if(nav){replayingHistory=true;try{nav.click()}finally{replayingHistory=false}if(replace)writeRoute(id,'replace');return true}
-    if(typeof window.gotoView==='function'&&document.getElementById(id)){replayingHistory=true;try{window.gotoView(id)}finally{replayingHistory=false}if(replace)writeRoute(id,'replace');return true}
-    return false;
-  }
-  function restoreRememberedView(){
-    const wanted=routeFromHash(location.hash)||rememberedView||'dashboard';storeView(wanted);
-    if(activateView(wanted,true)){routeRetries=0;return}
-    if(routeRetries++<50)setTimeout(restoreRememberedView,80);else{routeRetries=0;writeRoute(activeView()||'dashboard','replace')}
-  }
-
-  // Run expensive brand/footer passes only at stable checkpoints, not on every DOM/class mutation.
   function brand(){
     window.SalesventoryBrand?.apply?.();
     window.SalesventoryFooters?.refresh?.();
     window.SalesventoryLogoSystem?.apply?.();
   }
+
   function reveal(){
     if(ready)return;
     brand();
+    window.SalesventoryNavigation?.restore?.({replace:true});
     ready=true;
     document.body.classList.add('sv-ui-ready','sd-ui-ready');
   }
-  function publicExperienceReady(){
+
+  function publicReady(){
     const landing=$('#veloraLanding');
     if(!landing)return false;
-    // The full official logo intentionally replaces the old text wordmark, so do not require .ve-word here.
     return !!landing.querySelector('#sdPublicCommand,.ve-hero,.ve-nav');
-  }
-  function revealPublic(showLogin){
-    if(showLogin)window.VeloraPublic?.showLogin?.();else window.VeloraPublic?.showHome?.();
-    brand();
-    let tries=0;
-    const check=()=>{
-      if(showLogin||publicExperienceReady()||tries++>=40){reveal();return}
-      setTimeout(check,100);
-    };
-    check();
   }
 
   async function decideInitialScreen(){
-    let attempts=0;while(!window.tkCloud?.auth?.session&&attempts++<60)await new Promise(r=>setTimeout(r,50));
-    let session=null;try{session=(await window.tkCloud?.auth?.session?.())?.data?.session||null}catch{}
-    const callback=/access_token|refresh_token|error_description|type=recovery/i.test(initialHash+initialSearch);
-    const explicitLogin=initialHash==='#login'||callback;
+    let attempts=0;
+    while(!window.tkCloud?.auth?.session&&attempts++<60)await new Promise(r=>setTimeout(r,50));
+    let session=null;
+    try{session=(await window.tkCloud?.auth?.session?.())?.data?.session||null}catch{}
+    const callback=/access_token|refresh_token|error_description|type=recovery/i.test((location.hash||'')+(location.search||''));
+    const explicitLogin=location.hash==='#login'||callback;
+
     if(session){
       let waits=0;
       const waitForWorkspace=()=>{
         if(appVisible()){
           brand();
-          restoreRememberedView();
+          window.SalesventoryNavigation?.restore?.({replace:true});
           requestAnimationFrame(()=>requestAnimationFrame(reveal));
           return;
         }
-        if(waits++<120){setTimeout(waitForWorkspace,50);return}
+        if(waits++<120){setTimeout(waitForWorkspace,50);return;}
         reveal();
       };
       waitForWorkspace();
-    }else{
-      try{sessionStorage.removeItem(routeKey)}catch{}
-      rememberedView=null;
-      revealPublic(explicitLogin);
-    }
-  }
-
-  document.addEventListener('click',event=>{
-    if(event.target.closest?.('#logout,#sdMarketLogout')){
-      try{sessionStorage.removeItem(routeKey)}catch{}
-      rememberedView=null;
-      try{history.replaceState(null,'',`${location.pathname}#login`)}catch{}
       return;
     }
-    if(replayingHistory||!appVisible())return;
-    const id=targetViewFromClick(event.target);
-    if(validView(id))writeRoute(id,'push');
-  },true);
 
-  // Track only the active workspace route. Branding is handled independently and is not run from this observer.
-  const app=$('#app');
-  if(app)new MutationObserver(()=>{
-    if(!appVisible())return;
-    const id=activeView();
-    if(validView(id)){
-      storeView(id);
-      if(!replayingHistory&&routeFromHash(location.hash)!==id)writeRoute(id,'replace');
-    }
-  }).observe(app,{subtree:true,attributes:true,attributeFilter:['class']});
+    if(explicitLogin)window.VeloraPublic?.showLogin?.();
+    else window.VeloraPublic?.showHome?.();
+    let tries=0;
+    const waitForPublic=()=>{
+      brand();
+      if(explicitLogin||publicReady()||tries++>=35){reveal();return;}
+      setTimeout(waitForPublic,100);
+    };
+    waitForPublic();
+  }
 
-  addEventListener('popstate',async()=>{
-    const id=routeFromHash(location.hash);
-    if(id&&appVisible()){activateView(id,false);storeView(id);return}
-    let session=null;try{session=(await window.tkCloud?.auth?.session?.())?.data?.session||null}catch{}
-    if(session&&appVisible()){
-      const fallback=rememberedView||activeView()||'dashboard';
-      activateView(fallback,false);
-      writeRoute(fallback,'replace');
-    }
-  });
-
-  // Final fail-safe: never leave users trapped on the boot screen.
-  setTimeout(()=>{if(!ready){if(appVisible())restoreRememberedView();reveal()}},5000);
+  // Never expose the legacy base UI while the final Salesventory experience is still assembling.
+  setTimeout(()=>{if(!ready)reveal();},5000);
   setTimeout(decideInitialScreen,0);
 })();
