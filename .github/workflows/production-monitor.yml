@@ -1,4 +1,4 @@
-name: SalesDesk production health
+name: Salesventory production health
 
 on:
   schedule:
@@ -18,13 +18,13 @@ jobs:
           HEALTH_URL: ${{ vars.SALESDESK_HEALTH_URL || 'https://modeflow-fashion-retail-saas.vercel.app/api/health' }}
         run: |
           set -euo pipefail
-          echo "Checking SalesDesk health endpoint"
+          echo "Checking Salesventory health endpoint"
           body="$(curl --fail --silent --show-error --max-time 20 "$HEALTH_URL")"
           echo "$body"
           node -e '
             const body=JSON.parse(process.argv[1]);
-            if(body.service!=="SalesDesk") throw new Error("Unexpected service identity");
-            if(body.status==="error") throw new Error("SalesDesk health status is error");
+            if(body.service!=="Salesventory") throw new Error("Unexpected service identity");
+            if(body.status==="error") throw new Error("Salesventory health status is error");
             if(body.checks?.database!=="ok") throw new Error("Database health check is not ok");
-            if(body.status==="degraded") console.warn("SalesDesk is reachable but one or more production integrations still need configuration.");
+            if(body.status==="degraded") console.warn("Salesventory is reachable but one or more production integrations still need configuration.");
           ' "$body"

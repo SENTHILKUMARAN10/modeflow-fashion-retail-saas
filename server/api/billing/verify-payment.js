@@ -16,7 +16,7 @@ export default async function handler(req,res){
     const [sub,payment]=await Promise.all([razorpay(`/subscriptions/${encodeURIComponent(sid)}`),razorpay(`/payments/${encodeURIComponent(pid)}`)]);
     if(sub.id!==sid||payment.id!==pid)return json(res,400,{error:'Payment provider record mismatch'});
     if(payment.subscription_id&&payment.subscription_id!==sid)return json(res,400,{error:'Payment does not belong to this subscription'});
-    if(payment.status!=='captured')return json(res,409,{error:'Payment has not been captured yet. SalesDesk will activate after provider confirmation.',code:'payment_not_captured'});
+    if(payment.status!=='captured')return json(res,409,{error:'Payment has not been captured yet. Salesventory will activate after provider confirmation.',code:'payment_not_captured'});
     const notes=sub.notes||{},interval=notes.plan_interval||'monthly',currency=notes.currency||payment.currency||'INR';
     if(notes.business_id&&notes.business_id!==businessId)return json(res,400,{error:'Business mismatch'});
     if(!catalog[currency]?.[interval])return json(res,400,{error:'Unknown subscription plan'});

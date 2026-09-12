@@ -23,7 +23,7 @@ async function sendEmail({to,subject,text,html,dedupeKey}){
   const data=await providerJson('https://api.resend.com/emails',{
     method:'POST',
     headers:{authorization:`Bearer ${process.env.RESEND_API_KEY}`,'content-type':'application/json','Idempotency-Key':`salesdesk-${dedupeKey}`.slice(0,256)},
-    body:JSON.stringify({from:process.env.SALESDESK_EMAIL_FROM,to:[trim(to).toLowerCase()],subject:trim(subject)||'SalesDesk notification',text:trim(text),html:html||undefined})
+    body:JSON.stringify({from:process.env.SALESDESK_EMAIL_FROM,to:[trim(to).toLowerCase()],subject:trim(subject)||'Salesventory notification',text:trim(text),html:html||undefined})
   });
   return data?.id||null;
 }
@@ -47,7 +47,7 @@ async function existingDelivery(businessId,dedupeKey){
 }
 async function patchDelivery(id,body){return supabaseAdmin(`/rest/v1/automation_deliveries?id=eq.${q(id)}`,{method:'PATCH',headers:{prefer:'return=minimal'},body:JSON.stringify(body)});}
 
-export async function deliverMessage({businessId,ruleId=null,sourceType='automation',sourceId=null,channel='in_app',destination=null,kind='automation',subject='SalesDesk',message,dedupeKey,actionUrl=null,templateName=null,templateLanguage='en_US',templateParams=[],payload={}}){
+export async function deliverMessage({businessId,ruleId=null,sourceType='automation',sourceId=null,channel='in_app',destination=null,kind='automation',subject='Salesventory',message,dedupeKey,actionUrl=null,templateName=null,templateLanguage='en_US',templateParams=[],payload={}}){
   if(!businessId||!dedupeKey||!trim(message))throw new Error('Invalid delivery request');
   const previous=await existingDelivery(businessId,dedupeKey);
   if(previous&&['sending','sent','skipped'].includes(previous.status))return {status:'skipped',deduped:true,id:previous.id};
@@ -62,7 +62,7 @@ export async function deliverMessage({businessId,ruleId=null,sourceType='automat
     let providerMessageId=null;
     if(channel==='in_app'){
       const n=await supabaseAdmin(`/rest/v1/business_notifications?business_id=eq.${q(businessId)}&dedupe_key=eq.${q(dedupeKey)}&select=id&limit=1`);
-      if(!n?.length)await supabaseAdmin('/rest/v1/business_notifications',{method:'POST',headers:{prefer:'return=minimal'},body:JSON.stringify({business_id:businessId,kind,title:subject||'SalesDesk',message,severity:payload?.severity||'info',action_url:actionUrl||null,dedupe_key:dedupeKey})});
+      if(!n?.length)await supabaseAdmin('/rest/v1/business_notifications',{method:'POST',headers:{prefer:'return=minimal'},body:JSON.stringify({business_id:businessId,kind,title:subject||'Salesventory',message,severity:payload?.severity||'info',action_url:actionUrl||null,dedupe_key:dedupeKey})});
     }else if(channel==='email')providerMessageId=await sendEmail({to:destination,subject,text:message,html:payload?.html,dedupeKey});
     else if(channel==='whatsapp')providerMessageId=await sendWhatsApp({to:destination,templateName,templateLanguage,templateParams});
     else throw new Error('Unsupported delivery channel');

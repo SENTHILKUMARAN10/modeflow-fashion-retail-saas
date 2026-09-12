@@ -75,7 +75,7 @@ function sbGet(path,token,name){
 export default function(){
   const landing=http.get(`${BASE}/`,{tags:{name:'landing'}});mark(landing,'landing',landingLatency);
   const health=http.get(`${BASE}/api/health`,{tags:{name:'health'}});mark(health,'health',healthLatency,x=>x.status===200);
-  if(health.status===200)check(health,{'health identifies SalesDesk':r=>{try{return r.json('service')==='SalesDesk';}catch{return false;}}});
+  if(health.status===200)check(health,{'health identifies Salesventory':r=>{try{return r.json('service')==='Salesventory';}catch{return false;}}});
 
   const token=signIn();
   if(token){

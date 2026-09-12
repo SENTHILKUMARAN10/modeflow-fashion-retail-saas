@@ -62,7 +62,7 @@ export default async function router(req, res) {
   try {
     return await handler(req, res);
   } catch (error) {
-    console.error('SalesDesk API router failure', {route, message: error?.message || String(error)});
+    console.error('Salesventory API router failure', {route, message: error?.message || String(error)});
     if (res.headersSent) return;
     res.statusCode = 500;
     res.setHeader('content-type', 'application/json');

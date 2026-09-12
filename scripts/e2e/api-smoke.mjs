@@ -21,7 +21,7 @@ function assertOk(r,label){if(r.ok)pass(label);else fail(`${label} (${r.status})
 try{
  if(!skipAppHealth){
    const landing=await http(`${app}/`);assertOk(landing,'public landing loads');
-   const health=await http(`${app}/api/health`);assertOk(health,'health endpoint responds');if(health.ok&&health.body?.service==='SalesDesk')pass('health identifies SalesDesk');else fail('health service identity',health.body);
+   const health=await http(`${app}/api/health`);assertOk(health,'health endpoint responds');if(health.ok&&health.body?.service==='Salesventory')pass('health identifies Salesventory');else fail('health service identity',health.body);
  }else pass('app health check intentionally skipped for direct staging database verification');
  const token=await signIn();pass('dedicated E2E account signs in');
  const membership=await rest(token,'business_members?select=business_id,role,is_active&order=created_at.asc&limit=1');assertOk(membership,'workspace membership loads');const member=membership.body?.[0];if(!member?.business_id)throw new Error('E2E account has no workspace');

@@ -38,7 +38,7 @@ export default async function handler(req,res){
       await supabaseAdmin('/rest/v1/app_error_logs',{method:'POST',headers:{prefer:'return=minimal'},body:JSON.stringify(record)});
     }catch(error){
       // Keep production errors visible in Vercel logs even before the telemetry migration is applied.
-      console.error('SalesDesk client error telemetry fallback',record,error);
+      console.error('Salesventory client error telemetry fallback',record,error);
     }
     return json(res,202,{ok:true});
   }catch(error){

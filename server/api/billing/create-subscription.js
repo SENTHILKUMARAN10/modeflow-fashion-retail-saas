@@ -14,7 +14,7 @@ export default async function handler(req,res){
 
     const current=(await supabaseAdmin(`/rest/v1/business_subscriptions?business_id=eq.${encodeURIComponent(businessId)}&select=provider,provider_subscription_id,plan_interval,currency,status,current_period_end,updated_at&limit=1`))?.[0];
     if(current&&['active','past_due','paused'].includes(current.status)){
-      if(current.plan_interval===interval&&current.currency===currency)return json(res,409,{error:'This SalesDesk plan is already active',code:'already_subscribed'});
+      if(current.plan_interval===interval&&current.currency===currency)return json(res,409,{error:'This Salesventory plan is already active',code:'already_subscribed'});
       return json(res,409,{error:'Use Change plan for an existing subscription',code:'change_plan_required'});
     }
     if(current?.provider==='razorpay'&&current?.provider_subscription_id&&['created','authenticated'].includes(current.status)){
@@ -28,7 +28,7 @@ export default async function handler(req,res){
     }
 
     const planId=process.env[price.env];
-    const subscription=await razorpay('/subscriptions',{method:'POST',body:JSON.stringify({plan_id:planId,total_count:interval==='monthly'?120:10,customer_notify:1,notes:{business_id:businessId,user_id:user.id,plan_interval:interval,currency,amount:String(price.amount),product:'SalesDesk'}})});
+    const subscription=await razorpay('/subscriptions',{method:'POST',body:JSON.stringify({plan_id:planId,total_count:interval==='monthly'?120:10,customer_notify:1,notes:{business_id:businessId,user_id:user.id,plan_interval:interval,currency,amount:String(price.amount),product:'Salesventory'}})});
     await upsertSubscription({businessId,providerSubscriptionId:subscription.id,providerPlanId:planId,interval,currency,amount:price.amount,status:'created',currentEnd:subscription.current_end,nextChargeAt:subscription.charge_at,lastEventType:'checkout.created'});
     return json(res,200,{subscriptionId:subscription.id,keyId:process.env.RAZORPAY_KEY_ID,label:price.label});
   }catch(error){console.error('create subscription failed',error);return json(res,error.status&&error.status<500?error.status:500,{error:error.message||'Unable to start payment'});}

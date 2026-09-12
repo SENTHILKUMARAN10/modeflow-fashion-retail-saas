@@ -196,7 +196,17 @@
   }
 
   /* ============ cloud workspace loading ============ */
+  var cloudWorkspaceLoading = false;
   async function loadCloudWorkspace() {
+    if (cloudWorkspaceLoading) return;
+    cloudWorkspaceLoading = true;
+    try {
+      return await loadCloudWorkspaceInner();
+    } finally {
+      cloudWorkspaceLoading = false;
+    }
+  }
+  async function loadCloudWorkspaceInner() {
     var sessionRes = await cloud.auth.session();
     if (!sessionRes || !sessionRes.data || !sessionRes.data.session) return;
     var userRes = await cloud.auth.user();
@@ -261,8 +271,11 @@
     }
     cloud.auth.onChange(function (event) {
       if (event === 'SIGNED_OUT') {
+        cloudWorkspaceLoading = false;
         if (state.channel) { cloud.realtime.unsubscribe(state.channel); state.channel = null; }
         showLogin();
+      } else if (event === 'SIGNED_IN') {
+        loadCloudWorkspace();
       }
     });
     cloud.auth.session().then(function (res) {
@@ -274,7 +287,10 @@
     });
   }
   function bindAuth() {
+    var cloudAuthPending = false;
     $('#demoLogin').addEventListener('click', function () {
+      cloudWorkspaceLoading = false;
+      if (state.channel) { cloud.realtime.unsubscribe(state.channel); state.channel = null; }
       state.mode = 'demo'; state.demo = true; state.role = 'owner';
       state.businessId = null;
       state.products = readStored('sv_products', seedProducts);
@@ -291,14 +307,18 @@
     });
     $('#cloudLogin').addEventListener('submit', async function (e) {
       e.preventDefault();
+      if (cloudAuthPending) return;
       if (!cloud) { toast('Cloud connection is unavailable'); return; }
-      var email = $('#loginEmail').value.trim();
-      var password = $('#loginPassword').value;
-      if (!email || !password) { toast('Enter your email and password'); return; }
+      cloudAuthPending = true;
       try {
+        var email = $('#loginEmail').value.trim();
+        var password = $('#loginPassword').value;
+        if (!email || !password) { toast('Enter your email and password'); return; }
         var res = await cloud.auth.signIn(email, password);
         if (res.error) throw res.error;
+        await loadCloudWorkspace();
       } catch (err) { toast(friendly(err)); }
+      finally { cloudAuthPending = false; }
     });
   }
   function friendly(err) {
@@ -395,7 +415,7 @@
             p_customer_phone: $('#phone').value.trim(),
             p_quantity: qty, p_rate: rate, p_discount: discount,
             p_payment_method: $('#paymentMethod').value, p_payment_status: $('#paymentStatus').value,
-            p_idempotency_key: null
+            p_idempotency_key: window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : null
           });
           await refreshCloudData();
           done();
@@ -440,6 +460,7 @@
       $('#productForm').reset();
       $('#pId').value = '';
       $('#pStock').value = 1; $('#pReorder').value = 5;
+      $('#pStock').disabled = false; $('#pReorder').disabled = false;
       $('#pService').checked = false;
       $('#productDialogTitle').textContent = 'Add product';
     } else {
@@ -714,7 +735,7 @@
       .map(function (k) { return { name: k, qty: perProduct[k].qty, revenue: perProduct[k].revenue }; })
       .sort(function (a, b) { return (b.qty - a.qty) || (b.revenue - a.revenue); });
     var best = ranked[0];
-    if ($('#kpiBest')) $('#kpiBest').textContent = best ? esc(best.name) : '—';
+    if ($('#kpiBest')) $('#kpiBest').textContent = best ? best.name : '—';
     if ($('#kpiBestMeta')) $('#kpiBestMeta').textContent = best ? best.qty + ' units · ' + money(best.revenue) : 'No sales data yet';
     var pending = state.invoices.reduce(function (a, b) { return a + (b.paymentStatus !== 'paid' ? b.total : 0); }, 0);
     if ($('#kpiPending')) $('#kpiPending').textContent = money(pending);
@@ -948,6 +969,18 @@
     var original = btn.textContent;
     btn.disabled = true; btn.textContent = 'Opening secure checkout…';
     try {
+      var currentSub = billingState.config && billingState.config.subscription ? billingState.config.subscription : null;
+      if (currentSub && currentSub.status === 'active') {
+        if (currentSub.plan_interval === interval && currentSub.currency === currency) {
+          toast('You are already on this Salesventory plan');
+          return;
+        }
+        btn.textContent = 'Scheduling plan change…';
+        await apiPost('/api/billing/change-plan', { businessId: state.businessId, interval: interval, currency: currency });
+        billingState.ready = false; loadBillingStatus();
+        toast('Plan change scheduled. It takes effect at the end of your current period.');
+        return;
+      }
       var created = await apiPost('/api/billing/create-subscription', { businessId: state.businessId, interval: interval, currency: currency });
       var Razorpay = await loadRazorpay();
       var userData = state.user;
@@ -962,7 +995,7 @@
           contact: ''
         },
         notes: { business_id: state.businessId, plan_interval: interval, currency: currency },
-        theme: { color: '#1F5B49' },
+        theme: { color: '#4446E2' },
         handler: async function (response) {
           try {
             var verified = await apiPost('/api/billing/verify-payment', Object.assign({ businessId: state.businessId }, response));

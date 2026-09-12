@@ -52,7 +52,7 @@ async function processReports(){
   for(const r of list){
     try{
       const b=await businessInfo(r.business_id);if(!b)throw new Error('Business not found');
-      const s=await snapshot(r.business_id,r.branch_id),title=`SalesDesk · ${r.name}`,message=reportMessage(r,b,s);
+      const s=await snapshot(r.business_id,r.branch_id),title=`Salesventory · ${r.name}`,message=reportMessage(r,b,s);
       const key=`report:${r.id}:${new Date(r.next_run_at).toISOString()}`;
       const params=[b.name,r.name,money(s.month_sales,b.currency),money(s.month_expenses,b.currency),money(s.receivables,b.currency)];
       await send({business:b,sourceType:'scheduled_report',sourceId:r.id,channel:r.channel,recipient:r.recipient,kind:'scheduled_report',title,message,dedupeKey:key,actionUrl:'/#reports',templateName:r.whatsapp_template,templateLanguage:r.whatsapp_language,templateParams:params});
@@ -77,11 +77,11 @@ async function ruleSignal(rule,b){
     if(!due.length)return null;return {kind:'followup_due',title:`${due.length} CRM follow-up${due.length===1?'':'s'} due`,message:`${due.slice(0,4).map(x=>x.title).join(', ')}${due.length>4?' and more':''}`,key:`${rule.id}:${today}:followup`,url:'/#crm'};
   }
   if(rule.trigger_type==='daily_brief'){
-    const s=await snapshot(bid);return {kind:'daily_brief',title:'Your SalesDesk Daily Brief',message:reportMessage({report_type:'daily brief'},b,s),key:`${rule.id}:${today}:brief`,url:'/#dashboard'};
+    const s=await snapshot(bid);return {kind:'daily_brief',title:'Your Salesventory Daily Brief',message:reportMessage({report_type:'daily brief'},b,s),key:`${rule.id}:${today}:brief`,url:'/#dashboard'};
   }
   if(rule.trigger_type==='weekly_report'){
     const start=new Date(Date.now()-7*86400000).toISOString(),inv=await rows(`/rest/v1/invoices?business_id=eq.${q(bid)}&created_at=gte.${q(start)}&select=total`),exp=await rows(`/rest/v1/expenses?business_id=eq.${q(bid)}&created_at=gte.${q(start)}&select=amount`),sales=inv.reduce((a,x)=>a+Number(x.total||0),0),expenses=exp.reduce((a,x)=>a+Number(x.amount||0),0);
-    return {kind:'weekly_report',title:'Your weekly SalesDesk report',message:`${b.name} · Last 7 days\nSales: ${money(sales,c)}\nExpenses: ${money(expenses,c)}\nCash indicator: ${money(sales-expenses,c)}\nTransactions: ${inv.length}`,key:`${rule.id}:${weekKey()}:weekly`,url:'/#reports'};
+    return {kind:'weekly_report',title:'Your weekly Salesventory report',message:`${b.name} · Last 7 days\nSales: ${money(sales,c)}\nExpenses: ${money(expenses,c)}\nCash indicator: ${money(sales-expenses,c)}\nTransactions: ${inv.length}`,key:`${rule.id}:${weekKey()}:weekly`,url:'/#reports'};
   }
   return null;
 }
@@ -109,5 +109,5 @@ export default async function handler(req,res){
   try{
     caches.clear();const recurring=await processRecurring(),reports=await processReports(),rules=await processRules();
     return json(res,200,{ok:true,recurring,reports,rules,at:nowIso()});
-  }catch(error){console.error('SalesDesk workflow engine failed',error);return json(res,500,{error:'SalesDesk workflow engine failed'});}
+  }catch(error){console.error('Salesventory workflow engine failed',error);return json(res,500,{error:'Salesventory workflow engine failed'});}
 }

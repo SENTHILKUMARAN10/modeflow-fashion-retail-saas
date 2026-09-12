@@ -15,7 +15,7 @@ export default async function handler(req,res){
     const business=(await supabaseAdmin(`/rest/v1/businesses?id=eq.${encodeURIComponent(businessId)}&select=name,email,phone&limit=1`))?.[0]||{};
     const to=destination||(channel==='email'?business.email:channel==='whatsapp'?business.phone:null);
     const key=`test:${crypto.randomUUID()}`;
-    const result=await deliverMessage({businessId,sourceType:'delivery_test',channel,destination:to,kind:'delivery_test',subject:'SalesDesk delivery test',message:`SalesDesk delivery is connected for ${business.name||'your business'}.`,dedupeKey:key,templateName,templateLanguage,templateParams:[business.name||'your business','SalesDesk delivery test'],payload:{severity:'success'}});
+    const result=await deliverMessage({businessId,sourceType:'delivery_test',channel,destination:to,kind:'delivery_test',subject:'Salesventory delivery test',message:`Salesventory delivery is connected for ${business.name||'your business'}.`,dedupeKey:key,templateName,templateLanguage,templateParams:[business.name||'your business','Salesventory delivery test'],payload:{severity:'success'}});
     return json(res,200,{ok:true,status:result.status});
   }catch(error){console.error('delivery test failed',error);return json(res,500,{error:error.message||'Delivery test failed'});}
 }
