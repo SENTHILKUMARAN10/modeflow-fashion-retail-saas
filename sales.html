@@ -99,6 +99,7 @@
             <div id="saleItems" class="sale-items span2"></div>
             <div class="form-section span2"><span>03</span><div><b>Payment</b><small>Method, status and discount.</small></div></div>
             <label>Discount ₹<input id="discount" type="number" min="0" step="any" value="0"></label>
+            <label>Cash received ₹<input id="tendered" type="number" min="0" step="any" placeholder="0"></label>
             <label>Payment method<select id="paymentMethod" aria-label="Payment method">
               <option value="upi">UPI</option><option value="card">Card</option><option value="cash">Cash</option><option value="bank">Bank</option><option value="other">Other</option>
             </select></label>
@@ -108,6 +109,16 @@
             <div class="total span2">
               <div><span>Total payable</span><small><b id="lineCount">0</b> items in this sale</small></div>
               <strong id="previewTotal">₹0</strong>
+            </div>
+            <div class="total span2">
+              <div><span>Change to return</span><small><b id="changeDue">—</b></small></div>
+            </div>
+            <div class="hold-row span2">
+              <button type="button" id="holdSale" class="btn ghost">Hold sale</button>
+              <div class="quick-create">
+                <button type="button" id="resumeSale" class="btn ghost">Resume <span id="heldCount"></span></button>
+                <div id="heldMenu" class="quick-menu" hidden></div>
+              </div>
             </div>
             <button class="btn primary span2 large" type="submit">Complete sale</button>
           </form>

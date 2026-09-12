@@ -357,6 +357,16 @@ tr.hit,tr.hit td{background:rgba(37,99,235,.14)!important;animation:hitpulse 2.6
 @keyframes hitpulse{0%{background:rgba(37,99,235,.28)}100%{background:rgba(37,99,235,.05)}}
 @media (max-width:920px){.global-search{width:130px}.global-results{right:10px}}
 @media (max-width:640px){.global-search{display:none}}
+.hold-row{display:flex;gap:10px;align-items:center}
+.hold-row .btn{flex:1}
+.held-count{color:var(--ink-3);font-weight:700}
+.quick-menu{min-width:300px}
+.held-item{display:flex;align-items:center;gap:6px;border-radius:8px}
+.held-item:hover{background:var(--surface-2)}
+.held-pick{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px;background:none;border:0;color:inherit;font:inherit;border-radius:8px;text-align:left;cursor:pointer}
+.held-pick small{color:var(--ink-3);font-size:11px}
+.held-x{flex:none;background:none;border:0;color:var(--ink-3);font-size:16px;cursor:pointer;padding:6px 10px;border-radius:8px}
+.held-x:hover{color:var(--danger);background:rgba(220,38,38,.1)}
 .age-strip{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 16px}
 .age-chip{flex:1;min-width:110px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .age-chip span{display:block;font-family:var(--font-mono);font-size:9px;letter-spacing:.13em;color:var(--ink-3);margin-bottom:4px}

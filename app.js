@@ -491,6 +491,13 @@
     if (!$('#preview') || !$('#previewTotal')) return;
     var t = saleTotals();
     $('#previewTotal').textContent = money(t.total);
+    var tred = Number($('#tendered') && $('#tendered').value) || 0;
+    var changeEl = $('#changeDue');
+    if (changeEl) {
+      var diff = tred - t.total;
+      changeEl.textContent = diff >= 0 ? 'Change ' + money(diff) : 'Shortfall ' + money(Math.abs(diff));
+      changeEl.style.color = diff >= 0 ? 'var(--success)' : 'var(--danger)';
+    }
     var name = $('#customerName').value.trim();
     var linesHtml = saleLines.map(function (l) {
       return '<div class="line-item"><span>' + esc(l.name) + ' × ' + l.qty + '</span><b>' + money(l.qty * l.rate) + '</b></div>';
@@ -516,9 +523,42 @@
       saleLines.splice(Number(btn.dataset.remove), 1);
       renderSaleItems();
     });
-    ['#discount', '#customerName', '#phone', '#paymentMethod', '#paymentStatus'].forEach(function (id) {
+    ['#discount', '#customerName', '#phone', '#paymentMethod', '#paymentStatus', '#tendered'].forEach(function (id) {
       var el = q(id); if (el) el.addEventListener('input', updatePreview);
     });
+    var hBtn = q('#holdSale');
+    if (hBtn) hBtn.addEventListener('click', function () {
+      if (!saleLines.length) { toast('Nothing to hold — add items first'); return; }
+      saveHeldSale();
+      saleLines = [];
+      q('#invoiceForm').reset();
+      q('#itemQty').value = 1;
+      q('#discount').value = 0;
+      q('#tendered').value = '';
+      renderSaleItems(); updatePreview(); renderHeldMenu();
+      toast('Sale held — resume it any time');
+    });
+    var rBtn = q('#resumeSale');
+    if (rBtn) rBtn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var m = q('#heldMenu'); if (m) m.hidden = !m.hidden;
+    });
+    var hm = q('#heldMenu');
+    if (hm) hm.addEventListener('click', function (e) {
+      var pick = e.target.closest('[data-held]');
+      if (pick) { resumeHeldSale(Number(pick.dataset.held)); return; }
+      var x = e.target.closest('[data-heldx]');
+      if (x) {
+        var carts = heldSales(); carts.splice(Number(x.dataset.heldx), 1);
+        localStorage.setItem('sv-held-sales', JSON.stringify(carts));
+        renderHeldMenu();
+      }
+    });
+    document.addEventListener('click', function (e) {
+      var m = q('#heldMenu');
+      if (m && !m.hidden && e.target.closest && !e.target.closest('.quick-create')) m.hidden = true;
+    });
+    renderHeldMenu();
     $('#invoiceForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       if (!saleLines.length) { toast('Add at least one item to this sale'); return; }
@@ -532,6 +572,7 @@
         saleLines = [];
         $('#itemQty').value = 1;
         $('#discount').value = 0;
+        var tred = $('#tendered'); if (tred) tred.value = '';
         productOptions(); renderAll();
         toast('Sale completed successfully');
         gotoView('history');
@@ -555,6 +596,47 @@
       } catch (err) { toast(friendly(err)); }
       finally { if (submit) submit.disabled = false; }
     });
+  }
+
+  /* ============ POS held sales + change calc ============ */
+  function heldSales() {
+    try { return JSON.parse(localStorage.getItem('sv-held-sales')) || []; } catch (e) { return []; }
+  }
+  function saveHeldSale() {
+    var cart = {
+      ts: Date.now(), customer: $('#customerName').value.trim() || 'Walk-in customer',
+      count: saleLines.length, total: saleTotals().total,
+      lines: saleLines.slice(), discount: $('#discount').value, phone: $('#phone').value,
+      method: $('#paymentMethod').value, status: $('#paymentStatus').value
+    };
+    var carts = heldSales();
+    carts.unshift(cart);
+    localStorage.setItem('sv-held-sales', JSON.stringify(carts.slice(0, 5)));
+  }
+  function renderHeldMenu() {
+    var menu = $('#heldMenu'), cnt = $('#heldCount');
+    var carts = heldSales();
+    if (cnt) cnt.textContent = carts.length ? '· ' + carts.length : '';
+    if (!menu) return;
+    menu.innerHTML = carts.length
+      ? carts.map(function (c, idx) {
+          return '<div class="held-item"><button type="button" class="held-pick" data-held="' + idx + '"><b>' + esc(c.customer) + '</b><small>' + c.count + ' item(s) · ' + money(c.total) + ' · ' + new Date(c.ts).toLocaleString() + '</small></button><button type="button" class="held-x" data-heldx="' + idx + '" aria-label="Discard held sale">×</button></div>';
+        }).join('')
+      : '<div class="gs-empty">No held sales.</div>';
+  }
+  function resumeHeldSale(idx) {
+    var carts = heldSales();
+    var c = carts[idx]; if (!c) return;
+    saleLines = c.lines || [];
+    $('#customerName').value = c.customer || '';
+    $('#phone').value = c.phone || '';
+    $('#discount').value = c.discount || 0;
+    $('#paymentMethod').value = c.method || 'upi';
+    $('#paymentStatus').value = c.status || 'paid';
+    carts.splice(idx, 1);
+    localStorage.setItem('sv-held-sales', JSON.stringify(carts));
+    renderSaleItems(); updatePreview(); renderHeldMenu();
+    toast('Held sale resumed');
   }
 
   /* ============ inventory ============ */
