@@ -22,6 +22,8 @@ export default async function handler(req,res){
       if(age<30*60*1000){
         const remote=await razorpay(`/subscriptions/${encodeURIComponent(current.provider_subscription_id)}`).catch(()=>null);
         if(remote&&['created','authenticated'].includes(remote.status))return json(res,200,{subscriptionId:remote.id,keyId:process.env.RAZORPAY_KEY_ID,label:price.label,resumed:true});
+      }else{
+        await razorpay(`/subscriptions/${encodeURIComponent(current.provider_subscription_id)}/cancel`,{method:'POST'}).catch(()=>null);
       }
     }
 

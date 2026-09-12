@@ -19,6 +19,9 @@ export default async function handler(req,res){
     const expectedAmount=interval==='monthly'?399:3990;
     if(Number(amount)!==expectedAmount) return json(res,400,{error:'Payment amount does not match selected plan'});
 
+    const existing=(await supabaseAdmin(`/rest/v1/business_subscriptions?business_id=eq.${encodeURIComponent(businessId)}&select=provider,status&limit=1`))?.[0]||null;
+    if(existing&&existing.status!=='pending_verification') return json(res,409,{error:'A subscription is already active or in progress for this business. Manage it from Subscription settings before submitting a manual payment.',code:'existing_subscription'});
+
     const body={
       business_id:businessId,
       provider:'upi_manual',

@@ -2,13 +2,18 @@ import {catalog,digest,json,recordBillingEvent,supabaseAdmin,upsertSubscription,
 
 export const config={api:{bodyParser:false}};
 const rawBody=req=>new Promise((resolve,reject)=>{const chunks=[];req.on('data',c=>chunks.push(c));req.on('end',()=>resolve(Buffer.concat(chunks)));req.on('error',reject);});
+const signableBody=async req=>{
+  if(Buffer.isBuffer(req.rawBody))return req.rawBody;
+  if(req.body&&typeof req.body==='object')return Buffer.from(JSON.stringify(req.body));
+  return rawBody(req);
+};
 const q=v=>encodeURIComponent(v);
 const statusMap={created:'created',authenticated:'authenticated',active:'active',pending:'past_due',halted:'halted',paused:'paused',cancelled:'cancelled',completed:'completed',expired:'expired'};
 
 export default async function handler(req,res){
   if(req.method!=='POST')return json(res,405,{error:'Method not allowed'});
   try{
-    const raw=await rawBody(req),signature=req.headers['x-razorpay-signature'];
+    const raw=await signableBody(req),signature=req.headers['x-razorpay-signature'];
     if(!verifyHmac(raw,signature,process.env.RAZORPAY_WEBHOOK_SECRET))return json(res,400,{error:'Invalid webhook signature'});
     const event=JSON.parse(raw.toString('utf8')),sub=event?.payload?.subscription?.entity||null,payment=event?.payload?.payment?.entity||null;
     const eventType=String(event?.event||'unknown'),eventId=String(req.headers['x-razorpay-event-id']||`sha256:${digest(raw)}`),rawDigest=digest(raw);

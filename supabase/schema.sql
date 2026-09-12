@@ -59,7 +59,7 @@ create table if not exists public.invoices (
   total numeric(12,2) not null default 0,
   payment_status text not null default 'paid' check (payment_status in ('paid','partial','unpaid')),
   payment_method text not null default 'cash' check (payment_method in ('cash','upi','card','bank','other')),
-  created_by uuid not null references auth.users(id),
+  created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   unique (business_id, invoice_number)
 );
@@ -81,7 +81,7 @@ create table if not exists public.expenses (
   amount numeric(12,2) not null,
   note text,
   expense_date date not null default current_date,
-  created_by uuid not null references auth.users(id),
+  created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -93,7 +93,7 @@ create table if not exists public.stock_movements (
   quantity numeric(12,3) not null,
   reference_id uuid,
   note text,
-  created_by uuid not null references auth.users(id),
+  created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
