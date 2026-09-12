@@ -1,4 +1,4 @@
-/* ModeFlow premium typography + account pages */
+/* Salesventory premium typography + account pages */
 :root{--premium-ink:#182019;--premium-muted:#697168;--premium-green:#1f5b49;--premium-green-dark:#164638;--premium-paper:#fffdf8;--premium-beige:#f4f0e6;--premium-line:#d9d2c5;--premium-soft:#e5eee9}
 html,body,button,input,select,textarea{font-family:'Plus Jakarta Sans','Segoe UI',system-ui,-apple-system,sans-serif!important}
 h1,h2,h3,.page-intro h3,.story-copy h1,.login-box h2,.panel h3,.attention-panel h3,.green-panel h3,.dashboard-strip strong,.report-strip strong,.total strong{font-family:'Playfair Display',Georgia,serif!important;font-weight:600!important;letter-spacing:-.035em!important}
@@ -15,9 +15,9 @@ body{color:var(--premium-ink)!important;line-height:1.55!important}.muted,.subte
 @media(max-width:720px){.mf-account-grid{gap:14px}.mf-account-card{padding:17px;border-radius:11px}.mf-plan-price{font-size:48px}.mf-plan-switch{width:100%;display:grid;grid-template-columns:1fr 1fr}.mf-plan-switch button{width:100%}.mf-region-preview{align-items:flex-start;flex-direction:column}.mf-account-actions{display:grid;grid-template-columns:1fr;width:100%}.mf-account-actions .btn{width:100%;min-width:0}.page-intro h3{font-size:clamp(32px,10vw,44px)!important}.panel h3,.attention-panel h3,.green-panel h3{font-size:24px!important}.mf-admin-nav{min-height:46px!important}}
 @media(max-width:420px){.mf-plan-price{font-size:42px}.mf-account-card{padding:15px}}
 
-/* SalesDesk first-paint stability + one authoritative wordmark font. */
-:root{--salesdesk-brand-font:'DM Serif Display','Playfair Display',Georgia,serif}
-body:not(.sd-ui-ready){min-height:100vh!important;background:#f4efe4!important}
-body:not(.sd-ui-ready)::before{content:'SalesDesk';position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:#f4efe4;color:#173f34;font-family:var(--salesdesk-brand-font)!important;font-size:clamp(28px,4vw,42px);font-weight:400;letter-spacing:-.025em;line-height:1}
-body:not(.sd-ui-ready) #login,body:not(.sd-ui-ready) #app,body:not(.sd-ui-ready) #veloraLanding{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
-.login-brand strong,#veloraLanding .ve-word,.sidebar .brand>div>b,.velora-site-footer__word,.vf-brand-name{font-family:var(--salesdesk-brand-font)!important;font-weight:400!important;letter-spacing:-.025em!important}
+/* Salesventory first-paint stability + one authoritative wordmark font. */
+:root{--salesventory-brand-font:'DM Serif Display','Playfair Display',Georgia,serif}
+body:not(.sv-ui-ready){min-height:100vh!important;background:#f4efe4!important}
+body:not(.sv-ui-ready)::before{content:'Salesventory';position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:#f4efe4;color:#173f34;font-family:var(--salesventory-brand-font)!important;font-size:clamp(28px,4vw,42px);font-weight:400;letter-spacing:-.025em;line-height:1}
+body:not(.sv-ui-ready) #login,body:not(.sv-ui-ready) #app,body:not(.sv-ui-ready) #veloraLanding{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+.login-brand strong,#veloraLanding .ve-word,.sidebar .brand>div>b,.velora-site-footer__word,.vf-brand-name{font-family:var(--salesventory-brand-font)!important;font-weight:400!important;letter-spacing:-.025em!important}
