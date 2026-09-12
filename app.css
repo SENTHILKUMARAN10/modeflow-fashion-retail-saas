@@ -295,6 +295,7 @@ td .action-btn:last-child{margin-right:0}
 .filter-chip button{background:none;border:0;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:600;color:inherit}
 .filter-chips{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0 10px}
 .filter-chips .empty{font-size:11px;color:var(--ink-3);padding:4px 2px}
+.doc-tag{display:inline-block;font-size:9px;letter-spacing:.08em;font-weight:800;border:1px solid var(--line);border-radius:4px;padding:2px 5px;margin-right:6px;vertical-align:1px;color:var(--ink-3)}
 
 /* ---------- Expenses ---------- */
 .expense-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 4px;border-bottom:1px solid var(--line)}

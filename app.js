@@ -324,6 +324,7 @@
       subtotal: Number(r.subtotal || 0), total: Number(r.total || 0),
       paid: paid, balance: Number(r.total || 0) - paid,
       date: r.purchase_date, dueDate: r.due_date, ts: new Date(r.created_at).getTime(),
+      notes: r.notes || '',
       items: (r.purchase_items || []).map(function (it) {
         return { id: it.id, productId: it.product_id, name: it.product_name, qty: Number(it.quantity), cost: Number(it.cost_price), lineTotal: Number(it.line_total) };
       }),
@@ -1257,6 +1258,52 @@
     var c = p.paymentStatus === 'unpaid' ? ' low' : (p.paymentStatus === 'partial' ? ' warn' : '');
     return '<span class="status' + c + '">' + esc(p.paymentStatus || 'unpaid') + '</span>';
   }
+  function purchaseDocLabel(p) {
+    return p.status === 'received' ? 'BILL' : 'PO';
+  }
+  function printPurchaseDocument(p) {
+    if (!p) return;
+    var biz = state.businessProfile || {};
+    var w = window.open('', '_blank', 'width=860,height=940');
+    if (!w) { toast('Pop-up blocked. Allow pop-ups to print purchase documents.'); return; }
+    var paid = Number(p.paid || 0);
+    var due = Number(p.balance || 0);
+    var itemRows = (p.items || []).map(function (it) {
+      return '<tr><td>' + esc(it.name) + '</td><td class="num">' + (Number(it.qty) || 0) + '</td><td class="num">' + money(it.cost) + '</td><td class="num">' + money(it.lineTotal) + '</td></tr>';
+    }).join('') || '<tr><td colspan="4">No items</td></tr>';
+    var docTitle = purchaseDocLabel(p) === 'BILL' ? 'PURCHASE BILL' : 'PURCHASE ORDER';
+    w.document.write(
+      '<!doctype html><html><head><meta charset="utf-8"><title>' + docTitle + ' — ' + esc(p.number) + '</title>' +
+      '<style>body{font-family:Helvetica,Arial,sans-serif;color:#111;margin:40px;font-size:13px}' +
+      '.head{display:flex;justify-content:space-between;border-bottom:3px solid #111;padding-bottom:14px}' +
+      'h1{font-size:22px;margin:0}h2{font-size:15px;letter-spacing:.08em;margin:0}' +
+      '.muted{color:#666;font-size:11px;line-height:1.6}.meta{display:flex;justify-content:space-between;margin:22px 0 10px}' +
+      'table{width:100%;border-collapse:collapse;margin-top:8px}' +
+      'th,td{border:1px solid #ddd;padding:7px 9px;text-align:left;font-size:12px}' +
+      'th{background:#f4f4f4}.num{text-align:right}.tot{font-weight:bold}.big{font-size:13px}' +
+      '.status-pill{font-size:10px;border:1px solid #111;border-radius:999px;padding:3px 10px;text-transform:uppercase;letter-spacing:.05em}' +
+      '.totals{margin-left:auto;width:320px}.foot{margin-top:28px;color:#666;font-size:10px}' +
+      '</style></head><body>' +
+      '<div class="head"><div><h1>' + esc(biz.name || state.businessName || '') + '</h1>' +
+      '<div class="muted">' + esc((biz.address || '') + (biz.phone ? (biz.address ? ' · ' : '') + biz.phone : '')) + '</div></div>' +
+      '<div style="text-align:right"><h2>' + docTitle + '</h2><div class="muted">' + esc(p.number) + '</div><div class="muted">' + esc(p.date) + '</div></div></div>' +
+      '<div class="meta"><div class="muted"><b>Supplier</b><br>' + esc(p.supplier) + '</div>' +
+      '<div style="text-align:right"><span class="status-pill">' + esc(purchaseDocLabel(p)) + ' · ' + esc(p.status) + '</span></div></div>' +
+      '<table><thead><tr><th>ITEM</th><th class="num">QTY</th><th class="num">COST</th><th class="num">LINE TOTAL</th></tr></thead><tbody>' + itemRows + '</tbody></table>' +
+      '<div class="totals" style="margin-top:14px">' +
+      '<div><span>Subtotal</span><b class="num" style="float:right">' + money(p.total) + '</b></div>' +
+      '<div style="margin-top:6px;border-top:1px solid #ddd;padding-top:8px"><span class="tot">Total</span><b class="tot num" style="float:right">' + money(p.total) + '</b></div>' +
+      '<div style="margin-top:4px"><span>Paid</span><b class="num" style="float:right">' + money(paid) + '</b></div>' +
+      '<div style="margin-top:4px"><span>Balance due</span><b class="num" style="float:right">' + money(due) + '</b></div>' +
+      '<div style="margin-top:4px"><span>Payment</span><b class="num" style="float:right;text-transform:capitalize">' + esc(purchasePaymentPill(p).replace(/<[^>]+>/g, '')) + '</b></div>' +
+      '</div>' +
+      (p.notes ? '<p class="muted" style="margin-top:18px"><b>Notes</b><br>' + esc(p.notes) + '</p>' : '') +
+      '<p class="foot">Generated from Salesventory · ' + new Date().toDateString() + '</p>' +
+      '</body></html>');
+    w.document.close();
+    w.focus();
+    w.print();
+  }
   function renderPurchases() {
     var rows = $('#purchaseRows'); if (!rows) return;
     var q = ($('#purchaseSearch').value || '').toLowerCase();
@@ -1270,7 +1317,7 @@
       var actions = '';
       if (p.status === 'draft' || p.status === 'ordered' || p.status === 'received') {
         if (capsHere.managePurchases && p.status !== 'received') {
-          actions += '<button class="action-btn" data-act="receive-purchase" data-id="' + esc(p.id) + '">Receive</button>';
+          actions += '<button class="action-btn" data-act="receive-purchase" data-id="' + esc(p.id) + '">Receive stock</button>';
         }
         if (capsHere.managePurchases && (p.status === 'draft')) {
           actions += '<button class="action-btn danger" data-act="cancel-purchase" data-id="' + esc(p.id) + '">Cancel</button>';
@@ -1279,14 +1326,17 @@
       if (p.status !== 'cancelled' && capsHere.finance && (p.balance || 0) > 0) {
         actions += '<button class="action-btn primary-lite" data-act="pay-purchase" data-id="' + esc(p.id) + '">Pay</button>';
       }
+      if (p.status !== 'cancelled') {
+        actions += '<button class="action-btn" data-act="print-purchase" data-id="' + esc(p.id) + '">Print</button>';
+      }
       return '<tr>' +
-        '<td data-label="Purchase"><b>' + esc(p.number) + '</b></td>' +
+        '<td data-label="Purchase"><b><span class="doc-tag">' + esc(purchaseDocLabel(p)) + '</span>' + esc(p.number.replace(/^PO-/, '')) + '</b></td>' +
         '<td data-label="Supplier">' + esc(p.supplier) + '</td>' +
         '<td data-label="Items">' + esc(purchaseItemsLabel(p)) + '</td>' +
         '<td data-label="Amount"><b>' + money(p.total) + '</b></td>' +
         '<td data-label="Due">' + esc((p.dueDate || '').slice(0, 10) || '—') + '</td>' +
         '<td data-label="Balance"><b>' + money(p.balance) + '</b></td>' +
-        '<td data-label="Stock"><span class="status' + (p.status === 'received' ? '' : ' neutral') + '">' + esc(p.status) + '</span></td>' +
+        '<td data-label="Status"><span class="status' + (p.status === 'received' ? '' : ' neutral') + '">' + esc(p.status) + '</span></td>' +
         '<td data-label="Payment">' + purchasePaymentPill(p) + '</td>' +
         '<td data-label="Date">' + esc(p.date) + '</td>' +
         '<td data-label="Actions">' + actions + '</td>' +
@@ -1332,24 +1382,27 @@
       if (!supplierId) { toast('Choose a supplier'); return; }
       var items = purchaseRowsFromDom();
       if (!items.length) { toast('Add at least one product line'); return; }
-      var notes = '';
+      var notes = ($('#poNotes') && $('#poNotes').value) ? $('#poNotes').value.trim() : '';
+      var billNow = $('#poBillNow') ? $('#poBillNow').checked : false;
       try {
-        await cloud.purchases.create({
+        var made = await cloud.purchases.create({
           p_business_id: state.businessId,
           p_supplier_id: supplierId,
           p_items: items,
           p_notes: notes || null
         });
+        if (billNow) await cloud.purchases.receive(made);
         await refreshCloudData();
         $('#purchaseDialog').close();
-        toast('Purchase bill recorded');
+        toast(billNow ? 'Bill recorded & stock received' : 'Purchase order saved');
       } catch (err) { toast(friendly(err)); }
     });
     $('#purchaseRows').addEventListener('click', async function (e) {
-      var btn = e.target.closest('[data-act="receive-purchase"], [data-act="cancel-purchase"], [data-act="pay-purchase"]');
+      var btn = e.target.closest('[data-act="receive-purchase"], [data-act="cancel-purchase"], [data-act="pay-purchase"], [data-act="print-purchase"]');
       if (!btn) return;
       var act = btn.dataset.act, id = btn.dataset.id;
       var found = state.purchases.find(function (x) { return String(x.id) === String(id); });
+      if (act === 'print-purchase') { printPurchaseDocument(found); return; }
       if (act === 'receive-purchase') {
         var ok = await confirmDialog('Receive stock?', 'Stock levels are updated with the purchased quantities and product costs are refreshed.');
         if (!ok) return;

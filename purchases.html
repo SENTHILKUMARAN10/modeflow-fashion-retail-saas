@@ -80,7 +80,7 @@
       <article class="panel table-panel">
         <div class="panel-head"><div></div><strong id="payablesTotal" class="panel-total">₹0</strong></div>
         <div class="table-wrap"><table>
-          <thead><tr><th>PURCHASE</th><th>SUPPLIER</th><th>ITEMS</th><th>AMOUNT</th><th>DUE</th><th>BALANCE</th><th>STOCK</th><th>PAYMENT</th><th>DATE</th><th>ACTIONS</th></tr></thead>
+          <thead><tr><th>PURCHASE</th><th>SUPPLIER</th><th>ITEMS</th><th>AMOUNT</th><th>DUE</th><th>BALANCE</th><th>STATUS</th><th>PAYMENT</th><th>DATE</th><th>ACTIONS</th></tr></thead>
           <tbody id="purchaseRows"></tbody>
         </table></div>
       </article>
@@ -90,7 +90,7 @@
 
 <!-- ======== DIALOGS ======== -->
 <dialog id="purchaseDialog">
-  <form id="purchaseForm" class="dialog-card purchase-card" novalidate>
+<form id="purchaseForm" class="dialog-card purchase-card" novalidate>
     <div><p class="kicker">PURCHASE BILL</p><h3>New purchase</h3></div>
     <label>Supplier*<select id="poSupplier" required aria-label="Supplier"></select></label>
     <div class="purchase-items-head">
@@ -98,6 +98,8 @@
     </div>
     <div id="purchaseItems"></div>
     <button type="button" id="addPurchaseItem" class="btn ghost full">+ Add line item</button>
+    <label>Notes<input id="poNotes" placeholder="Order ref / delivery note (optional)"></label>
+    <label class="check-row" style="margin:2px 0 0"><input id="poBillNow" type="checkbox"> <span><b>Receive stock &amp; bill now</b><small>Creates the bill immediately and updates stock &amp; costs. Leave off to save as an open purchase order.</small></span></label>
     <div class="total" style="margin:16px 0 6px">
       <div><span>Bill total</span><small>Purchase subtotal</small></div>
       <strong id="purchaseTotalVal">₹0</strong>
