@@ -25,7 +25,7 @@ jobs:
       - name: Prevent privileged Supabase secrets in shipped frontend
         shell: bash
         run: |
-          if grep -niE 'service_role|SUPABASE_SERVICE_ROLE|sb_secret_' index.html app.js account-pages-v1.js responsive-device.js supabase/*.js ui/*.js; then
+          if grep -niE 'service_role|SUPABASE_SERVICE_ROLE|sb_secret_' index.html app.js cloud.js supabase/*.js; then
             echo 'Privileged Supabase credential pattern found in shipped frontend files.'
             exit 1
           fi
@@ -49,10 +49,10 @@ jobs:
           test -f supabase/migrations/202609111430_salesdesk_authenticated_api_grants.sql
           test -f supabase/migrations/202609111500_salesdesk_restrict_anon_tenant_helpers.sql
           test -f supabase/migrations/202609111520_salesdesk_security_and_scale_polish.sql
-          test -f ui/salesdesk-pro-suite-v1.js
-          test -f ui/salesdesk-operations-pro-v2.js
-          test -f ui/salesdesk-people-intelligence-v1.js
-          test -f ui/salesdesk-automation-center-v1.js
+          test -f index.html
+          test -f app.css
+          test -f app.js
+          test -f cloud.js
           test -f api/router.js
           test -f server/api/automation/_delivery.js
           test -f server/api/billing/change-plan.js

@@ -12,12 +12,15 @@ test('professional business OS migration contains core expansion modules',()=>{
   assert.match(sql,/enable row level security/i);
 });
 
-test('professional UI exposes command centre, CRM, documents, branches and automation',()=>{
-  const js=read('ui/salesdesk-pro-suite-v1.js');
-  for(const feature of ['SALESDESK DAILY BRIEF','CRM','QUOTES & ORDERS','BRANCHES & WAREHOUSES','GOALS & AUTOMATION','Invite team member'])assert.match(js,new RegExp(feature.replace(/[&]/g,'&')));
-  assert.match(js,/salesdesk_daily_brief/);
-  assert.match(js,/create_sales_document/);
-  assert.match(js,/create_branch_with_warehouse/);
+test('professional workspace keeps sales tooling in one controller with server-enforced expansion modules',()=>{
+  const app=read('app.js');
+  const index=read('index.html');
+  for(const token of ['manageProducts','deleteSales','deleteExpenses'])assert.match(app,new RegExp(token));
+  assert.doesNotMatch(index,/ui\/|salesdesk-|velora-/i);
+  assert.doesNotMatch(app,/salesdesk-pro-suite|salesdesk-operations-pro|salesdesk-market-suite/i);
+  const people=read('supabase/migrations/202609111000_salesdesk_people_permissions_intelligence.sql');
+  assert.match(people,/salesdesk_role_capabilities/);
+  assert.match(people,/salesdesk_daily_brief_v2/);
 });
 
 test('team invitation endpoints hash tokens and enforce authenticated acceptance',()=>{
@@ -31,10 +34,10 @@ test('team invitation endpoints hash tokens and enforce authenticated acceptance
   assert.doesNotMatch(accept,/SUPABASE_SERVICE_ROLE_KEY\s*=/);
 });
 
-test('public positioning presents SalesDesk as an adaptive command centre',()=>{
-  const js=read('ui/salesdesk-public-pro-v1.js');
-  assert.match(js,/business command centre/i);
-  assert.match(js,/Products, services or both/i);
-  assert.match(js,/WhatsApp-ready workflows/i);
-  assert.match(js,/not limited to retail/i);
+test('public positioning presents Salesventory as a calm business workspace',()=>{
+  const index=read('index.html');
+  assert.match(index,/Salesventory — Inventory today\. A bigger tomorrow/);
+  assert.match(index,/not limited to retail/i);
+  assert.match(index,/Products, services or both/i);
+  assert.match(index,/WhatsApp-ready workflows/i);
 });

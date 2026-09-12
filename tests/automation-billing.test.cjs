@@ -51,15 +51,16 @@ test('plan changes are scheduled at cycle end and cancellation preserves access 
   assert.ok(!cancel.includes("status:'cancelled'"),'cancel endpoint must not prematurely revoke access');
 });
 
-test('automation center is loaded and billing UI does not treat authenticated as active access',()=>{
-  const loader=read('responsive-device.js'),ui=read('ui/salesdesk-automation-center-v1.js'),billing=read('account-pages-v1.js');
-  assert.ok(loader.includes('salesdesk-automation-center-v1.css'));
-  assert.ok(loader.includes('salesdesk-automation-center-v1.js'));
-  for(const token of ['Recurring invoices','Recurring expenses','Scheduled reports','WhatsApp'])assert.ok(ui.includes(token),`missing ${token}`);
-  assert.ok(billing.includes("pendingActivation=status==='authenticated'"));
-  assert.ok(!billing.includes("['active','authenticated'].includes"));
-  assert.ok(billing.includes('/api/billing/change-plan'));
-  assert.ok(billing.includes('/api/billing/sync'));
+test('billing UI wires the provider payment flow and never treats authenticated as active access',()=>{
+  const billing=read('app.js');
+  const index=read('index.html');
+  assert.ok(billing.includes('pendingActivation'));
+  assert.ok(billing.includes("status === 'authenticated'"));
+  assert.ok(!billing.includes("['active','authenticated'].includes"),'authenticated must not unlock paid access');
+  assert.ok(!billing.includes("['active','created','authenticated'].includes"),'pending statuses must not unlock paid access');
+  for(const endpoint of ['/api/billing/create-subscription','/api/billing/verify-payment','/api/upi-config','/api/manual-payment','/api/billing/sync','/api/billing/cancel'])assert.ok(billing.includes(endpoint),`missing ${endpoint}`);
+  assert.match(index,/PLANS &amp; BILLING|PLANS & BILLING/);
+  assert.match(billing,/pendingActivation = /);
 });
 
 test('production scheduler invokes only the protected cron endpoint',()=>{

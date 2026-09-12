@@ -4,13 +4,14 @@
 Thatha Kadai Business OS is a multi-tenant billing and inventory SaaS for small retail businesses. The public demo runs without signup so recruiters can evaluate the UX instantly; the production architecture uses Supabase Auth + Postgres + Row Level Security.
 
 ## Frontend
-- Responsive HTML/CSS/JavaScript dashboard
-- Billing workflow with automatic stock deduction
-- Inventory and reorder alerts
+- Single-page application: `index.html` + one design system (`app.css`) + one controller (`app.js`) + one cloud adapter (`cloud.js`). No runtime CSS or script injection.
+- Billing workflow with automatic stock deduction via the hardened `complete_sale` RPC
+- Inventory with reorder stock alerts and product/service support
 - Customer CRM generated from purchases
-- Expense tracking and profit metrics
-- Invoice history and WhatsApp sharing
-- Local demo persistence for zero-friction portfolio access
+- Expense tracking and profit & loss metrics
+- Invoice history, print and WhatsApp sharing
+- Demo mode with local persistence for zero-friction portfolio access
+- Cloud mode with Supabase auth, business workspaces, role-based UI and realtime BI
 
 ## Production backend
 Supabase is the recommended backend because it provides:
@@ -68,18 +69,17 @@ A concise explanation:
 > I started with a browser-only MVP to validate the billing and stock workflows. Then I redesigned it as a multi-tenant SaaS architecture using Supabase. Each row is scoped by a business ID and access is enforced through Postgres Row Level Security. I separated owner, manager and staff permissions, modeled invoices with line items and stock movements, and designed invoice creation to run atomically so billing and inventory cannot become inconsistent.
 
 ## Trade-offs
-The portfolio demo deliberately retains local storage so a recruiter can open and test the product immediately. The `/supabase/schema.sql` file represents the production data/security architecture and can be connected to a Supabase project without committing secrets.
+The portfolio demo retains an in-browser demo mode so a recruiter can open and test the product immediately without an account; the same UI switches to the production Supabase cloud backend on sign-in. The `/supabase/schema.sql` file represents the production data/security architecture and can be connected to a Supabase project without committing secrets.
 
-## Frontend rebuild (v2)
-A parallel, from-scratch rebuild of the frontend lives in `v2/` and runs **on top of the existing backend** (Supabase schema + RPCs + Vercel API untouched). The current site remains live and untouched — everything lives behind a separate entry so the swap is a single step.
+## Frontend architecture
+The frontend is a single self-contained workspace. `index.html` loads one stylesheet (`app.css`) and two scripts (`cloud.js`, `app.js`) on top of the Supabase SDK and `supabase/config.js`.
 
-Why: the earlier architecture injected ~30 UI "suites" with overlapping CSS overlays (`!important` arms race), multiple controllers fighting over duplicate `sd*` element IDs and late-injected styles that fought the design system. v2 replaces that with:
+- **One entry** — `index.html` + `app.css`: a tokenized design system (Plus Jakarta Sans / DM Serif Display, responsive breakpoints, card-table collapse, dialog/toast/login/dashboard/preview, print + reduced-motion).
+- **One controller** — `app.js`: bootstrap + routing + `VIEW_REGISTRY`, a unified store (demo = in-browser fashion-retail seed data; cloud = `window.SDCloud`), delegation actions (`data-act`/`data-go`/`data-nav`), cart/checkout, KPI dashboard, reports/export, plans & billing (Razorpay checkout + UPI manual-payment fallback), promise-based confirm dialogs, backend-preserving bug fixes (service products keep `track_stock` false, WhatsApp share uses a currency-safe symbol).
+- **One cloud adapter** — `cloud.js` exposes `window.SDCloud`: auth (email/password + OAuth, session restore), workspace membership/creation (`create_business_with_owner`), products/customers/invoices/expenses CRUD, stock-guarded checkout via `complete_sale`, deletes via `delete_sale`, and one `postgres_changes` channel across the operation tables.
 
-- **One entry** — `v2/index.html` loads only `v2/app.css`, `v2/cloud.js`, `v2/app.js` + the Supabase SDK/`supabase/config.js`.
-- **One design system** — `v2/app.css`: a single tokenized stylesheet (plus Jakarta Sans / DM Serif Display, responsive breakpoints 1100/840/680px, card-table collapse, dialog/toast/login/dashboard/preview, print + reduced-motion). No overlays, no `!important`.
-- **One controller** — `v2/app.js`: bootstrap + routing + `VIEW_REGISTRY`, a unified store (demo = `velora_*` localStorage seeds reused verbatim; cloud = `window.SDCloud`), delegation-based actions (`data-act`/`data-go`), toast/dialog utilities, greeting, live realtime reload.
-- **One cloud adapter** — `v2/cloud.js` exposes `window.SDCloud`: auth (sign-in/sign-out/restore), businesses (membership + `create_business` on first login), products/customers/invoices/expenses CRUD, stock-guarded checkout via `complete_sale` RPC, delete via `delete_sale` RPC, and a single `postgres_changes` channel across the four operation tables. No legacy CSS injection, no controller scripts, no service-role markers.
+The previous runtime cascade — ~50 injected `ui/*` "suites" with overlapping `!important` CSS overlays and multiple controllers fighting over duplicate IDs — has been retired. There is no `ui/` directory, no `responsive-device.js`, `velora-v3.css`, `onboarding.js` or `v2/` entry: root `index.html` is the only entry point.
 
-Cloud parity is preserved end-to-end (auth, session restore, workspace activation, checkout, realtime). Verified by `node --check` on every v2 file, the full `npm run quality` gate (67/67, old site untouched), and a scripted check that all 62 element IDs referenced by the controller exist in the shell.
+Security: role capabilities gate owner/manager/staff actions in the UI, while Postgres RLS remains the real boundary. The billing UI treats `authenticated`/`created` as "activation pending" and never as paid access.
 
-To activate: test `v2/index.html` in parallel, then either point the static host at `v2/` or swap it in as the root `index.html` (relative `../supabase/…` paths become `supabase/…`). Afterwards the `ui/*` suites, premium modules, loader injections and the `salesdesk-redesign-v1.css` layer can be retired — nothing is deleted in the v2 PR. Deferred to follow-ups: billing/plan view, team/invites, settings/account centre, automation centre, CRM, branches/warehouses, import/backup — all map onto the `VIEW_REGISTRY` as thin additions.
+Verified by `node --check` on every frontend file (`npm run test:syntax`) and the full 84-test `npm test` gate, which no longer references any retired suite.

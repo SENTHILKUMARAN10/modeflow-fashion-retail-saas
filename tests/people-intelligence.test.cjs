@@ -36,9 +36,13 @@ test('team APIs protect owner/admin boundaries and branch assignment',()=>{
   assert.match(accept,/business_member_branches/);
 });
 
-test('people intelligence UI exposes team CRM payables and Daily Brief v2',()=>{
-  const js=read('ui/salesdesk-people-intelligence-v1.js'),loader=read('responsive-device.js');
-  for(const token of ['TEAM & ACCESS','CRM CONTROL','PAYABLE AGING','SALESDESK DAILY BRIEF','salesdesk_role_capabilities','salesdesk_complete_followup','salesdesk_supplier_aging','salesdesk_daily_brief_v2'])assert.ok(js.includes(token),`missing ${token}`);
-  assert.ok(loader.includes('salesdesk-people-intelligence-v1.js'));
-  assert.ok(loader.includes('salesdesk-people-intelligence-v1.css'));
+test('frontend respects server-enforced roles and hides privileged actions for staff',()=>{
+  const app=read('app.js'),fixes=read('supabase/runtime-fixes.js');
+  assert.match(app,/capabilities\(state\.role\)/);
+  assert.match(app,/manageProducts/);
+  assert.match(app,/deleteSales/);
+  assert.match(app,/deleteExpenses/);
+  assert.match(fixes,/#inventoryRows \.action-btn/);
+  assert.match(fixes,/#historyRows \.action-btn\.danger/);
+  assert.match(fixes,/#expenseList \.action-btn\.danger/);
 });

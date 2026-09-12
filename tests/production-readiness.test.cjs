@@ -10,33 +10,29 @@ test('production legal pages exist', () => {
   assert.ok(fs.existsSync('refund-policy.html'));
 });
 
-test('Salesventory production workspace uses the complete authoritative UI and keeps feature modules functional', () => {
+test('Salesventory production workspace is a single authoritative controller without legacy cascade', () => {
   const index = read('index.html');
-  const loader = read('ui/velora-final-v16.js');
-  const responsive = read('responsive-device.js');
-  const guard = read('ui/salesventory-cascade-guard-v1.js');
+  const app = read('app.js');
+  const cloud = read('cloud.js');
   assert.match(index, /Salesventory/);
-  assert.match(loader, /salesventory-complete-ui-v1\.css/);
-  assert.match(loader, /salesventory-complete-ui-v1\.js/);
-  assert.match(loader, /salesventory-dashboard-authority-v1\.js/);
-  assert.match(loader, /salesventory-invoice-reference-v1\.js/);
-  assert.match(responsive, /salesdesk-market-suite-v3\.js/);
-  assert.match(responsive, /salesdesk-operations-pro-v2\.js/);
-  assert.match(responsive, /salesdesk-people-intelligence-v1\.js/);
-  assert.match(responsive, /salesdesk-automation-center-v1\.js/);
-  assert.match(guard, /salesventory-complete-ui-v1\.css/);
-  assert.doesNotMatch(responsive, /salesdesk-redesign-v1\.css/);
-  assert.doesNotMatch(responsive, /public-experience-v2\.js/);
-  assert.doesNotMatch(read('supabase/client.js'), /ui\/clean-v4\.css/);
+  assert.match(index, /<script src="cloud\.js/);
+  assert.match(index, /<script src="app\.js/);
+  assert.match(index, /"app\.css/);
+  assert.doesNotMatch(index, /ui\//);
+  assert.doesNotMatch(index, /responsive-device\.js|salesdesk-|velora-|onboarding\.js|account-pages-v1/);
+  assert.doesNotMatch(app, /salesdesk-pro-suite|salesdesk-operations-pro|salesdesk-market-suite|velora-final/);
+  assert.match(cloud, /complete_sale/);
+  assert.match(cloud, /delete_sale/);
 });
 
 test('legacy observer-heavy visual bootstrap is not loaded', () => {
   const client = read('supabase/client.js');
-  const responsive = read('responsive-device.js');
+  const index = read('index.html');
   assert.doesNotMatch(client, /production-only\.js/);
   assert.doesNotMatch(client, /ui-profile-fixes\.js/);
   assert.doesNotMatch(client, /visibility-hotfix\.js/);
-  assert.doesNotMatch(responsive, /new MutationObserver/);
+  assert.doesNotMatch(index, /onboarding\.js|responsive-device\.js|velora-|salesdesk-/);
+  assert.doesNotMatch(read('app.js'), /new MutationObserver/);
 });
 
 test('browser client does not contain privileged Supabase service role markers', () => {
@@ -80,13 +76,15 @@ test('current professional business OS migration contains core expansion modules
   assert.match(migration, /create table if not exists public\.sales_returns/i);
 });
 
-test('professional UI exposes CRM documents branches and automation capabilities', () => {
-  const source = read('ui/salesdesk-pro-suite-v1.js');
-  assert.match(source, /Command centre/i);
-  assert.match(source, /CRM/i);
-  assert.match(source, /documents/i);
-  assert.match(source, /branches/i);
-  assert.match(source, /automation/i);
+test('professional workspace exposes the complete sales workflow in one self-contained controller', () => {
+  const index = read('index.html');
+  const app = read('app.js');
+  const cloud = read('cloud.js');
+  for (const feature of ['New sale', 'Products', 'Customers', 'Expenses', 'Transactions', 'Analytics', 'Plans']) assert.match(index, new RegExp(feature));
+  assert.match(cloud, /complete_sale/);
+  assert.match(cloud, /delete_sale/);
+  assert.match(app, /WhatsApp/);
+  assert.match(app, /idempotency/);
 });
 
 test('team invitation endpoints hash tokens and enforce authenticated acceptance', () => {
@@ -98,11 +96,14 @@ test('team invitation endpoints hash tokens and enforce authenticated acceptance
 });
 
 test('public positioning is owned by the new Salesventory landing experience', () => {
-  const source = read('ui/salesventory-complete-ui-v1.js');
-  assert.match(source, /BUSINESS MANAGEMENT, SIMPLIFIED/);
-  assert.match(source, /Run the whole business/);
-  assert.match(source, /Inventory today/);
-  assert.match(source, /Salesventory/);
+  const index = read('index.html');
+  const app = read('app.js');
+  assert.match(index, /Inventory today\. A bigger tomorrow/);
+  assert.match(index, /Products, services or both/);
+  assert.match(index, /WhatsApp-ready workflows/);
+  assert.match(index, /not limited to retail/);
+  assert.doesNotMatch(index, /SalesDesk/);
+  assert.match(app, /Salesventory/);
 });
 
 test('workspace owner creation is idempotent and cannot duplicate membership', () => {
@@ -123,7 +124,7 @@ test('regression migration preserves RPC security grants', () => {
 });
 
 test('frontend contains no privileged Supabase secret patterns', () => {
-  for (const file of ['index.html','app.js','account-pages-v1.js','responsive-device.js','supabase/client.js']) {
+  for (const file of ['index.html','app.js','cloud.js','supabase/config.js','supabase/client.js']) {
     const src = read(file);
     assert.doesNotMatch(src, /SUPABASE_SERVICE_ROLE|sb_secret_/i, `${file} must not expose privileged Supabase secrets`);
   }
@@ -158,18 +159,25 @@ test('invoice items preserve historical cost for profit calculations', () => {
   assert.match(migration, /cost_price/i);
 });
 
-test('Salesventory dashboard authority prevents legacy dashboard decoration from becoming canonical', () => {
-  const source = read('ui/salesventory-dashboard-authority-v1.js');
-  assert.match(source, /sdProBrief/);
-  assert.match(source, /sdTodaySales/);
-  assert.match(source, /Total Inventory/);
-  assert.match(source, /Top Products/);
+test('Salesventory dashboard authority keeps the canonical KPI module wiring', () => {
+  const index = read('index.html');
+  for (const kpi of ['kpiToday', 'kpiBest', 'kpiPending', 'kpiPnL']) assert.match(index, new RegExp('id="' + kpi + '"'));
+  assert.match(index, /Today['’]s sales/);
+  assert.match(index, /Profit &amp; loss/);
+  const app = read('app.js');
+  assert.match(app, /#kpiToday/);
+  assert.match(app, /#kpiPnL/);
 });
 
-test('role based market functionality remains available', () => {
-  const source = read('ui/salesdesk-market-suite-v3.js');
-  assert.match(source, /role/i);
-  assert.match(source, /inventory/i);
+test('role based market functionality gates every privileged action per role', () => {
+  const app = read('app.js');
+  assert.match(app, /capabilities/);
+  assert.match(app, /role === 'owner'/);
+  assert.match(app, /role === 'manager'/);
+  assert.match(app, /manageProducts/);
+  assert.match(app, /deleteSales/);
+  assert.match(app, /deleteExpenses/);
+  assert.match(app, /manageProducts: false, deleteSales: false, deleteExpenses: false/);
 });
 
 test('Vercel Hobby deployment stays below function-count limit', () => {

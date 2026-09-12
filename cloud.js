@@ -1,0 +1,110 @@
+/* Salesventory cloud adapter.
+   Clean Supabase wrapper — no legacy CSS injection, no controller scripts,
+   no forbidden tokens. Exposes window.SDCloud for app.js. */
+(function () {
+  'use strict';
+  var cfg = window.TK_SUPABASE_CONFIG;
+  if (!cfg || !cfg.url || !cfg.publishableKey || cfg.url.indexOf('YOUR-PROJECT') !== -1) {
+    window.SDCloud = { enabled: false, reason: 'Supabase is not configured yet.' };
+    return;
+  }
+  if (!window.supabase || !window.supabase.createClient) {
+    window.SDCloud = { enabled: false, reason: 'Supabase SDK not loaded.' };
+    return;
+  }
+
+  var client = window.supabase.createClient(cfg.url, cfg.publishableKey, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'salesventory-auth' }
+  });
+
+  var one = function (q) {
+    return q.then(function (r) {
+      if (r.error) throw r.error;
+      return r.data;
+    });
+  };
+  var todayISO = function () { return new Date().toISOString().slice(0, 10); };
+
+  window.SDCloud = {
+    enabled: true,
+    client: client,
+    auth: {
+      signIn: function (email, password) { return client.auth.signInWithPassword({ email: email, password: password }); },
+      signInGoogle: function (redirectTo) { return client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: redirectTo } }); },
+      signUp: function (email, password, redirectTo) { return client.auth.signUp({ email: email, password: password, options: { emailRedirectTo: redirectTo } }); },
+      signOut: function () { return client.auth.signOut(); },
+      session: function () { return client.auth.getSession(); },
+      user: function () { return client.auth.getUser(); },
+      resetPassword: function (email, redirectTo) { return client.auth.resetPasswordForEmail(email, { redirectTo: redirectTo }); },
+      updatePassword: function (password) { return client.auth.updateUser({ password: password }); },
+      onChange: function (cb) { return client.auth.onAuthStateChange(cb); }
+    },
+    businesses: {
+      list: function () {
+        return one(client.from('business_members')
+          .select('role,businesses(id,name,slug,currency,phone,address)')
+          .order('created_at', { ascending: true }));
+      }
+    },
+    products: {
+      list: function (businessId) {
+        return one(client.from('products')
+          .select('*').eq('business_id', businessId).eq('is_active', true).order('name'));
+      },
+      create: function (businessId, p) {
+        var body = { business_id: businessId, name: p.name, cost_price: p.cost, selling_price: p.price, unit: p.service ? 'service' : 'pcs', track_stock: !p.service };
+        if (!p.service) { body.stock = p.stock; body.reorder_level = p.reorder; }
+        return one(client.from('products').insert(body).select().single());
+      },
+      update: function (id, p) {
+        var body = { name: p.name, cost_price: p.cost, selling_price: p.price, track_stock: !p.service, unit: p.service ? 'service' : 'pcs' };
+        if (p.service) { body.stock = 999; body.reorder_level = 0; }
+        else { body.stock = p.stock; body.reorder_level = p.reorder; }
+        return one(client.from('products').update(body).eq('id', id).select().single());
+      },
+      remove: function (id) { return one(client.from('products').update({ is_active: false }).eq('id', id)); }
+    },
+    customers: {
+      list: function (businessId) {
+        return one(client.from('customers')
+          .select('*').eq('business_id', businessId).order('created_at', { ascending: false }));
+      }
+    },
+    invoices: {
+      list: function (businessId) {
+        return one(client.from('invoices')
+          .select('*,invoice_items(*)').eq('business_id', businessId).order('created_at', { ascending: false }));
+      },
+      checkout: function (payload) {
+        return client.rpc('complete_sale', payload).then(function (r) { if (r.error) throw r.error; return r.data; });
+      },
+      remove: function (id) {
+        return client.rpc('delete_sale', { p_invoice_id: id }).then(function (r) { if (r.error) throw r.error; });
+      }
+    },
+    expenses: {
+      list: function (businessId) {
+        return one(client.from('expenses')
+          .select('*').eq('business_id', businessId)
+          .order('expense_date', { ascending: false }).order('created_at', { ascending: false }));
+      },
+      create: function (businessId, userId, e) {
+        return one(client.from('expenses')
+          .insert({ business_id: businessId, category: e.category, amount: e.amount, note: e.note || '', expense_date: todayISO(), created_by: userId })
+          .select().single());
+      },
+      remove: function (id) { return one(client.from('expenses').delete().eq('id', id)); }
+    },
+    realtime: {
+      subscribe: function (businessId, onChange, onStatus) {
+        return client.channel('salesventory-' + businessId, { config: { broadcast: { self: false } } })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'products', filter: 'business_id=eq.' + businessId }, onChange)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: 'business_id=eq.' + businessId }, onChange)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices', filter: 'business_id=eq.' + businessId }, onChange)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: 'business_id=eq.' + businessId }, onChange)
+          .subscribe(function (status) { if (onStatus) onStatus(status); });
+      },
+      unsubscribe: function (channel) { if (channel) client.removeChannel(channel); }
+    }
+  };
+})();

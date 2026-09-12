@@ -12,17 +12,22 @@ test('professional operations migration contains adaptive onboarding and branch 
   assert.match(sql,/onboarding_completed_at/);
 });
 
-test('professional operations UI exposes the complete quote to invoice and warehouse workflow',()=>{
-  const js=read('ui/salesdesk-operations-pro-v2.js');
-  for(const token of ['Branches & warehouses','Quotes & orders','Transfer stock','convert_quote_to_order','convert_sales_document_to_invoice','complete_business_onboarding','salesdesk_warehouse_stock']) assert.ok(js.includes(token),`missing ${token}`);
-  assert.ok(js.includes('Products & services'));
+test('frontend closes the sale and stock loop through hardened RPCs',()=>{
+  const cloud=read('cloud.js');
+  const app=read('app.js');
+  const index=read('index.html');
+  assert.match(cloud,/complete_sale/);
+  assert.match(cloud,/delete_sale/);
+  assert.match(app,/p_idempotency_key/);
+  assert.match(app,/track_stock/);
+  assert.match(index,/New sale/);
 });
 
-test('legacy local-only onboarding is disabled and production operations are loaded',()=>{
-  const onboarding=read('onboarding.js');
-  const loader=read('responsive-device.js');
-  assert.ok(onboarding.includes('SalesDeskLegacyOnboardingDisabled'));
-  assert.ok(!onboarding.includes('onboarding-backdrop'));
-  assert.ok(loader.includes('salesdesk-operations-pro-v2.js'));
-  assert.ok(loader.includes('salesdesk-operations-pro-v2.css'));
+test('legacy local-only onboarding is removed from the production frontend',()=>{
+  const index=read('index.html');
+  const app=read('app.js');
+  assert.doesNotMatch(index,/onboarding\.js|onboarding-backdrop/i);
+  assert.doesNotMatch(app,/onboarding-backdrop/i);
+  assert.doesNotMatch(app,/SalesDeskLegacyOnboardingDisabled/);
+  assert.match(app,/DOMContentLoaded/);
 });

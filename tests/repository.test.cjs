@@ -48,13 +48,13 @@ test('invoice items preserve historical cost for profit calculations',()=>{
   assert.match(realtime,/cost:Number\(item\.cost_price\|\|0\)/);
 });
 
-test('SalesDesk market dashboard contains live business KPI modules',()=>{
-  const market=read('ui/salesdesk-market-suite-v3.js');
+test('Salesventory dashboard contains live business KPI modules',()=>{
+  const index=read('index.html');
   const fixes=read('supabase/runtime-fixes.js');
-  assert.match(market,/Today['’]s sales|Today's sales/);
-  assert.match(market,/BEST SELLERS/);
-  assert.match(market,/Pending payments/);
-  assert.match(market,/PROFIT & LOSS/);
+  assert.match(index,/Today['’]s sales/);
+  assert.match(index,/Best seller/);
+  assert.match(index,/Pending payments/);
+  assert.match(index,/Profit &amp; loss/);
   assert.doesNotMatch(fixes,/Good evening, Senthil/);
 });
 

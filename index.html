@@ -2,91 +2,369 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<meta name="theme-color" content="#f6f4ee">
-<meta name="description" content="Salesventory helps businesses manage sales, inventory, customers, expenses, reports and daily operations from one workspace.">
-<title>Salesventory — Run your business with clarity.</title>
-<link rel="icon" type="image/png" href="/assets/salesventory-logo.png">
-<link rel="apple-touch-icon" href="/assets/salesventory-logo.png">
-<script>
-(function(){
-  var root=document.documentElement;root.classList.add('sv-booting');
-  try{
-    var t=localStorage.getItem('salesventory-theme-v1');
-    root.dataset.theme=t||((window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');
-    root.dataset.svSession=localStorage.getItem('modeflow-auth-v1')?'1':'0';
-  }catch(e){root.dataset.theme='light';root.dataset.svSession='0'}
-})();
-</script>
-<style>html.sv-booting body{opacity:0!important}body{transition:opacity .12s ease}#login .login-foot{display:none!important}</style>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1F5B49">
+<meta name="description" content="Salesventory — a calm, premium workspace for fashion retail: sales, inventory, customers, expenses and business analytics in one place.">
+<title>Salesventory — Inventory today. A bigger tomorrow.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%231F5B49'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='34' fill='%23fff' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="velora-v3.css?v=20260910-1745">
-<link rel="stylesheet" href="responsive-v4.css?v=20260910-1745">
-<link rel="stylesheet" href="ui/pro-polish-v8.css?v=20260910-1745">
-<link rel="stylesheet" href="ui/velora-final-v16.css?v=20260910-1745">
-<link rel="stylesheet" href="ui/salesventory-reference-v2.css?v=20260912-reference2">
-<script src="responsive-device.js?v=20260910-1745" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css?v=20260912">
 </head>
 <body>
+
+<!-- ======== LOGIN ======== -->
 <section id="login" class="login-screen">
-  <div class="login-brandbar"><a class="login-brand" href="#" aria-label="Salesventory"><img src="/assets/salesventory-full-logo.webp" alt="Salesventory — Inventory today. A bigger tomorrow."></a><span class="brand-note">INVENTORY TODAY. A BIGGER TOMORROW.</span></div>
+  <div class="login-brandbar">
+    <a class="login-brand" href="#"><span class="brand-mark">S</span><strong>Salesventory</strong></a>
+    <span class="brand-note">INVENTORY TODAY · A BIGGER TOMORROW</span>
+  </div>
   <div class="login-stage">
     <section class="login-story">
-      <div class="story-copy"><p class="kicker light">ONE WORKSPACE · EVERY BUSINESS</p><h1>Less admin.<br><em>More momentum.</em></h1><p class="story-lede">Sales, customers, stock, services and expenses in one calm workspace built for everyday business.</p></div>
-      <div class="story-stats"><div><span>Clarity</span><strong>One place</strong><small>for daily operations</small></div><div><span>Flexible</span><strong>Any business</strong><small>products or services</small></div><div><span>Simple</span><strong>Fast setup</strong><small>without the clutter</small></div></div>
+      <div class="story-copy">
+        <p class="kicker light">ONE WORKSPACE · YOUR FASHION BUSINESS</p>
+        <h1>Less admin.<br><em>More momentum.</em></h1>
+        <p class="story-lede">Sales, stock, customers, services and expenses in one calm workspace. Built for boutiques, drapers, studios and retail — not limited to retail. Products, services or both.</p>
+      </div>
+      <div class="story-stats">
+        <div><span>CLARITY</span><strong>One place</strong><small>for daily operations</small></div>
+        <div><span>FLEXIBLE</span><strong>Any business</strong><small>products or services</small></div>
+        <div><span>READY</span><strong>Fast setup</strong><small>plus WhatsApp-ready workflows</small></div>
+      </div>
     </section>
-    <section class="login-panel"><div class="login-box"><p class="kicker">WELCOME BACK</p><h2>Continue your workspace.</h2><p class="subtext">Sign in securely or explore Salesventory with sample business data.</p><button id="demoLogin" class="btn secondary full">Explore demo workspace</button><div class="divider"><span>OR SIGN IN</span></div><form id="cloudLogin" class="stack"><label>Email<input id="loginEmail" type="email" autocomplete="email" placeholder="you@business.com"></label><label>Password<input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••"></label><button class="btn primary full">Sign in</button></form><p id="cloudStatus" class="micro">Secure cloud workspace ready.</p><p class="login-foot">Private workspace · Secure cloud data · Built for everyday business</p></div></section>
+    <section class="login-panel">
+      <div class="login-box">
+        <p class="kicker">WELCOME BACK</p>
+        <h2>Continue your workspace.</h2>
+        <p class="subtext">Sign in securely or explore Salesventory with sample business data.</p>
+        <button id="demoLogin" class="btn secondary full">Explore demo workspace</button>
+        <div class="divider"><span>OR SIGN IN</span></div>
+        <form id="cloudLogin" class="stack" novalidate>
+          <label>Email<input id="loginEmail" type="email" autocomplete="email" placeholder="you@business.com" required></label>
+          <label>Password<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password" required></label>
+          <button class="btn primary full">Sign in to workspace</button>
+        </form>
+        <p id="cloudStatus" class="micro" role="status">Secure cloud workspace ready.</p>
+        <p class="login-foot">Private workspace · Secure cloud data · Built for everyday business</p>
+      </div>
+    </section>
   </div>
 </section>
+
+<!-- ======== APP ======== -->
 <div id="app" class="app hidden">
   <aside class="sidebar">
-    <div class="brand"><span class="brand-mark small"><img src="/assets/salesventory-logo.png" alt="" style="display:block;width:100%;height:100%;object-fit:contain"></span><div><b>Salesventory</b><strong id="veloraClientName" class="velora-client-name">Account</strong><small>Business workspace</small></div></div>
-    <div class="store-card"><span class="store-avatar">SV</span><div><b>Salesventory Workspace</b><small>Business · India</small></div><span>⌄</span></div>
+    <div class="brand">
+      <span class="brand-mark small">S</span>
+      <div><b>Salesventory</b><small id="businessName">Business workspace</small></div>
+    </div>
+    <div class="store-card">
+      <span class="store-avatar" id="storeAvatar">SV</span>
+      <div><b id="storeName">Salesventory Workspace</b><small id="storeMeta">Business · India</small></div>
+      <span class="store-chevron">⌄</span>
+    </div>
     <p class="nav-label">WORKSPACE</p>
-    <nav>
-      <button class="nav active" data-view="dashboard"><i>01</i><span>Overview</span></button>
+    <nav aria-label="Primary">
+      <button class="nav active" data-view="dashboard" aria-current="page"><i>01</i><span>Overview</span></button>
       <button class="nav" data-view="billing"><i>02</i><span>New sale</span></button>
       <button class="nav" data-view="inventory"><i>03</i><span>Products</span></button>
       <button class="nav" data-view="customers"><i>04</i><span>Customers</span></button>
       <button class="nav" data-view="expenses"><i>05</i><span>Expenses</span></button>
       <button class="nav" data-view="history"><i>06</i><span>Transactions</span></button>
       <button class="nav" data-view="reports"><i>07</i><span>Analytics</span></button>
+      <button class="nav" data-view="plans"><i>08</i><span>Plans &amp; billing</span></button>
     </nav>
-    <div class="side-footer"><span id="modeBadge" class="mode-badge">Workspace</span><button id="logout" class="nav logout"><i>↗</i><span>Sign out</span></button></div>
+    <div class="side-footer">
+      <span id="modeBadge" class="mode-badge">Workspace</span>
+      <span id="roleBadge" class="role-badge" hidden></span>
+      <button id="logout" class="nav logout" type="button"><span>Sign out</span></button>
+    </div>
   </aside>
+
   <main>
-    <header class="topbar"><div class="topbar-copy"><p class="kicker" id="eyebrow">BUSINESS OVERVIEW</p><h2 id="title">Good morning.</h2></div><div class="header-actions"><button id="exportData" class="icon-btn" title="Export data">Export</button><button class="btn primary goto-billing">New sale</button><span class="profile">SV</span></div></header>
-    <section id="dashboard" class="view active-view"><div class="page-intro"><div><p class="kicker">BUSINESS OVERVIEW</p><h3>Good morning,</h3></div><p>Here's what's happening today.</p></div><div class="dashboard-strip"><article class="primary-stat"><span>Total sales</span><strong id="revenue">₹0</strong><small>Across completed transactions</small></article><article><span>Net profit</span><strong id="profit">₹0</strong><small>After costs and expenses</small></article><article><span>Transactions</span><strong id="invoiceCount">0</strong><small>Recorded in workspace</small></article><article><span>Low stock items</span><strong id="lowStock">0</strong><small>Below reorder level</small></article></div><div class="dashboard-layout"><article class="panel"><div class="panel-head"><div><p class="kicker">PERFORMANCE</p><h3>Sales overview</h3></div><select id="rangeSel" class="compact-select"><option value="7">Last 7 days</option><option value="30">This month</option></select></div><div id="bars" class="bars"></div></article><article class="attention-panel"><div class="panel-head"><div><p class="kicker">INVENTORY</p><h3>Stock health</h3></div><button class="text-link" data-go="inventory">View all</button></div><div id="alerts"></div></article></div><article class="panel table-panel"><div class="panel-head"><div><p class="kicker">RECENT ACTIVITY</p><h3>Latest transactions</h3></div><button class="text-link" data-go="history">View all</button></div><div class="table-wrap"><table><thead><tr><th>TRANSACTION</th><th>CUSTOMER</th><th>ITEM</th><th>AMOUNT</th><th>STATUS</th><th>DATE</th></tr></thead><tbody id="recent"></tbody></table></div></article></section>
-    <section id="billing" class="view"><div class="page-intro"><div><p class="kicker">NEW SALE</p><h3>Create a new sale</h3></div><p>Create a transaction, update stock and prepare the invoice in one flow.</p></div><div class="sale-layout"><article class="sale-form-card"><form id="invoiceForm" class="form-grid"><div class="form-section span2"><span>01</span><div><b>Customer</b><small>Who is this sale for?</small></div></div><label>Customer name<input id="customerName" required placeholder="e.g. Priya Raman"></label><label>Mobile number<input id="phone" inputmode="tel" placeholder="10-digit mobile"></label><div class="form-section span2"><span>02</span><div><b>Sale details</b><small>Choose the item and amount.</small></div></div><label class="span2">Product or service<select id="product"></select></label><label>Quantity<input id="qty" type="number" min="1" value="1" required></label><label>Selling price ₹<input id="rate" type="number" min="0" required></label><label>Discount ₹<input id="discount" type="number" min="0" value="0"></label><label>Payment<select id="paymentMethod"><option value="upi">UPI</option><option value="card">Card</option><option value="cash">Cash</option><option value="bank">Bank</option></select></label><label class="span2">Payment status<select id="paymentStatus"><option value="paid">Paid</option><option value="partial">Partial</option><option value="unpaid">Unpaid</option></select></label><div class="total span2"><div><span>Total payable</span><small>Final transaction amount</small></div><strong id="previewTotal">₹0</strong></div><button class="btn primary span2 large">Complete sale</button></form></article><aside class="receipt-column"><div class="receipt-label"><span>LIVE INVOICE PREVIEW</span><small>Updates as you type</small></div><div id="preview" class="invoice-preview"></div></aside></div></section>
-    <section id="inventory" class="view"><div class="page-intro"><div><p class="kicker">INVENTORY</p><h3>Products & inventory</h3><p>See what is healthy, what is moving and what needs restocking.</p></div><button id="addProduct" class="btn primary">Add product</button></div><div class="utility-row"><input id="productSearch" class="search-input" placeholder="Search inventory"><div class="filter-strip"><button class="filter-chip active" data-filter="all" aria-pressed="true">All</button><button class="filter-chip" data-filter="low" aria-pressed="false">Low stock</button><button class="filter-chip" data-filter="in" aria-pressed="false">In stock</button></div></div><article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>PRODUCT</th><th>COST</th><th>SELLING</th><th>STOCK</th><th>REORDER</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="inventoryRows"></tbody></table></div></article></section>
-    <section id="customers" class="view"><div class="page-intro"><div><p class="kicker">CUSTOMERS</p><h3>Customer relationships</h3><p>Track relationships, repeat activity and lifetime value.</p></div><input id="customerSearch" class="search-input" placeholder="Search customers"></div><article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>CUSTOMER</th><th>PHONE</th><th>TRANSACTIONS</th><th>LIFETIME VALUE</th><th>LAST PURCHASE</th></tr></thead><tbody id="customerRows"></tbody></table></div></article></section>
-    <section id="expenses" class="view"><div class="page-intro"><div><p class="kicker">EXPENSES</p><h3>Business expenses</h3></div><p>Record operating costs so your real profit stays accurate.</p></div><div class="expense-layout"><article class="expense-entry"><form id="expenseForm" class="stack"><label>Category<input id="expenseCategory" required placeholder="Rent / Ads / Utilities"></label><label>Amount ₹<input id="expenseAmount" type="number" min="1" required></label><label>Notes<input id="expenseNote" placeholder="Optional note"></label><button class="btn primary">Record expense</button></form></article><article class="panel"><div class="panel-head"><div><p class="kicker">RECENT</p><h3>Expense log</h3></div><strong id="expenseTotal">₹0</strong></div><div id="expenseList"></div></article></div></section>
-    <section id="history" class="view"><div class="page-intro"><div><p class="kicker">TRANSACTIONS</p><h3>Sales history</h3><p>Review, print, share or trace past business activity.</p></div><input id="invoiceSearch" class="search-input" placeholder="Search transaction or customer"></div><article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>TRANSACTION</th><th>CUSTOMER</th><th>ITEM</th><th>AMOUNT</th><th>PAYMENT</th><th>DATE</th><th>ACTIONS</th></tr></thead><tbody id="historyRows"></tbody></table></div></article></section>
-    <section id="reports" class="view"><div class="page-intro"><div><p class="kicker">REPORTS</p><h3>Performance analytics</h3></div><p>Simple signals from sales, customers, inventory and expenses.</p></div><div class="report-strip"><article><span>Average transaction</span><strong id="avgOrder">₹0</strong></article><article><span>Inventory value</span><strong id="inventoryValue">₹0</strong></article><article><span>Active customers</span><strong id="customerCount">0</strong></article><article><span>Operating expenses</span><strong id="reportExpenses">₹0</strong></article></div><div class="report-layout"><article class="panel"><p class="kicker">PERFORMANCE</p><h3>Products & services</h3><div id="productPerformance"></div></article><article class="green-panel"><p class="kicker">PAYMENTS</p><h3>Payment mix</h3><div id="paymentMix"></div></article></div></section>
+    <header class="topbar">
+      <div class="topbar-copy">
+        <p class="kicker" id="eyebrow">BUSINESS OVERVIEW</p>
+        <h2 id="title">Good morning.</h2>
+      </div>
+      <div class="header-actions">
+        <button id="exportData" class="icon-btn" type="button" title="Export business data">Export</button>
+        <button class="btn primary goto-billing" type="button">New sale</button>
+        <span class="profile" id="profileBadge" title="Workspace profile">SV</span>
+      </div>
+    </header>
+
+    <!-- OVERVIEW -->
+    <section id="dashboard" class="view active-view">
+      <div class="page-intro">
+        <div><p class="kicker">AT A GLANCE</p><h3>Your business is moving <em>forward.</em></h3></div>
+        <p>Everything that needs your attention, without the noise.</p>
+      </div>
+      <div class="dashboard-strip">
+        <article class="primary-stat"><span>Net sales</span><strong id="revenue">₹0</strong><small>Across completed transactions</small></article>
+        <article><span>Net profit</span><strong id="profit">₹0</strong><small>After costs and expenses</small></article>
+        <article><span>Transactions</span><strong id="invoiceCount">0</strong><small>Recorded in workspace</small></article>
+        <article><span>Stock alerts</span><strong id="lowStock">0</strong><small>Below reorder level</small></article>
+      </div>
+      <div class="kpi-strip">
+        <article><span>Today's sales</span><strong id="kpiToday">₹0</strong><small id="kpiTodayMeta">No sales recorded yet</small></article>
+        <article><span>Best seller</span><strong id="kpiBest">—</strong><small id="kpiBestMeta">No sales data yet</small></article>
+        <article><span>Pending payments</span><strong id="kpiPending">₹0</strong><small id="kpiPendingMeta">Invoice receivables</small></article>
+        <article class="tinted"><span>Profit &amp; loss</span><strong id="kpiPnL">₹0</strong><small id="kpiPnLMeta">Current period</small></article>
+      </div>
+      <div class="dashboard-layout">
+        <article class="panel">
+          <div class="panel-head">
+            <div><p class="kicker">REVENUE FLOW</p><h3>Recent sales</h3></div>
+            <select id="rangeSel" class="compact-select" aria-label="Chart range">
+              <option value="7">Last 7 days</option>
+              <option value="30">This month</option>
+            </select>
+          </div>
+          <div id="bars" class="bars"></div>
+        </article>
+        <article class="attention-panel">
+          <div class="panel-head">
+            <div><p class="kicker light">NEEDS ATTENTION</p><h3>Stock health</h3></div>
+            <button class="text-link light-link" data-go="inventory" type="button">Open inventory ↗</button>
+          </div>
+          <div id="alerts"></div>
+        </article>
+      </div>
+      <article class="panel table-panel">
+        <div class="panel-head">
+          <div><p class="kicker">RECENT ACTIVITY</p><h3>Latest transactions</h3></div>
+          <button class="text-link" data-go="history" type="button">View all ↗</button>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>TRANSACTION</th><th>CUSTOMER</th><th>ITEM</th><th>AMOUNT</th><th>STATUS</th><th>DATE</th></tr></thead>
+          <tbody id="recent"></tbody>
+        </table></div>
+      </article>
+    </section>
+
+    <!-- NEW SALE -->
+    <section id="billing" class="view">
+      <div class="page-intro">
+        <div><p class="kicker">NEW SALE</p><h3>Make checkout feel <em>effortless.</em></h3></div>
+        <p>Create a transaction, update stock and prepare the receipt in one flow.</p>
+      </div>
+      <div class="sale-layout">
+        <article class="sale-form-card">
+          <form id="invoiceForm" class="form-grid" novalidate>
+            <div class="form-section span2"><span>01</span><div><b>Customer</b><small>Who is this sale for?</small></div></div>
+            <label>Customer name<input id="customerName" placeholder="e.g. Priya Raman"></label>
+            <label>Mobile number<input id="phone" inputmode="tel" placeholder="10-digit mobile"></label>
+            <div class="form-section span2"><span>02</span><div><b>Sale details</b><small>Choose the item and amount.</small></div></div>
+            <label class="span2">Product or service<select id="product" aria-label="Product or service"></select></label>
+            <label>Quantity<input id="qty" type="number" min="0.5" step="0.5" value="1" inputmode="decimal" required></label>
+            <label>Selling price ₹<input id="rate" type="number" min="0" step="any" required></label>
+            <label>Discount ₹<input id="discount" type="number" min="0" step="any" value="0"></label>
+            <label>Payment method<select id="paymentMethod" aria-label="Payment method">
+              <option value="upi">UPI</option><option value="card">Card</option><option value="cash">Cash</option><option value="bank">Bank</option><option value="other">Other</option>
+            </select></label>
+            <label class="span2">Payment status<select id="paymentStatus" aria-label="Payment status">
+              <option value="paid">Paid</option><option value="partial">Partial</option><option value="unpaid">Unpaid</option>
+            </select></label>
+            <div class="total span2">
+              <div><span>Total payable</span><small>Final transaction amount</small></div>
+              <strong id="previewTotal">₹0</strong>
+            </div>
+            <button class="btn primary span2 large" type="submit">Complete sale</button>
+          </form>
+        </article>
+        <aside class="receipt-column">
+          <div class="receipt-label"><span>LIVE PREVIEW</span><small>Updates as you type</small></div>
+          <div id="preview" class="invoice-preview"></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- PRODUCTS -->
+    <section id="inventory" class="view">
+      <div class="page-intro">
+        <div>
+          <p class="kicker">PRODUCTS</p><h3>Inventory without <em>clutter.</em></h3>
+          <p>See what is healthy, what is moving and what needs restocking.</p>
+        </div>
+        <button id="addProduct" class="btn primary" type="button">Add product</button>
+      </div>
+      <div class="utility-row">
+        <input id="productSearch" class="search-input" placeholder="Search inventory" aria-label="Search inventory">
+        <div class="filter-strip" role="group" aria-label="Stock filter">
+          <button class="filter-chip active" data-filter="all" aria-pressed="true" type="button">All</button>
+          <button class="filter-chip" data-filter="low" aria-pressed="false" type="button">Low stock</button>
+          <button class="filter-chip" data-filter="in" aria-pressed="false" type="button">In stock</button>
+        </div>
+      </div>
+      <article class="panel table-panel">
+        <div class="table-wrap"><table>
+          <thead><tr><th>PRODUCT</th><th>COST</th><th>SELLING</th><th>STOCK</th><th>REORDER</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <tbody id="inventoryRows"></tbody>
+        </table></div>
+      </article>
+    </section>
+
+    <!-- CUSTOMERS -->
+    <section id="customers" class="view">
+      <div class="page-intro">
+        <div><p class="kicker">CUSTOMERS</p><h3>Know the people behind <em>the numbers.</em></h3></div>
+        <input id="customerSearch" class="search-input" placeholder="Search customers" aria-label="Search customers">
+      </div>
+      <article class="panel table-panel">
+        <div class="table-wrap"><table>
+          <thead><tr><th>CUSTOMER</th><th>PHONE</th><th>TRANSACTIONS</th><th>LIFETIME VALUE</th><th>LAST PURCHASE</th></tr></thead>
+          <tbody id="customerRows"></tbody>
+        </table></div>
+      </article>
+    </section>
+
+    <!-- EXPENSES -->
+    <section id="expenses" class="view">
+      <div class="page-intro">
+        <div><p class="kicker">EXPENSES</p><h3>Keep spending <em>visible.</em></h3></div>
+        <p>Record operating costs so your real profit stays accurate.</p>
+      </div>
+      <div class="expense-layout">
+        <article class="expense-entry">
+          <form id="expenseForm" class="stack" novalidate>
+            <label>Category<input id="expenseCategory" placeholder="Rent / Ads / Utilities" required></label>
+            <label>Amount ₹<input id="expenseAmount" type="number" min="1" step="any" required></label>
+            <label>Notes<input id="expenseNote" placeholder="Optional note"></label>
+            <button class="btn primary" type="submit">Record expense</button>
+          </form>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><p class="kicker">RECENT</p><h3>Expense log</h3></div><strong id="expenseTotal" class="panel-total">₹0</strong></div>
+          <div id="expenseList"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- TRANSACTIONS -->
+    <section id="history" class="view">
+      <div class="page-intro">
+        <div><p class="kicker">TRANSACTIONS</p><h3>Every sale, in <em>one place.</em></h3></div>
+        <input id="invoiceSearch" class="search-input" placeholder="Search transaction or customer" aria-label="Search transactions">
+      </div>
+      <article class="panel table-panel">
+        <div class="table-wrap"><table>
+          <thead><tr><th>TRANSACTION</th><th>CUSTOMER</th><th>ITEM</th><th>AMOUNT</th><th>PAYMENT</th><th>DATE</th><th>ACTIONS</th></tr></thead>
+          <tbody id="historyRows"></tbody>
+        </table></div>
+      </article>
+    </section>
+
+    <!-- ANALYTICS -->
+    <section id="reports" class="view">
+      <div class="page-intro">
+        <div><p class="kicker">ANALYTICS</p><h3>See what your business is <em>telling you.</em></h3></div>
+        <p>Simple signals from sales, customers, inventory and expenses.</p>
+      </div>
+      <div class="report-strip">
+        <article><span>Average transaction</span><strong id="avgOrder">₹0</strong></article>
+        <article><span>Inventory value</span><strong id="inventoryValue">₹0</strong></article>
+        <article><span>Active customers</span><strong id="customerCount">0</strong></article>
+        <article><span>Operating expenses</span><strong id="reportExpenses">₹0</strong></article>
+      </div>
+      <div class="report-layout">
+        <article class="panel"><p class="kicker">PERFORMANCE</p><h3>Products &amp; services</h3><div id="productPerformance"></div></article>
+        <article class="green-panel"><p class="kicker light">PAYMENTS</p><h3>Payment mix</h3><div id="paymentMix"></div></article>
+      </div>
+    </section>
+
+    <!-- PLANS & BILLING -->
+    <section id="plans" class="view">
+      <div class="page-intro">
+        <div><p class="kicker">PLANS &amp; BILLING</p><h3>Simple pricing. <em>Serious tools.</em></h3></div>
+        <p>One plan for a complete business workspace. Pay monthly or yearly.</p>
+      </div>
+      <article id="planStatusCard" class="plan-status-card" hidden>
+        <div><p class="kicker">CURRENT PLAN</p><h3 id="planStatusTitle">Loading…</h3></div>
+        <div class="plan-status-actions">
+          <button id="syncPlan" class="btn secondary" type="button">Sync with provider</button>
+          <button id="cancelPlan" class="btn ghost danger-ghost" type="button">Cancel subscription</button>
+        </div>
+        <p id="planStatusMeta" class="plan-status-meta"></p>
+      </article>
+      <div class="billing-toolbar">
+        <div class="interval-toggle" role="group" aria-label="Billing interval">
+          <button class="interval-btn active" data-interval="monthly" aria-pressed="true" type="button">Monthly</button>
+          <button class="interval-btn" data-interval="annual" aria-pressed="false" type="button">Annual</button>
+        </div>
+        <div class="currency-toggle" role="group" aria-label="Currency">
+          <button class="currency-btn active" data-currency="INR" aria-pressed="true" type="button">₹ INR</button>
+          <button class="currency-btn" data-currency="USD" aria-pressed="false" type="button">$ USD</button>
+        </div>
+      </div>
+      <div class="plan-grid">
+        <article class="plan-card featured">
+          <div class="plan-head"><p class="kicker">SALESVENTORY</p><h3>Business plan</h3></div>
+          <div class="plan-price"><strong id="planPrice">₹399</strong><span id="planPriceMeta">/ month</span></div>
+          <p class="plan-lede">Everything a growing retailer needs to run the business — no hidden tiers.</p>
+          <ul class="plan-features">
+            <li>Unlimited sales &amp; invoices</li>
+            <li>Product &amp; service catalogue</li>
+            <li>Customers with lifetime value</li>
+            <li>Expenses &amp; profit analytics</li>
+            <li>Receipts, print &amp; WhatsApp share</li>
+            <li>Secure cloud data + backups</li>
+          </ul>
+          <button id="upgradePlan" class="btn primary large full" type="button">Upgrade now</button>
+          <p id="planCtaNote" class="plan-note"></p>
+        </article>
+      </div>
+      <article class="panel plan-help">
+        <div><p class="kicker">NEED HELP?</p><h3>Payments &amp; support</h3><p>UPI fallback, invoices and support contact are handled from here.</p></div>
+        <div class="plan-help-actions">
+          <button id="manualUpiButton" class="btn secondary" type="button">Pay by UPI (fallback)</button>
+          <a id="supportLink" class="text-link" target="_blank" rel="noopener">Contact support ↗</a>
+        </div>
+      </article>
+    </section>
   </main>
 </div>
-<dialog id="productDialog"><form id="productForm" class="dialog-card"><div><p class="kicker">PRODUCT</p><h3 id="productDialogTitle">Add product</h3></div><input id="pId" type="hidden"><label>Product name<input id="pName" required placeholder="e.g. Wireless Keyboard"></label><div class="dialog-grid"><label>Cost price ₹<input id="pCost" type="number" min="0" required></label><label>Selling price ₹<input id="pPrice" type="number" min="0" required></label><label>Available stock<input id="pStock" type="number" min="0" required></label><label>Reorder level<input id="pReorder" type="number" min="0" value="5" required></label></div><div class="dialog-actions"><button type="button" id="cancelProduct" class="btn ghost">Cancel</button><button class="btn primary">Save product</button></div></form></dialog>
-<div id="toast" class="toast"></div>
+
+<!-- ======== DIALOGS ======== -->
+<dialog id="productDialog">
+  <form id="productForm" class="dialog-card" novalidate>
+    <div><p class="kicker">PRODUCT</p><h3 id="productDialogTitle">Add product</h3></div>
+    <input id="pId" type="hidden">
+    <label>Product or service name<input id="pName" required placeholder="e.g. Kanchipuram Silk Saree"></label>
+    <label class="check-row">
+      <input id="pService" type="checkbox">
+      <span>This is a service (no stock tracking, e.g. tailoring, styling)</span>
+    </label>
+    <div class="dialog-grid">
+      <label>Cost price ₹<input id="pCost" type="number" min="0" step="any" required></label>
+      <label>Selling price ₹<input id="pPrice" type="number" min="0" step="any" required></label>
+      <label>Available stock<input id="pStock" type="number" min="0" step="0.5" inputmode="decimal" required></label>
+      <label>Reorder level<input id="pReorder" type="number" min="0" step="0.5" value="5"></label>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" id="cancelProduct" class="btn ghost">Cancel</button>
+      <button class="btn primary" type="submit">Save product</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="confirmDialog">
+  <div class="dialog-card confirm-card">
+    <div><p class="kicker danger-kicker">PLEASE CONFIRM</p><h3 id="confirmTitle">Are you sure?</h3></div>
+    <p id="confirmMessage" class="confirm-message"></p>
+    <div class="dialog-actions">
+      <button id="confirmCancel" class="btn ghost" type="button">Keep it</button>
+      <button id="confirmOk" class="btn danger" type="button">Yes, continue</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast" class="toast" role="status"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase/config.js?v=20260910-1745"></script>
-<script src="supabase/client.js?v=20260910-1745"></script>
-<script src="app.js?v=20260910-1745"></script>
-<script src="onboarding.js?v=20260910-1745"></script>
-<script src="account-pages-v1.js?v=20260910-1745"></script>
-<script src="ui/pro-polish-v8.js?v=20260910-1745"></script>
-<script src="ui/velora-final-v16.js?v=20260912-salesventory-reference2"></script>
-<script src="ui/salesventory-reference-v2.js?v=20260912-reference2"></script>
-<script>
-(function(){
-  function reveal(){document.documentElement.classList.remove('sv-booting')}
-  if(document.readyState==='complete')setTimeout(reveal,60);else addEventListener('load',()=>setTimeout(reveal,60),{once:true});
-  setTimeout(reveal,2600);
-})();
-</script>
+<script src="cloud.js?v=20260912"></script>
+<script src="app.js?v=20260912"></script>
 </body>
 </html>
