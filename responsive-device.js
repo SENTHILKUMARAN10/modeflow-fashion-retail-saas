@@ -2,6 +2,16 @@
   function applyDeviceClass(){var sw=Math.min(window.screen&&screen.width||9999,window.screen&&screen.height||9999);var phone=sw<=600||window.innerWidth<=767;document.documentElement.classList.toggle('device-phone',phone);}
   function addCss(selector,href,attr){if(document.querySelector(selector))return;var css=document.createElement('link');css.rel='stylesheet';css.href=href;css.setAttribute(attr,'1');document.head.appendChild(css)}
   function addScript(selector,src,attr){if(document.querySelector(selector))return;var js=document.createElement('script');js.src=src;js.async=false;js.setAttribute(attr,'1');document.body.appendChild(js)}
+  function pinDesignLayer(){
+    var link=document.querySelector('link[data-salesdesk-redesign]');
+    if(!link)return;
+    function poll(){
+      var last=document.head.lastElementChild;
+      if(!last||last===link||(last.tagName!=='STYLE'&&!(last.tagName==='LINK'&&last.rel==='stylesheet')))return;
+      document.head.appendChild(link);
+    }
+    new MutationObserver(poll).observe(document.head,{childList:true});
+  }
   function loadDeviceLayer(){
     var v='20260911-pro4';
     addCss('link[data-mf-billing]','ui/billing-v1.css?v='+v,'data-mf-billing');
@@ -38,6 +48,7 @@
     addScript('script[data-salesdesk-people-intelligence],script[src*="ui/salesdesk-people-intelligence-v1.js"]','ui/salesdesk-people-intelligence-v1.js?v='+v,'data-salesdesk-people-intelligence');
     addScript('script[data-salesdesk-automation-center],script[src*="ui/salesdesk-automation-center-v1.js"]','ui/salesdesk-automation-center-v1.js?v='+v,'data-salesdesk-automation-center');
     addCss('link[data-salesdesk-redesign]','ui/salesdesk-redesign-v1.css?v=1','data-salesdesk-redesign');
+    pinDesignLayer();
   }
   applyDeviceClass();window.addEventListener('resize',applyDeviceClass,{passive:true});window.addEventListener('orientationchange',applyDeviceClass,{passive:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadDeviceLayer,{once:true});else loadDeviceLayer();
