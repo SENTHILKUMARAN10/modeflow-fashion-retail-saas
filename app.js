@@ -1773,7 +1773,7 @@ var pid = paymentTarget.id;
       due +
       '<td data-label="Payment">' + invoicePayment(i) + '</td>' +
       '<td data-label="Date">' + esc(i.date) + '</td>' +
-      '<td data-label="Actions">' + receive + '<button class="action-btn" data-act="print-invoice" data-id="' + esc(i.id) + '">Print</button><button class="action-btn" data-act="print-invoice-thermal" data-id="' + esc(i.id) + '" title="58mm thermal receipt">58mm</button><button class="action-btn" data-act="share-invoice" data-id="' + esc(i.id) + '">WhatsApp</button>' + remind + del + '</td>' +
+      '<td data-label="Actions">' + receive + '<a class="action-btn" href="sales.html#open=repick:' + encodeURIComponent(i.id) + '" title="Quick re-sell — copy items into Billing">Re-sell</a><button class="action-btn" data-act="print-invoice" data-id="' + esc(i.id) + '">Print</button><button class="action-btn" data-act="print-invoice-thermal" data-id="' + esc(i.id) + '" title="58mm thermal receipt">58mm</button><button class="action-btn" data-act="share-invoice" data-id="' + esc(i.id) + '">WhatsApp</button>' + remind + del + '</td>' +
       '</tr>';
   }
   function renderInvoices() {
@@ -3304,6 +3304,29 @@ var pid = paymentTarget.id;
         setTimeout(function () { el.classList.remove('hit'); }, 2600);
         if (kind === 'customer' && el.click) el.click();
       }
+      return;
+    }
+    if (kind === 'repick') {
+      var src = state.invoices.find(function (x) { return String(x.id) === id; });
+      if (!src) { toast('Invoice not found'); return; }
+      var resolved = [];
+      (src.items && src.items.length ? src.items : [{ name: src.product, qty: src.qty, rate: src.rate }]).forEach(function (line) {
+        var prod = line.product_id || line.productId
+          ? state.products.find(function (p) { return String(p.id) === String(line.product_id || line.productId); })
+          : state.products.find(function (p) { return p.name === line.name; });
+        if (!prod) return;
+        resolved.push({ productId: prod.id, name: prod.name, qty: Number(line.qty) || 1, rate: Number(line.rate) || Number(prod.price || 0) });
+      });
+      saleLines = resolved;
+      renderSaleItems();
+      var tel = $('#phone');
+      if (tel && src.phone) tel.value = src.phone;
+      var cname = $('#customerName');
+      if (cname) cname.value = src.customer || '';
+      updatePreview();
+      toast(saleLines.length ? 'Copied ' + saleLines.length + ' item(s) from ' + src.id + ' — set qty and bill' : 'No stockable items to copy');
+      var form = $('#invoiceForm');
+      if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
     if (kind === 'lowstock') {

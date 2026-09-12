@@ -28,7 +28,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 ## Phase 2 — Business operations
 | # | Area | Status | Notes |
 |---|------|--------|-------|
-| 9 | POS billing | PARTIAL | fast checkout, hold/resume (up to 5 carts, local), cash received → change/shortfall calculator, live preview; add split payments, cashier login, shift open/close, reprint |
+| 9 | POS billing | PARTIAL | fast checkout, USB barcode scan, hold/resume (up to 5 carts, local), cash received → change/shortfall calculator, live preview, quick re-sell (one-tap copy past invoice into Billing); add split payments, cashier login, shift open/close, reprint |
 | 6 | Barcode | PARTIAL | USB-scanner capture (global key buffer): add to cart on billing, filter on Products; labels/bulk print & stock-count mode remain |
 | 10 | Estimates / quotations | PLAN | quote→order→challan→invoice conversion (RPCs exist: convert_quote_to_order) |
 | 11 | Sales orders | PLAN | create/fulfil/cancel, convert to invoice/challan |
