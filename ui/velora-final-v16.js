@@ -1,7 +1,7 @@
 // Salesventory compatibility loader — complete branded production UI.
 (function(){
   'use strict';
-  const v='20260912-salesventory-complete-ui-v1';
+  const v='20260912-salesventory-complete-ui-v2';
   function css(selector,href,attr){if(document.querySelector(selector))return;const x=document.createElement('link');x.rel='stylesheet';x.href=href;x.setAttribute(attr,'1');document.head.appendChild(x)}
   function js(selector,src,attr){if(document.querySelector(selector))return;const x=document.createElement('script');x.src=src;x.async=false;x.setAttribute(attr,'1');document.body.appendChild(x)}
 
@@ -25,4 +25,5 @@
   js('script[data-salesventory-invoice-reference],script[src*="ui/salesventory-invoice-reference-v1.js"]','ui/salesventory-invoice-reference-v1.js?v='+v,'data-salesventory-invoice-reference');
   js('script[data-salesventory-cascade-guard],script[src*="ui/salesventory-cascade-guard-v1.js"]','ui/salesventory-cascade-guard-v1.js?v='+v,'data-salesventory-cascade-guard');
   js('script[data-salesventory-complete-ui],script[src*="ui/salesventory-complete-ui-v1.js"]','ui/salesventory-complete-ui-v1.js?v='+v,'data-salesventory-complete-ui');
+  js('script[data-salesventory-copy-fix],script[src*="ui/salesventory-copy-fix-v1.js"]','ui/salesventory-copy-fix-v1.js?v='+v,'data-salesventory-copy-fix');
 })();
