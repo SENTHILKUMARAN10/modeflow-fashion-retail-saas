@@ -1,4 +1,4 @@
-/* Final visible Velora branding layer — invoice + client header */
+/* Salesventory critical UI layer — invoice + client header */
 .sidebar .brand > div{min-width:0}
 .velora-client-name{display:block;margin-top:3px;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:12px;line-height:1.2;font-weight:800;color:#1f5b49;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar .brand > div > small{display:none!important}
@@ -37,4 +37,15 @@
 .vf-footer-brand{font-family:'DM Serif Display','Playfair Display',Georgia,serif;font-size:24px;color:#1f5b49}
 .vf-footer small{display:block;margin-top:4px;font-size:8px;color:#777b72}
 .vf-footer p{margin:0;text-align:right;font-size:9px;line-height:1.5;color:#6a7169}
-@media(max-width:700px){.vf-invoice{border-radius:20px}.vf-top{padding:19px;gap:12px}.vf-company{font-size:23px}.vf-mark{width:34px;height:34px;font-size:21px}.vf-brand-name{font-size:20px}.vf-brand-tag{display:none}.vf-hero{padding:21px 19px;align-items:flex-start}.vf-hero h3{font-size:23px}.vf-meta{grid-template-columns:1fr;padding:16px 19px;gap:9px}.vf-items{padding:0 19px 4px}.vf-head,.vf-row{grid-template-columns:minmax(0,1fr) .25fr .68fr}.vf-head>:nth-child(3),.vf-row>:nth-child(3){display:none}.vf-summary{max-width:none;margin:6px 19px 0}.vf-note{margin:8px 19px 0}.vf-footer{padding:18px 19px;align-items:flex-start;flex-direction:column}.vf-footer p{text-align:left}.velora-client-name{font-size:12px}}
+
+/* Never flash the old base UI while Salesventory finishes session + UI restoration. */
+body:not(.sv-ui-ready) #login,
+body:not(.sv-ui-ready) #app,
+body:not(.sv-ui-ready) #veloraLanding{visibility:hidden!important;pointer-events:none!important}
+body:not(.sv-ui-ready)::before{content:'Salesventory';position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:#f4f0e6;color:#173f34;font-family:'DM Serif Display','Playfair Display',Georgia,serif;font-size:clamp(34px,4vw,56px);letter-spacing:-.03em}
+
+/* Lock the app sidebar wordmark even if an older compatibility module redraws it. */
+.sidebar .brand b{font-size:0!important;line-height:1!important;color:#173f34!important}
+.sidebar .brand b::after{content:'Salesventory';font-family:'DM Serif Display','Playfair Display',Georgia,serif;font-size:31px;font-weight:400;letter-spacing:-.03em;color:#173f34;white-space:nowrap}
+
+@media(max-width:700px){.vf-invoice{border-radius:20px}.vf-top{padding:19px;gap:12px}.vf-company{font-size:23px}.vf-mark{width:34px;height:34px;font-size:21px}.vf-brand-name{font-size:20px}.vf-brand-tag{display:none}.vf-hero{padding:21px 19px;align-items:flex-start}.vf-hero h3{font-size:23px}.vf-meta{grid-template-columns:1fr;padding:16px 19px;gap:9px}.vf-items{padding:0 19px 4px}.vf-head,.vf-row{grid-template-columns:minmax(0,1fr) .25fr .68fr}.vf-head>:nth-child(3),.vf-row>:nth-child(3){display:none}.vf-summary{max-width:none;margin:6px 19px 0}.vf-note{margin:8px 19px 0}.vf-footer{padding:18px 19px;align-items:flex-start;flex-direction:column}.vf-footer p{text-align:left}.velora-client-name{font-size:12px}.sidebar .brand b::after{font-size:26px}}
