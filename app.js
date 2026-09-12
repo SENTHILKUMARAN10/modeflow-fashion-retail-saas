@@ -2084,6 +2084,50 @@ var pid = paymentTarget.id;
     renderSalesPerformance();
     renderExpenseCats();
     renderCashPanel();
+    renderPyblRecon();
+  }
+
+  function pyblReconRows() {
+    var sup = state.purchases.reduce(function (a, p) {
+      if (!p || p.status === 'cancelled') return a;
+      var k = p.supplierId || p.supplier;
+      if (!a[k]) a[k] = { name: p.supplier, bills: 0, billed: 0, paid: 0, balance: 0, overdueAmt: 0, overdueCount: 0 };
+      var bal = Math.max(Number(p.balance || 0), 0);
+      a[k].bills += 1;
+      a[k].billed += Number(p.total || 0);
+      (p.payments || []).forEach(function (py) { a[k].paid += Number(py.amount || 0); });
+      a[k].balance += bal;
+      if (purchaseOverdue(p)) { a[k].overdueAmt += bal; a[k].overdueCount += 1; }
+      return a;
+    }, {});
+    return Object.keys(sup).map(function (k) {
+      var r = sup[k];
+      r.billed = Math.round(r.billed * 100) / 100;
+      r.paid = Math.round(r.paid * 100) / 100;
+      r.balance = Math.round(r.balance * 100) / 100;
+      r.overdueAmt = Math.round(r.overdueAmt * 100) / 100;
+      if (r.balance <= 0.005) r.status = 'settled';
+      else if (r.overdueAmt > 0) r.status = 'overdue';
+      else r.status = 'open';
+      return r;
+    }).sort(function (a, b) { return b.balance - a.balance; });
+  }
+  function renderPyblRecon() {
+    var tb = $('#pyblReconTable'); if (!tb) return;
+    var rows = pyblReconRows();
+    var tot = { bills: 0, billed: 0, paid: 0, balance: 0, overdueAmt: 0 };
+    rows.forEach(function (r) { tot.bills += r.bills; tot.billed += r.billed; tot.paid += r.paid; tot.balance += r.balance; tot.overdueAmt += r.overdueAmt; });
+    var pill = { settled: 'ok', open: 'open', overdue: 'danger' };
+    tb.innerHTML = rows.map(function (r) {
+      return '<tr><td data-label="Supplier"><b>' + esc(r.name) + '</b></td>' +
+        '<td data-label="Bills">' + r.bills + '</td>' +
+        '<td data-label="Billed">' + money(r.billed) + '</td>' +
+        '<td data-label="Paid">' + money(r.paid) + '</td>' +
+        '<td data-label="Outstanding"><b>' + money(r.balance) + '</b></td>' +
+        '<td data-label="Overdue" style="color:' + (r.overdueAmt > 0 ? 'var(--danger)' : 'inherit') + '">' + (r.overdueAmt > 0 ? money(r.overdueAmt) : '—') + '</td>' +
+        '<td data-label="Status"><span class="bill-pill ' + pill[r.status] + '">' + r.status + '</span></td></tr>';
+    }).join('') || '<tr><td colspan="7" class="empty-cell">No purchase bills recorded yet.</td></tr>';
+    if ($('#pyblReconTot')) $('#pyblReconTot').textContent = money(tot.balance);
   }
 
   function cashMovements() {
@@ -2332,6 +2376,14 @@ var pid = paymentTarget.id;
         Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; }).map(function (k) { return [k, byCat[k]]; }));
       return;
     }
+    if (kind === 'pyblrecon') {
+      downloadCSV('salesventory-payables-recon-' + now + '.csv',
+        ['Supplier', 'Bills', 'Billed', 'Paid', 'Outstanding', 'Overdue', 'Status'],
+        pyblReconRows().map(function (r) {
+          return [r.name, r.bills, r.billed, r.paid, r.balance, r.overdueAmt, r.status];
+        }));
+      return;
+    }
     if (kind === 'inventory') {
       downloadCSV('salesventory-inventory-' + now + '.csv',
         ['Name', 'SKU', 'Category', 'Unit', 'Cost', 'Selling price', 'Stock', 'Reorder', 'Stock value'],
@@ -2399,7 +2451,7 @@ var pid = paymentTarget.id;
     w.print();
   }
   function bindReports() {
-    var map = { csvSalesBtn: 'sales', csvExpensesBtn: 'expenses', csvInventoryBtn: 'inventory', csvAgingBtn: 'receivables', csvExpcatBtn: 'expcats' };
+    var map = { csvSalesBtn: 'sales', csvExpensesBtn: 'expenses', csvInventoryBtn: 'inventory', csvAgingBtn: 'receivables', csvExpcatBtn: 'expcats', csvPyblReconBtn: 'pyblrecon' };
     Object.keys(map).forEach(function (id) {
       var btn = document.getElementById(id);
       if (btn) btn.addEventListener('click', function () { reportCSV(map[id]); });

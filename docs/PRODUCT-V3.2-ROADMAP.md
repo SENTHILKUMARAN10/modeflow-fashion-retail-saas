@@ -19,7 +19,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 17 | Payments Out | PARTIAL | Purchase payments exist; generalise to supplier payment out with ledger effect |
 | 18 | Payment modes | PARTIAL | cash/bank/upi/card/other selectable on sale + purchase + receipt flows; add cheque/wallet + custom modes + cheques lifecycle |
 | 19 | Receivables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics with due-today/overdue chips + payments in. Add advance, credit note application |
-| 20 | Payables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics with due-today/overdue chips + payment out; overdue surfaced on dashboard alerts |
+| 20 | Payables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics with due-today/overdue chips + payment out + supplier payables reconciliation (bills/billed/paid/outstanding/overdue/status, CSV, total outstanding); overdue surfaced on dashboard alerts |
 | 22 | Expenses | PARTIAL | category/vendor/amount/mode/date/notes + category filter chips (per-cat totals) + Analytics spend-by-category (share, CSV) + category presets. Add receipt image, GST, recurring, vendor field |
 | 34 | Reporting | PARTIAL | avg order, inventory value, product perf, payment mix, ageing + Sales performance suite (range KPIs: revenue/orders/units/gross profit/customers, top product/customer, sales by product/category/customer) + CSV + Print/PDF. Add full sales/purchase/financial suite with filters |
 | 61 | Business settings | DONE | profile, phone, address, currency, invoice prefix (owner-gated, DB-backed); GSTIN/PAN/taxes arrive with GST module |

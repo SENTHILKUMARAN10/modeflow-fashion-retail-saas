@@ -180,6 +180,16 @@
       </div>
       <article class="panel full">
         <div class="panel-head">
+          <div><p class="kicker">SUPPLIERS</p><h3>Payables reconciliation</h3></div>
+          <div class="chip-row"><span class="summary-chip" id="pyblReconTot">Total outstanding ₹0</span><button class="btn ghost" id="csvPyblReconBtn" type="button">Export CSV</button></div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>SUPPLIER</th><th>BILLS</th><th>BILLED</th><th>PAID</th><th>OUTSTANDING</th><th>OVERDUE</th><th>STATUS</th></tr></thead>
+          <tbody id="pyblReconTable"></tbody>
+        </table></div>
+      </article>
+      <article class="panel full">
+        <div class="panel-head">
           <div><p class="kicker">CASH MANAGEMENT</p><h3>Cash in hand</h3></div>
           <div class="chip-row">
             <span class="summary-chip ok" id="cashIn">Received ₹0</span>
