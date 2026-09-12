@@ -21,7 +21,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 19 | Receivables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics (due-date aware) + payments in. Add advance, credit note application |
 | 20 | Payables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics; due-today/overdue counts + payment out next |
 | 22 | Expenses | PARTIAL | category/vendor/amount/mode/date/notes. Add receipt image, GST, recurring |
-| 34 | Reporting | PARTIAL | avg order, inventory value, product perf, payment mix, ageing + CSV (sales/expenses/inventory/receivables) + Print/PDF report. Add full sales/purchase/financial suite with filters |
+| 34 | Reporting | PARTIAL | avg order, inventory value, product perf, payment mix, ageing + Sales performance suite (range KPIs: revenue/orders/units/gross profit/customers, top product/customer, sales by product/category/customer) + CSV + Print/PDF. Add full sales/purchase/financial suite with filters |
 | 61 | Business settings | DONE | profile, phone, address, currency, invoice prefix (owner-gated, DB-backed); GSTIN/PAN/taxes arrive with GST module |
 | 68 | Tenant isolation | DONE | RLS + verify scripts; every table carries business_id |
 

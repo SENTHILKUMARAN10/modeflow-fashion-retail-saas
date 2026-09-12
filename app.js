@@ -204,7 +204,10 @@
       total: total, paid: paid, balance: Math.max(0, total - paid),
       paymentMethod: r.payment_method || 'upi', paymentStatus: r.payment_status || 'paid',
       dueDate: r.due_date || null,
-      date: fmtDay(new Date(r.created_at)), ts: new Date(r.created_at).getTime()
+      date: fmtDay(new Date(r.created_at)), ts: new Date(r.created_at).getTime(),
+      items: (r.invoice_items || []).map(function (x) {
+        return { productId: x.product_id, name: x.product_name || 'Item', qty: Number(x.quantity || 0), rate: Number(x.rate || 0), cost: Number(x.cost_price || 0), lineTotal: Number(x.line_total || (x.quantity * x.rate) || 0) };
+      })
     };
   }
   function expenseFromCloud(r) {
@@ -1619,6 +1622,124 @@ var pid = paymentTarget.id;
     }
   }
 
+  /* ============ sales performance suite ============ */
+  function repWindow() {
+    var sel = $('#repRange');
+    var v = sel ? sel.value : 'month';
+    var now = new Date();
+    var f = $('#repFrom'), t = $('#repTo');
+    var from, to;
+    if (v === 'today') { from = dayStart(now).getTime(); to = now.getTime(); }
+    else if (v === 'yesterday') { var y = new Date(now); y.setDate(y.getDate() - 1); from = dayStart(y).getTime(); to = dayStart(now).getTime() - 1; }
+    else if (v === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1).getTime(); to = now.getTime(); }
+    else if (v === 'lastmonth') { from = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime(); to = dayEnd(new Date(now.getFullYear(), now.getMonth(), 0)).getTime(); }
+    else if (v === 'year') { from = new Date(now.getFullYear(), 0, 1).getTime(); to = now.getTime(); }
+    else if (v === 'custom') {
+      from = f && f.value ? dayStart(new Date(f.value)).getTime() : new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      to = t && t.value ? dayEnd(new Date(t.value)).getTime() : now.getTime();
+      if (from > to) { var tmp = from; from = to; to = tmp; }
+    }
+    else { from = now.getTime() - Number(v || 7) * 864e5; to = now.getTime(); }
+    return { from: from, to: to, key: v, label: sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : v };
+  }
+  function itemCategory(it) {
+    var p = state.products.filter(function (x) { return String(x.id) === String(it.productId); })[0];
+    return (p && p.category) ? p.category : 'Uncategorised';
+  }
+  function salesPerformance() {
+    var w = repWindow();
+    var invs = state.invoices.filter(function (i) { return (i.ts || 0) >= w.from && (i.ts || 0) <= w.to; });
+    var revenue = 0, qty = 0, cost = 0;
+    var byProduct = {}, byCategory = {}, byCustomer = {};
+    var customersSet = {};
+    invs.forEach(function (i) {
+      revenue += Number(i.total || 0);
+      customersSet[i.customer] = true;
+      var items = (i.items && i.items.length) ? i.items : [{ productId: i.productId, name: i.product, qty: i.qty, rate: i.rate, cost: i.cost, lineTotal: Number(i.total || i.rate * i.qty || 0) }];
+      items.forEach(function (it) {
+        var ln = Number(it.lineTotal || 0) || Number(it.rate || 0) * Number(it.qty || 0);
+        var cst = Number(it.cost || 0) * Number(it.qty || 0);
+        qty += Number(it.qty || 0); cost += cst;
+        if (!byProduct[it.name]) byProduct[it.name] = { qty: 0, revenue: 0, cost: 0, category: itemCategory(it) };
+        byProduct[it.name].qty += Number(it.qty || 0);
+        byProduct[it.name].revenue += ln;
+        byProduct[it.name].cost += cst;
+        var cat = itemCategory(it);
+        if (!byCategory[cat]) byCategory[cat] = { qty: 0, revenue: 0, cost: 0 };
+        byCategory[cat].qty += Number(it.qty || 0);
+        byCategory[cat].revenue += ln;
+        byCategory[cat].cost += cst;
+      });
+      if (!byCustomer[i.customer]) byCustomer[i.customer] = { orders: 0, qty: 0, revenue: 0, outstanding: 0, last: null };
+      byCustomer[i.customer].orders += 1;
+      byCustomer[i.customer].qty += items.reduce(function (a, it) { return a + Number(it.qty || 0); }, 0);
+      byCustomer[i.customer].revenue += Number(i.total || 0);
+      byCustomer[i.customer].outstanding = Math.max(Number(byCustomer[i.customer].outstanding || 0), Number(i.balance || 0));
+      byCustomer[i.customer].last = Math.max(byCustomer[i.customer].last || 0, i.ts || 0);
+    });
+    return {
+      window: w, revenue: revenue, orders: invs.length, qty: qty,
+      grossProfit: revenue - cost, customers: Object.keys(customersSet).length,
+      byProduct: byProduct, byCategory: byCategory, byCustomer: byCustomer
+    };
+  }
+  function sipRows(tbody, map, revTotal) {
+    if (!tbody) return;
+    var entries = Object.keys(map).map(function (k) { return { name: k, v: map[k] }; })
+      .sort(function (a, b) { return b.v.revenue - a.v.revenue; });
+    tbody.innerHTML = entries.length
+      ? entries.map(function (e) {
+          var share = revTotal ? Math.round((e.v.revenue / revTotal) * 100) : 0;
+          var profit = e.v.revenue - e.v.cost;
+          return '<tr>' +
+            '<td data-label="Item"><b>' + esc(e.name) + '</b></td>' +
+            '<td data-label="Qty">' + Number(e.v.qty || 0) + '</td>' +
+            '<td data-label="Revenue"><b>' + money(e.v.revenue) + '</b></td>' +
+            '<td data-label="Profit">' + (profit < 0 ? '<span class="status low">' : '') + money(profit) + (profit < 0 ? '</span>' : '') + '</td>' +
+            '<td data-label="Share">' + share + '%</td>' +
+            '</tr>';
+        }).join('')
+      : '<tr><td colspan="5" class="empty-cell">No sales in this period.</td></tr>';
+  }
+  function renderSalesPerformance() {
+    var sp = salesPerformance();
+    var w = sp.window;
+    if ($('#repCaption')) $('#repCaption').textContent = w.label + ' · ' + sp.orders + ' orders · ' + money(sp.revenue) + ' revenue';
+    if ($('#repRevenue')) $('#repRevenue').textContent = money(sp.revenue);
+    if ($('#repOrders')) $('#repOrders').textContent = sp.orders;
+    if ($('#repQty')) $('#repQty').textContent = sp.qty;
+    if ($('#repGross')) $('#repGross').textContent = money(sp.grossProfit);
+    if ($('#repCustomers')) $('#repCustomers').textContent = sp.customers;
+
+    var best = Object.keys(sp.byProduct).sort(function (a, b) { return sp.byProduct[b].revenue - sp.byProduct[a].revenue; })[0];
+    if ($('#bestProduct')) $('#bestProduct').textContent = best || '—';
+    var topCust = Object.keys(sp.byCustomer).sort(function (a, b) { return sp.byCustomer[b].revenue - sp.byCustomer[a].revenue; })[0];
+    if ($('#topCustomerRep')) $('#topCustomerRep').textContent = topCust || '—';
+
+    sipRows($('#salesByProduct'), sp.byProduct, sp.revenue);
+    var catEntries = Object.keys(sp.byCategory).map(function (k) { return { name: k, v: sp.byCategory[k] }; }).sort(function (a, b) { return b.v.revenue - a.v.revenue; });
+    var catTable = $('#salesByCategory');
+    if (catTable) {
+      catTable.innerHTML = catEntries.length
+        ? catEntries.map(function (e) {
+            return '<tr><td data-label="Category"><b>' + esc(e.name) + '</b></td><td data-label="Qty">' + Number(e.v.qty || 0) + '</td>' +
+              '<td data-label="Revenue"><b>' + money(e.v.revenue) + '</b></td><td data-label="Share">' + (sp.revenue ? Math.round((e.v.revenue / sp.revenue) * 100) : 0) + '%</td></tr>';
+          }).join('')
+        : '<tr><td colspan="4" class="empty-cell">No category sales in this period.</td></tr>';
+    }
+    var custTable = $('#salesByCustomer');
+    if (custTable) {
+      var custEntries = Object.keys(sp.byCustomer).map(function (k) { return { name: k, v: sp.byCustomer[k] }; }).sort(function (a, b) { return b.v.revenue - a.v.revenue; });
+      custTable.innerHTML = custEntries.slice(0, 20).length
+        ? custEntries.slice(0, 20).map(function (e) {
+            return '<tr><td data-label="Customer"><b>' + esc(e.name) + '</b></td><td data-label="Orders">' + e.v.orders + '</td>' +
+              '<td data-label="Qty">' + Number(e.v.qty || 0) + '</td><td data-label="Revenue"><b>' + money(e.v.revenue) + '</b></td>' +
+              '<td data-label="Outstanding">' + (e.v.outstanding > 0 ? money(e.v.outstanding) : '—') + '</td></tr>';
+          }).join('')
+        : '<tr><td colspan="5" class="empty-cell">No customer sales in this period.</td></tr>';
+    }
+  }
+
   /* ============ reports ============ */
   function renderReports() {
     var revenue = state.invoices.reduce(function (a, b) { return a + b.total; }, 0);
@@ -1651,6 +1772,7 @@ var pid = paymentTarget.id;
         }).join('') || '<p class="muted" style="color:rgba(255,255,255,.85);padding:10px 0">No payment data yet.</p>';
     }
     renderAging();
+    renderSalesPerformance();
   }
 
   /* ============ receivables & payables ageing ============ */
@@ -1888,6 +2010,20 @@ var pid = paymentTarget.id;
     });
     var pb = $('#printReportBtn');
     if (pb) pb.addEventListener('click', printReport);
+    var repRange = $('#repRange');
+    if (repRange) {
+      repRange.addEventListener('change', function () {
+        var custom = repRange.value === 'custom';
+        var f = $('#repFrom'), t = $('#repTo');
+        if (f) f.disabled = !custom;
+        if (t) t.disabled = !custom;
+        renderSalesPerformance();
+      });
+      ['#repFrom', '#repTo'].forEach(function (sel) {
+        var el = $(sel);
+        if (el) el.addEventListener('change', renderSalesPerformance);
+      });
+    }
   }
 
   /* ============ plans & billing ============ */

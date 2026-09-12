@@ -77,12 +77,71 @@
           <button id="printReportBtn" class="btn primary" type="button">Print / PDF report</button>
         </div>
       </div>
-      <div class="report-strip">
+<div class="report-strip">
         <article><span>Average transaction</span><strong id="avgOrder">₹0</strong></article>
         <article><span>Inventory value</span><strong id="inventoryValue">₹0</strong></article>
         <article><span>Active customers</span><strong id="customerCount">0</strong></article>
         <article><span>Operating expenses</span><strong id="reportExpenses">₹0</strong></article>
       </div>
+      <article class="panel" style="margin-top:18px">
+        <div class="panel-head" style="flex-wrap:wrap;gap:12px">
+          <div><p class="kicker">SALES PERFORMANCE</p><h3>Who's buying, and what.</h3><span id="repCaption" class="micro" style="color:var(--ink-3)"></span></div>
+          <div class="utility-row" style="flex:1;justify-content:flex-end">
+            <select id="repRange" class="compact-select" aria-label="Report range">
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="month" selected>This month</option>
+              <option value="lastmonth">Last month</option>
+              <option value="year">This year</option>
+              <option value="custom">Custom range</option>
+            </select>
+            <input id="repFrom" type="date" class="search-input" style="max-width:150px" disabled aria-label="Report from date">
+            <input id="repTo" type="date" class="search-input" style="max-width:150px" disabled aria-label="Report to date">
+          </div>
+        </div>
+        <div class="report-strip" style="margin-top:14px">
+          <article><span>Revenue</span><strong id="repRevenue">₹0</strong></article>
+          <article><span>Orders</span><strong id="repOrders">0</strong></article>
+          <article><span>Units sold</span><strong id="repQty">0</strong></article>
+          <article><span>Gross profit</span><strong id="repGross">₹0</strong></article>
+          <article><span>Customers</span><strong id="repCustomers">0</strong></article>
+        </div>
+        <div class="report-layout" style="margin-top:18px">
+          <article class="panel" style="border:none;background:transparent;padding:0">
+            <div class="panel-head"><p class="kicker light">TOP PRODUCT</p><h3 id="bestProduct" style="font-size:22px">—</h3></div>
+          </article>
+          <article class="green-panel" style="margin-left:0">
+            <div class="panel-head"><p class="kicker light">TOP CUSTOMER</p><h3 id="topCustomerRep" style="font-size:22px">—</h3></div>
+          </article>
+        </div>
+        <div class="report-layout ageing-layout" style="margin-top:18px">
+          <article class="panel">
+            <div class="panel-head"><p class="kicker">TOP PRODUCTS</p><h3 style="font-size:18px">By revenue</h3></div>
+            <div class="table-wrap"><table class="age-table">
+              <thead><tr><th>PRODUCT</th><th>QTY</th><th>REVENUE</th><th>PROFIT</th><th>SHARE</th></tr></thead>
+              <tbody id="salesByProduct"></tbody>
+            </table></div>
+          </article>
+        </div>
+        <div class="report-layout" style="margin-top:18px">
+          <article class="panel">
+            <div class="panel-head"><p class="kicker">CATEGORIES</p><h3 style="font-size:18px">By revenue</h3></div>
+            <div class="table-wrap"><table class="age-table">
+              <thead><tr><th>CATEGORY</th><th>QTY</th><th>REVENUE</th><th>SHARE</th></tr></thead>
+              <tbody id="salesByCategory"></tbody>
+            </table></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><p class="kicker">CUSTOMERS</p><h3 style="font-size:18px">By revenue</h3></div>
+            <div class="table-wrap"><table class="age-table">
+              <thead><tr><th>CUSTOMER</th><th>ORDERS</th><th>QTY</th><th>REVENUE</th><th>OUTSTANDING</th></tr></thead>
+              <tbody id="salesByCustomer"></tbody>
+            </table></div>
+          </article>
+        </div>
+      </article>
 <div class="report-layout">
         <article class="panel"><p class="kicker">PERFORMANCE</p><h3>Products &amp; services</h3><div id="productPerformance"></div></article>
         <article class="green-panel"><p class="kicker light">PAYMENTS</p><h3>Payment mix</h3><div id="paymentMix"></div></article>
