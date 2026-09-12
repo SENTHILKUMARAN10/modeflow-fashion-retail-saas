@@ -414,6 +414,10 @@ tr.hit,tr.hit td{background:rgba(37,99,235,.14)!important;animation:hitpulse 2.6
 .sale-item small{color:var(--ink-3);font-size:11px}
 .sale-item-side{display:flex;align-items:center;gap:10px}
 .sale-item-side .action-btn{width:30px;height:30px;padding:0}
+.qty-stepper{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:10px;padding:2px;background:var(--surface-2)}
+.qty-stepper span{min-width:24px;text-align:center;font-weight:700;font-size:13px}
+.step-btn{width:26px;height:26px;border:0;border-radius:8px;background:var(--soft);color:var(--ink-2);font-size:16px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.step-btn:hover{background:var(--accent-soft);color:var(--accent)}
 .span2{grid-column:span 2}
 .form-section{display:flex;gap:12px;align-items:center;padding-top:6px}
 .form-section>span{font-family:var(--font-mono);font-size:11px;color:var(--brand)}

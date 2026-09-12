@@ -515,7 +515,11 @@
     box.innerHTML = saleLines.length
       ? saleLines.map(function (l, idx) {
           return '<div class="sale-item"><div><b>' + esc(l.name) + '</b><small>' + l.qty + ' × ' + money(l.rate) + '</small></div>' +
-            '<div class="sale-item-side"><b>' + money(l.qty * l.rate) + '</b>' +
+            '<div class="sale-item-side"><div class="qty-stepper">' +
+            '<button type="button" class="step-btn" data-dec="' + idx + '" aria-label="Decrease quantity of ' + esc(l.name) + '">−</button>' +
+            '<span>' + l.qty + '</span>' +
+            '<button type="button" class="step-btn" data-inc="' + idx + '" aria-label="Increase quantity of ' + esc(l.name) + '">+</button>' +
+            '</div><b>' + money(l.qty * l.rate) + '</b>' +
             '<button type="button" class="action-btn danger" data-remove="' + idx + '" aria-label="Remove ' + esc(l.name) + '">×</button></div></div>';
         }).join('')
       : '<p class="muted" style="padding:6px 2px">No items yet. Pick a product and press “Add item”.</p>';
@@ -565,9 +569,23 @@
     if (q('#itemSelect')) q('#itemSelect').addEventListener('change', syncRate);
     if (q('#addItemBtn')) q('#addItemBtn').addEventListener('click', addSaleItem);
     $('#saleItems').addEventListener('click', function (e) {
-      var btn = e.target.closest('[data-remove]');
-      if (!btn) return;
-      saleLines.splice(Number(btn.dataset.remove), 1);
+      var rm = e.target.closest('[data-remove]');
+      if (rm) {
+        saleLines.splice(Number(rm.dataset.remove), 1);
+        renderSaleItems();
+        return;
+      }
+      var inc = e.target.closest('[data-inc]');
+      var dec = e.target.closest('[data-dec]');
+      if (!inc && !dec) return;
+      var idx = Number((inc || dec).dataset.inc !== undefined ? (inc || dec).dataset.inc : (inc || dec).dataset.dec);
+      var line = saleLines[idx];
+      if (!line) return;
+      var dir = inc ? 1 : -1;
+      var next = Math.max(0.5, Math.round((line.qty + dir) * 2) / 2);
+      var prod = line.productId ? state.products.find(function (p) { return String(p.id) === String(line.productId); }) : null;
+      if (prod && !isService(prod) && next > prod.stock) { toast('Not enough stock for ' + line.name); return; }
+      line.qty = next;
       renderSaleItems();
     });
     ['#discount', '#customerName', '#phone', '#paymentMethod', '#paymentStatus', '#tendered'].forEach(function (id) {
