@@ -74,7 +74,13 @@
       <div class="expense-layout">
         <article class="expense-entry">
           <form id="expenseForm" class="stack" novalidate>
-            <label>Category<input id="expenseCategory" placeholder="Rent / Ads / Utilities" required></label>
+<label>Category<input id="expenseCategory" placeholder="Rent / Ads / Utilities" list="expenseCategoryList" required></label>
+            <datalist id="expenseCategoryList">
+              <option value="Rent"></option><option value="Utilities"></option><option value="Salaries"></option>
+              <option value="Advertising"></option><option value="Packaging"></option><option value="Transport"></option>
+              <option value="Raw materials"></option><option value="Maintenance"></option><option value="Software"></option>
+              <option value="Bank charges"></option><option value="Miscellaneous"></option>
+            </datalist>
             <label>Amount ₹<input id="expenseAmount" type="number" min="1" step="any" required></label>
             <label>Notes<input id="expenseNote" placeholder="Optional note"></label>
             <button class="btn primary" type="submit">Record expense</button>
@@ -82,6 +88,7 @@
         </article>
         <article class="panel">
           <div class="panel-head"><div><p class="kicker">RECENT</p><h3>Expense log</h3></div><strong id="expenseTotal" class="panel-total">₹0</strong></div>
+          <div id="expenseCats" class="filter-chips"></div>
           <div id="expenseList"></div>
         </article>
       </div>

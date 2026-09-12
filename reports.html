@@ -171,13 +171,23 @@
               <span class="summary-chip danger" id="payOverdue">Overdue ₹0</span>
             </div>
           </div>
-          <div class="age-strip" id="payBuckets"></div>
+<div class="age-strip" id="payBuckets"></div>
           <div class="table-wrap"><table class="age-table">
             <thead><tr><th>SUPPLIER</th><th>BILL</th><th>DUE</th><th>TOTAL</th><th>BALANCE</th></tr></thead>
             <tbody id="payAgingTable"></tbody>
           </table></div>
         </article>
       </div>
+      <article class="panel full">
+        <div class="panel-head">
+          <div><p class="kicker">EXPENSES</p><h3>Spend by category</h3></div>
+          <button class="btn ghost" id="csvExpcatBtn" type="button">Export CSV</button>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>CATEGORY</th><th>ENTRIES</th><th>AMOUNT</th><th>SHARE OF SPEND</th></tr></thead>
+          <tbody id="expCatTable"></tbody>
+        </table></div>
+      </article>
     </section>
   </main>
 </div>

@@ -877,16 +877,38 @@
   }
 
   /* ============ expenses ============ */
+  var expenseFilter = 'all';
   function renderExpenses() {
     var list = $('#expenseList'); if (!list) return;
-    var total = state.expenses.reduce(function (a, b) { return a + b.amount; }, 0);
-    if ($('#expenseTotal')) $('#expenseTotal').textContent = money(total);
+    var byCat = {};
+    var total = 0;
+    state.expenses.forEach(function (x) {
+      total += x.amount;
+      var k = x.category || 'Miscellaneous';
+      if (!byCat[k]) byCat[k] = 0;
+      byCat[k] += x.amount;
+    });
+    var keys = Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; });
+    var chips = $('#expenseCats');
+    if (chips) {
+      if (!keys.length) {
+        chips.innerHTML = '<span class="empty">No expenses yet — categories appear here.</span>';
+      } else {
+        chips.innerHTML = '<button class="filter-chip' + (expenseFilter === 'all' ? ' active' : '') + '" data-cat="all" type="button">All · ' + money(total) +
+          '</button>' + keys.map(function (k) {
+            return '<button class="filter-chip' + (expenseFilter === k ? ' active' : '') + '" data-cat="' + esc(k) + '" type="button"><span>' + esc(k) + ' · ' + money(byCat[k]) + '</span></button>';
+          }).join('');
+      }
+    }
+    var shown = expenseFilter === 'all' ? state.expenses : state.expenses.filter(function (x) { return (x.category || 'Miscellaneous') === expenseFilter; });
+    var shownTotal = shown.reduce(function (a, b) { return a + b.amount; }, 0);
+    if ($('#expenseTotal')) $('#expenseTotal').textContent = money(shownTotal);
     var canDelete = caps().deleteExpenses;
-    list.innerHTML = state.expenses.map(function (x) {
+    list.innerHTML = shown.map(function (x) {
       var del = canDelete ? '<button class="action-btn danger" data-act="delete-expense" data-id="' + x.id + '" aria-label="Delete expense">×</button>' : '';
       return '<div class="expense-item"><div><b>' + esc(x.category) + '</b><small>' + esc(x.note || x.date) + '</small></div>' +
         '<div><b>' + money(x.amount) + '</b> ' + del + '</div></div>';
-    }).join('') || '<p class="muted" style="padding:16px 4px">No expenses recorded.</p>';
+    }).join('') || '<p class="muted" style="padding:16px 4px">No expenses in this category.</p>';
   }
   function bindExpenses() {
     $('#expenseForm').addEventListener('submit', async function (e) {
@@ -910,6 +932,13 @@
       var id = btn.dataset.id;
       try { await cloud.expenses.remove(id); await refreshCloudData(); toast('Expense deleted'); }
       catch (err) { toast(friendly(err)); }
+    });
+    var chips = $('#expenseCats');
+    if (chips) chips.addEventListener('click', function (e) {
+      var chip = e.target.closest('[data-cat]');
+      if (!chip) return;
+      expenseFilter = chip.dataset.cat;
+      renderExpenses();
     });
   }
 
@@ -1792,6 +1821,23 @@ var pid = paymentTarget.id;
     }
     renderAging();
     renderSalesPerformance();
+    renderExpenseCats();
+  }
+
+  function renderExpenseCats() {
+    var tb = $('#expCatTable'); if (!tb) return;
+    var byCat = {}, count = {};
+    state.expenses.forEach(function (x) {
+      var k = x.category || 'Miscellaneous';
+      byCat[k] = (byCat[k] || 0) + x.amount;
+      count[k] = (count[k] || 0) + 1;
+    });
+    var grand = state.expenses.reduce(function (a, b) { return a + b.amount; }, 0);
+    var keys = Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; });
+    tb.innerHTML = keys.map(function (k) {
+      return '<tr><td data-label="Category"><b>' + esc(k) + '</b></td><td data-label="Entries">' + count[k] + '</td>' +
+        '<td data-label="Amount">' + money(byCat[k]) + '</td><td data-label="Share">' + (grand ? Math.round((byCat[k] / grand) * 100) : 0) + '%</td></tr>';
+    }).join('') || '<tr><td colspan="4" class="empty-cell">No expenses recorded yet.</td></tr>';
   }
 
   /* ============ receivables & payables ageing ============ */
@@ -1973,6 +2019,17 @@ var pid = paymentTarget.id;
         (state.expenses || []).map(function (e) { return [e.date, e.category, e.amount, e.note]; }));
       return;
     }
+    if (kind === 'expcats') {
+      var byCat = {};
+      (state.expenses || []).forEach(function (x) {
+        var k = x.category || 'Miscellaneous';
+        byCat[k] = (byCat[k] || 0) + x.amount;
+      });
+      downloadCSV('salesventory-expenses-by-category-' + now + '.csv',
+        ['Category', 'Amount'],
+        Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; }).map(function (k) { return [k, byCat[k]]; }));
+      return;
+    }
     if (kind === 'inventory') {
       downloadCSV('salesventory-inventory-' + now + '.csv',
         ['Name', 'SKU', 'Category', 'Unit', 'Cost', 'Selling price', 'Stock', 'Reorder', 'Stock value'],
@@ -2002,6 +2059,10 @@ var pid = paymentTarget.id;
     var expRows = (state.expenses || []).slice(0, 100).map(function (e) {
       return '<tr><td>' + esc(e.date) + '</td><td>' + esc(e.category) + '</td><td>' + money(e.amount) + '</td><td>' + esc(e.note) + '</td></tr>';
     }).join('');
+    var expByCat = {};
+    (state.expenses || []).forEach(function (e) { var k = e.category || 'Miscellaneous'; expByCat[k] = (expByCat[k] || 0) + e.amount; });
+    var expCatRows = Object.keys(expByCat).sort(function (a, b) { return expByCat[b] - expByCat[a]; })
+      .map(function (k) { return '<tr><td>' + esc(k) + '</td><td class="num">' + money(expByCat[k]) + '</td></tr>'; }).join('');
     var invValue = (state.products || []).reduce(function (a, p) { return a + Number(p.stock || 0) * Number(p.cost || 0); }, 0);
     var trxTotal = (state.invoices || []).reduce(function (a, i) { return a + Number(i.total || 0); }, 0);
     var expTotal = (state.expenses || []).reduce(function (a, e) { return a + Number(e.amount || 0); }, 0);
@@ -2024,6 +2085,7 @@ var pid = paymentTarget.id;
       '</ul></div>' +
       '<h2>Transactions</h2><table><thead><tr><th>ID</th><th>Customer</th><th>Item</th><th class="num">Total</th><th>Status</th><th>Date</th></tr></thead><tbody>' + (invRows || '<tr><td colspan="6">No transactions</td></tr>') + '</tbody></table>' +
       '<h2>Expenses</h2><table><thead><tr><th>Date</th><th>Category</th><th class="num">Amount</th><th>Note</th></tr></thead><tbody>' + (expRows || '<tr><td colspan="4">No expenses</td></tr>') + '</tbody></table>' +
+      '<h2>Expenses by category</h2><table><thead><tr><th>Category</th><th class="num">Amount</th></tr></thead><tbody>' + (expCatRows || '<tr><td colspan="2">No expenses</td></tr>') + '</tbody></table>' +
       '<h2>Outstanding receivables</h2><table><thead><tr><th>Customer</th><th>Invoice</th><th class="num">Balance</th></tr></thead><tbody>' +
       (open.map(function (i) { return '<tr><td>' + esc(i.customer) + '</td><td>' + esc(i.id) + '</td><td class="num">' + money(i.balance) + '</td></tr>'; }).join('') || '<tr><td colspan="3">All settled</td></tr>') +
       '</tbody></table>' +
@@ -2034,7 +2096,7 @@ var pid = paymentTarget.id;
     w.print();
   }
   function bindReports() {
-    var map = { csvSalesBtn: 'sales', csvExpensesBtn: 'expenses', csvInventoryBtn: 'inventory', csvAgingBtn: 'receivables' };
+    var map = { csvSalesBtn: 'sales', csvExpensesBtn: 'expenses', csvInventoryBtn: 'inventory', csvAgingBtn: 'receivables', csvExpcatBtn: 'expcats' };
     Object.keys(map).forEach(function (id) {
       var btn = document.getElementById(id);
       if (btn) btn.addEventListener('click', function () { reportCSV(map[id]); });
