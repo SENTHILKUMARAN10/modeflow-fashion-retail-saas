@@ -443,6 +443,53 @@
     return m;
   }
 
+  /* ============ barcode scan ============ */
+  var scanBuf = '', scanLast = 0, scanReady = false;
+  function setupScan() {
+    if (scanReady) return;
+    scanReady = true;
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        if (scanBuf && (Date.now() - scanLast) < 200) {
+          var code = scanBuf; scanBuf = '';
+          handleScan(code);
+        } else scanBuf = '';
+        return;
+      }
+      if (e.key && e.key.length === 1) {
+        var now = Date.now();
+        scanBuf = (now - scanLast < 200) && scanBuf ? scanBuf + e.key : e.key;
+        scanLast = now;
+        if (scanBuf.length > 48) scanBuf = '';
+      } else if (e.key !== 'Shift' && e.key !== 'Control' && e.key !== 'Alt' && e.key !== 'Meta') {
+        scanBuf = '';
+      }
+    });
+  }
+  function handleScan(code) {
+    code = String(code).trim();
+    if (!code) return;
+    var p = state.products.find(function (x) { return (x.barcode && String(x.barcode) === code) || (x.sku && String(x.sku) === code); });
+    var page = currentPage();
+    if (page === 'billing') {
+      if (!p) { toast('Barcode “' + code + '” not found'); return; }
+      var itemSelect = $('#itemSelect');
+      if (itemSelect) { itemSelect.value = p.id; syncRate(); }
+      saleLines.push({ productId: p.id, name: p.name, qty: 1, rate: Number(p.price || 0) });
+      renderSaleItems();
+      toast('Scanned: ' + p.name);
+      return;
+    }
+    if (page === 'inventory') {
+      var search = $('#productSearch');
+      if (search) { search.value = code; renderInventory(); }
+      toast(p ? 'Scanned: ' + p.name : 'Barcode “' + code + '” not found');
+      return;
+    }
+    if (p) toast('Scanned: ' + p.name + ' · ' + p.sku || '');
+    else toast('Barcode “' + code + '” not in your catalogue');
+  }
+
   /* ============ sale form ============ */
   var saleLines = [];
   function productOptions() {
@@ -3240,6 +3287,7 @@ var pid = paymentTarget.id;
     bindExport();
     initQuickCreate();
     initGlobalSearch();
+    setupScan();
     window.addEventListener('hashchange', handleOpenIntent);
     var dashRange = $('#dashRange');
     if (dashRange) {
