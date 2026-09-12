@@ -2582,6 +2582,7 @@ var pid = paymentTarget.id;
         exportTally(kind);
       });
     });
+    bindAudit();
     var form = $('#settingsForm');
     if (!form) return;
     form.addEventListener('submit', async function (e) {
@@ -2777,6 +2778,65 @@ var pid = paymentTarget.id;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).catch(function () { legacy(); });
     } else legacy();
+  }
+
+  /* ============ audit trail (owner-only view) ============ */
+  var auditCache = [];
+  function bindAudit() {
+    var panel = $('#auditPanel');
+    if (!panel) return;
+    var canSee = caps().manageCustomers;
+    if (!canSee) { panel.hidden = true; return; }
+    var r = $('#auditRefresh');
+    if (r) r.addEventListener('click', function () { loadAudit(true); });
+    var csv = $('#auditCsv');
+    if (csv) csv.addEventListener('click', function () {
+      if (!auditCache.length) { toast('Nothing to export yet'); return; }
+      downloadCSV('audit-trail-' + new Date().toISOString().slice(0, 10) + '.csv',
+        ['When', 'Action', 'Entity', 'Entity ID'],
+        auditCache.map(function (a) { return [a.when, a.action, a.entity, a.entity_id || '—']; }));
+    });
+    loadAudit(false);
+  }
+  function friendlyEntity(type) {
+    var map = { products: 'Product', customers: 'Customer', suppliers: 'Supplier', expenses: 'Expense', invoices: 'Invoice', purchases: 'Purchase', invoice_payments: 'Payment in', purchase_payments: 'Payment out', business_members: 'Team', sales_documents: 'Sale document' };
+    return map[type] || type;
+  }
+  function friendlyWhen(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return iso || '';
+    var diff = Date.now() - d.getTime();
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  }
+  async function loadAudit(force) {
+    var rows = $('#auditRows');
+    if (!rows || !state.businessId) return;
+    if (!force && auditCache.length) { renderAuditCache(); return; }
+    rows.innerHTML = '<tr><td colspan="4" class="empty-cell">Loading audit trail…</td></tr>';
+    try {
+      var list = await cloud.auditLogs.list(state.businessId, 60);
+      auditCache = (list || []).map(function (a) {
+        return { when: friendlyWhen(a.created_at), raw: a.created_at, action: String(a.action || '').toUpperCase(), entity: friendlyEntity(a.entity_type), entity_id: a.entity_id };
+      });
+      renderAuditCache();
+      var note = $('#auditNote');
+      if (note && auditCache.length === 0 && state.role !== 'owner') note.textContent = 'Audit history is visible to the business owner only.';
+    } catch (err) {
+      rows.innerHTML = '<tr><td colspan="4" class="empty-cell">Could not load the audit trail — owner access required.</td></tr>';
+    }
+  }
+  function renderAuditCache() {
+    var rows = $('#auditRows');
+    if (!rows) return;
+    rows.innerHTML = auditCache.length
+      ? auditCache.map(function (a) {
+          var tone = a.action.indexOf('INSERT') !== -1 ? ' ok' : a.action.indexOf('DELETE') !== -1 ? ' danger' : '';
+          return '<tr><td data-label="When">' + esc(a.when) + '</td><td data-label="Action"><span class="status' + tone + '">' + esc(a.action) + '</span></td><td data-label="Entity">' + esc(a.entity) + '</td><td data-label="Detail">' + (a.entity_id ? '<code class="sk">' + esc(a.entity_id) + '</code>' : '—') + '</td></tr>';
+        }).join('')
+      : '<tr><td colspan="4" class="empty-cell">No audit entries yet — changes start tracking from now.</td></tr>';
   }
 
   function exportTally(kind) {

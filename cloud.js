@@ -197,6 +197,15 @@
           .select().single());
       }
     },
+    auditLogs: {
+      list: function (businessId, limit) {
+        return one(client.from('audit_logs')
+          .select('id,actor_user_id,action,entity_type,entity_id,created_at')
+          .eq('business_id', businessId)
+          .order('created_at', { ascending: false })
+          .limit(limit || 60));
+      }
+    },
     realtime: {
       subscribe: function (businessId, onChange, onStatus) {
         return client.channel('salesventory-' + businessId, { config: { broadcast: { self: false } } })

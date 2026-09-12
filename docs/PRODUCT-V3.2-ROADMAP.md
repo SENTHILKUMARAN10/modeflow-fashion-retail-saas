@@ -72,7 +72,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 |---|------|--------|-------|
 | 43 | Email | PLAN | send invoices/reports/reminders through server adapter (exists) |
 | 47 | Multiple businesses | DONE | business_members + creation RPC; add switcher UI polish |
-| 48 | Audit log | PARTIAL | DB triggers exist; add admin/UI view |
+| 48 | Audit log | PARTIAL | DB triggers everywhere + UI view on Settings (owner-only): immutable trail of products/customers/suppliers/expenses/invoices/purchases/payments with action/entity/relative-time + CSV export |
 | 49 | Security | DONE | auth, RLS, storage rules, server validation; add 2FA option later |
 | 50 | Backup | DONE | scripts + docs; automate scheduling |
 | 51 | Import | PARTIAL | CSV import on Products/Customers/Suppliers (header mapping, preview+confirm, per-row error skip, permission-gated); add opening-stock import |

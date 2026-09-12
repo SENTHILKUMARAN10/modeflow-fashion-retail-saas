@@ -121,6 +121,20 @@
           <button id="tallyLedgersBtn" class="btn ghost" type="button">Party ledgers</button>
         </div>
       </article>
+      <article class="panel full" id="auditPanel">
+        <div class="panel-head">
+          <div><h3>Audit trail</h3><span class="micro" style="color:var(--ink-3)">Immutable change history · owner-only view</span></div>
+          <div class="utility-row" style="justify-content:flex-end">
+            <button id="auditRefresh" class="btn ghost" type="button">Refresh</button>
+            <button id="auditCsv" class="btn ghost" type="button">CSV</button>
+          </div>
+        </div>
+        <p class="micro" style="color:var(--ink-3);line-height:1.7;margin-top:-4px" id="auditNote">Who changed what, and when — products, customers, suppliers, expenses, invoices, purchases and payments.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>WHEN</th><th>ACTION</th><th>ENTITY</th><th>DETAIL</th></tr></thead>
+          <tbody id="auditRows"><tr><td colspan="4" class="empty-cell">Loading audit trail…</td></tr></tbody>
+        </table></div>
+      </article>
     </section>
   </main>
 </div>
