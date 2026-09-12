@@ -15,7 +15,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 5 | Inventory | PARTIAL | stock via RPCs + suppliers/purchases receive. Add warehouses, stock movements, adjustments, transfers, valuation, audit/count, expiry alerts |
 | 7 | Sales billing | PARTIAL | multi-item checkout (complete_multi_item_sale) + single-item; statuses paid/partial/unpaid + overdue (due-date-aware), history filter. Remaining: persist due date/notes on client sales (RPC change), GST, PO#, transport |
 | 14 | Purchases | PARTIAL | PO→bill flow done: “Receive stock & bill now” at creation or keep open PO; printable bill/PO document, notes, BILL/PO tags, due date + overdue/status. Add GST, freight, supplier invoice #, batch/expiry capture |
-| 16 | Payments In | PARTIAL | customer receipts against invoices (amount/method/ref, auto outstanding → paid/partial status). Add advance, receipts list/print |
+| 16 | Payments In | PARTIAL | customer receipts against invoices (amount/method/ref, auto outstanding → paid/partial) + Receipts list on Transactions with total + printable receipt per payment. Add advance, USD |
 | 17 | Payments Out | PARTIAL | Purchase payments exist; generalise to supplier payment out with ledger effect |
 | 18 | Payment modes | PARTIAL | cash/bank/upi/card/other selectable on sale + purchase + receipt flows; add cheque/wallet + custom modes + cheques lifecycle |
 | 19 | Receivables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics with due-today/overdue chips + payments in. Add advance, credit note application |

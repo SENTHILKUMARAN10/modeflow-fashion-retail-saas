@@ -207,6 +207,9 @@
       date: fmtDay(new Date(r.created_at)), ts: new Date(r.created_at).getTime(),
       items: (r.invoice_items || []).map(function (x) {
         return { productId: x.product_id, name: x.product_name || 'Item', qty: Number(x.quantity || 0), rate: Number(x.rate || 0), cost: Number(x.cost_price || 0), lineTotal: Number(x.line_total || (x.quantity * x.rate) || 0) };
+      }),
+      receipts: (r.invoice_payments || []).map(function (p) {
+        return { id: p.id, amount: Number(p.amount || 0), method: p.payment_method || 'cash', ref: p.reference || '', at: p.created_at || p.paid_at || r.created_at };
       })
     };
   }
@@ -1499,11 +1502,71 @@ var pid = paymentTarget.id;
     if ($('#recent')) $('#recent').innerHTML = state.invoices.slice(0, 5).map(function (i) { return invoiceRow(i, true); }).join('') || '<tr><td colspan="7" class="empty-cell">No transactions yet.</td></tr>';
   }
   function findInvoice(id) { return state.invoices.find(function (x) { return x.id === id; }); }
+  function allReceipts() {
+    var out = [];
+    state.invoices.forEach(function (i) {
+      (i.receipts || []).forEach(function (p) {
+        out.push({
+          id: p.id, invoiceId: i.cloudId, invoiceNo: i.id, customer: i.customer,
+          amount: p.amount, method: p.method, ref: p.ref, ts: new Date(p.at).getTime(),
+          date: fmtDay(new Date(p.at))
+        });
+      });
+    });
+    return out.sort(function (a, b) { return b.ts - a.ts; });
+  }
+  function renderReceipts() {
+    var rows = $('#receiptRows'); if (!rows) return;
+    var list = allReceipts();
+    if ($('#receiptsTotal')) $('#receiptsTotal').textContent = money(list.reduce(function (a, x) { return a + x.amount; }, 0));
+    rows.innerHTML = list.map(function (p) {
+      return '<tr><td data-label="Receipt"><b><span class="doc-tag">RCPT</span>' + esc(String(p.id).slice(0, 8).toUpperCase()) + '</b></td>' +
+        '<td data-label="Invoice">' + esc(p.invoiceNo) + '</td>' +
+        '<td data-label="Customer">' + esc(p.customer) + '</td>' +
+        '<td data-label="Amount"><b>' + money(p.amount) + '</b></td>' +
+        '<td data-label="Method">' + esc(p.method.toUpperCase()) + '</td>' +
+        '<td data-label="Reference">' + esc(p.ref || '—') + '</td>' +
+        '<td data-label="Date">' + esc(p.date) + '</td>' +
+        '<td data-label="Actions"><button class="action-btn" data-act="print-receipt" data-id="' + esc(p.id) + '">Print</button></td></tr>';
+    }).join('') || '<tr><td colspan="8" class="empty-cell">No payments received yet.</td></tr>';
+  }
+  function printReceipt(p) {
+    var biz = state.businessProfile || {};
+    var w = window.open('', '_blank', 'width=720,height=760');
+    if (!w) { toast('Pop-up blocked. Allow pop-ups to print receipts.'); return; }
+    var rno = 'RCPT-' + String(p.id).slice(0, 8).toUpperCase();
+    var sym = symbol();
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + rno + '</title><style>' +
+      'body{font-family:Helvetica,Arial,sans-serif;color:#111;margin:44px;max-width:560px}' +
+      'h1{font-size:22px;margin:0}h2{font-size:15px;letter-spacing:.1em;margin:0}.muted{color:#666;font-size:11px}' +
+      '.head{display:flex;justify-content:space-between;border-bottom:3px solid #111;padding-bottom:14px}' +
+      '.row{display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #ddd}.big{font-size:22px;font-weight:700}' +
+      '.foot{margin-top:26px;color:#666;font-size:10px}' +
+      '</style></head><body>' +
+      '<div class="head"><div><h1>' + esc(biz.name || state.businessName || '') + '</h1><div class="muted">' + esc(biz.address || '') + '</div></div>' +
+      '<div style="text-align:right"><h2>RECEIPT</h2><div>' + rno + '</div><div class="muted">' + esc(p.date) + '</div></div></div>' +
+      '<p class="muted">Received from</p><div class="row"><b>' + esc(p.customer) + '</b></div>' +
+      '<p class="muted">Amount received</p><div class="row big"><span>' + sym + '</span><span>' + Number(p.amount).toLocaleString('en-IN') + '</span></div>' +
+      '<div class="row"><span>Payment method</span><b>' + esc(p.method.toUpperCase()) + '</b></div>' +
+      '<div class="row"><span>Reference</span><b>' + esc(p.ref || '—') + '</b></div>' +
+      '<div class="row"><span>On account of invoice</span><b>' + esc(p.invoiceNo) + '</b></div>' +
+      '<p class="foot">Verified payment received. Generated from Salesventory · ' + new Date().toDateString() + '</p>' +
+      '<script>print()<\/script></body></html>');
+    w.document.close();
+  }
   function bindInvoices() {
     if ($('#invoiceSearch')) $('#invoiceSearch').addEventListener('input', renderInvoices);
     var filter = $('#invoiceFilter');
     if (filter) filter.addEventListener('change', function () { invoiceFilter = filter.value; renderInvoices(); });
     $('#historyRows').addEventListener('click', onInvoiceAction);
+    var rr = $('#receiptRows');
+    if (rr) rr.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-act="print-receipt"]');
+      if (!btn) return;
+      var list = allReceipts();
+      var found = list.find(function (x) { return String(x.id) === String(btn.dataset.id); });
+      if (found) printReceipt(found);
+    });
   }
   var receiptTarget = null;
   function openReceiptDialog(i) {
@@ -2479,7 +2542,7 @@ var pid = paymentTarget.id;
     rendering = true;
     try {
       productOptions(); renderInventory(); renderCustomers(); renderSuppliers(); renderPurchases(); renderExpenses();
-      renderInvoices(); renderDashboard(); renderReports();
+      renderInvoices(); renderReceipts(); renderDashboard(); renderReports();
       renderPlans(); updatePreview(); renderSettings();
     } finally { rendering = false; }
   }

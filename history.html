@@ -80,10 +80,17 @@
           </select>
         </div>
       </div>
-      <article class="panel table-panel">
+<article class="panel table-panel">
         <div class="table-wrap"><table>
           <thead><tr><th>TRANSACTION</th><th>CUSTOMER</th><th>ITEM</th><th>AMOUNT</th><th>DUE</th><th>PAYMENT</th><th>DATE</th><th>ACTIONS</th></tr></thead>
           <tbody id="historyRows"></tbody>
+        </table></div>
+      </article>
+      <article class="panel table-panel" style="margin-top:16px">
+        <div class="panel-head"><div><p class="kicker">PAYMENTS IN</p><h3>Receipts</h3></div><strong id="receiptsTotal" class="panel-total">₹0</strong></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>RECEIPT</th><th>INVOICE</th><th>CUSTOMER</th><th>AMOUNT</th><th>METHOD</th><th>REFERENCE</th><th>DATE</th><th>ACTIONS</th></tr></thead>
+          <tbody id="receiptRows"></tbody>
         </table></div>
       </article>
     </section>
