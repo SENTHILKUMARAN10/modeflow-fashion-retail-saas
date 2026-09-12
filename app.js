@@ -995,7 +995,7 @@
           contact: ''
         },
         notes: { business_id: state.businessId, plan_interval: interval, currency: currency },
-        theme: { color: '#4446E2' },
+        theme: { color: '#6E6CFF', backdrop_color: '#070B14' },
         handler: async function (response) {
           try {
             var verified = await apiPost('/api/billing/verify-payment', Object.assign({ businessId: state.businessId }, response));
