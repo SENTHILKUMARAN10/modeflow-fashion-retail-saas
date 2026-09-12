@@ -280,6 +280,23 @@
     state.channel = cloud.realtime.subscribe(id, function () { clearTimeout(state._rt); state._rt = setTimeout(refreshCloudData, 300); });
     toast('Workspace loaded');
     showApp();
+    if (window.__svResolveInvite) window.__svResolveInvite();
+  }
+  async function resolvePendingInvite() {
+    var token = null;
+    try { token = localStorage.getItem('sv-invite-token'); } catch (e) {}
+    if (!token) return;
+    try {
+      var res = await apiPost('/api/team/accept', { token: token });
+      try { localStorage.removeItem('sv-invite-token'); } catch (e) {}
+      if (res && res.ok) {
+        toast('Welcome! You\u2019ve joined the workspace' + (res.role ? ' as ' + res.role : ''));
+        setTimeout(function () { location.reload(); }, 900);
+      }
+    } catch (err) {
+      try { localStorage.removeItem('sv-invite-token'); } catch (e) {}
+      toast(friendly(err));
+    }
   }
   async function refreshCloudData() {
     if (!state.businessId || !cloud) return;
@@ -376,6 +393,26 @@
   function bindAuth() {
     var cloudAuthPending = false;
     var isSignUp = false;
+    var pendingInvite = null;
+    var inviteToken = null;
+    try {
+      var q = new URLSearchParams(location.search);
+      inviteToken = q.get('invite') || null;
+      if (inviteToken) {
+        pendingInvite = inviteToken;
+        try { localStorage.setItem('sv-invite-token', inviteToken); } catch (e) {}
+        history.replaceState(null, '', location.pathname);
+        var st = $('#cloudStatus');
+        if (st) st.textContent = 'You\u2019ve been invited to join a workspace — sign in or create an account to accept.';
+      } else {
+        try { pendingInvite = localStorage.getItem('sv-invite-token'); } catch (e) {}
+      }
+    } catch (e) {}
+    window.__svResolveInvite = function () {
+      if (!pendingInvite) return Promise.resolve();
+      if (state.user && state.businessId) { return resolvePendingInvite(); }
+      return Promise.resolve();
+    };
     var logout = $('#logout');
     if (logout) logout.addEventListener('click', async function () {
       if (state.channel) { cloud.realtime.unsubscribe(state.channel); state.channel = null; }
