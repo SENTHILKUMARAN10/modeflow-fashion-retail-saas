@@ -2468,6 +2468,53 @@ var pid = paymentTarget.id;
     mv.forEach(function (x) { if (x.dir > 0) inn += x.amount; else out += x.amount; });
     return { in: inn, out: out, net: inn - out, movements: mv };
   }
+  function printEndOfDay() {
+    var now = new Date();
+    var dayStartT = dayStart(now).getTime();
+    var dayEndT = Date.now();
+    var dayInvs = state.invoices.filter(function (i) { return (i.ts || 0) >= dayStartT && (i.ts || 0) <= dayEndT; });
+    var dayExp = state.expenses.filter(function (x) { return (x.ts || 0) >= dayStartT && (x.ts || 0) <= dayEndT; });
+    var byMode = {};
+    dayInvs.forEach(function (i) {
+      var m = i.paymentMethod || 'upi';
+      byMode[m] = (byMode[m] || 0) + Number(i.total || 0);
+    });
+    var cashFlow = cashMovements().filter(function (x) { var d = new Date(x.date).getTime(); return d >= dayStartT && d <= dayEndT; });
+    var cashIn = 0, cashOut = 0;
+    cashFlow.forEach(function (x) { if (x.dir > 0) cashIn += x.amount; else cashOut += x.amount; });
+    var salesRevenue = dayInvs.reduce(function (a, i) { return a + Number(i.total || 0); }, 0);
+    var expenses = dayExp.reduce(function (a, x) { return a + Number(x.amount || 0); }, 0);
+    var recvDue = state.invoices.filter(function (i) { return invBal(i) > 0; }).reduce(function (a, i) { return a + invBal(i); }, 0);
+    var payDue = state.purchases.filter(function (p) { return Number(p.balance || 0) > 0; }).reduce(function (a, p) { return a + Number(p.balance || 0); }, 0);
+    var biz = state.businessProfile || {};
+    var modeRows = Object.keys(byMode).sort().map(function (m) {
+      return '<tr><td>' + esc(String(m).toUpperCase()) + '</td><td style="text-align:right">' + money(byMode[m]) + '</td></tr>';
+    }).join('') || '<tr><td colspan="2" style="text-align:center">No payments</td></tr>';
+    var w = window.open('', '_blank', 'width=560,height=760');
+    if (!w) { toast('Pop-up blocked. Allow pop-ups to print.'); return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>End of day — ' + esc(biz.name || '') + '</title><style>' +
+      'body{font-family:system-ui,sans-serif;margin:28px;color:#111}h1{font-size:22px;margin:0 0 2px}p.muted{color:#555;margin:4px 0 16px}' +
+      'h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#444;margin:18px 0 6px;border-bottom:1px solid #eee;padding-bottom:4px}' +
+      'table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #eee}' +
+      'th{color:#888;font-size:11px;text-transform:uppercase}.tot{font-weight:700;font-size:15px}.num{text-align:right;font-variant-numeric:tabular-nums}' +
+      '</style></head><body>' +
+      '<h1>End of day</h1><p class="muted">' + esc(biz.name || state.businessName || 'Store') + ' · ' + now.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + '</p>' +
+      '<h3>Payments today (' + dayInvs.length + ' sales)</h3><table>' + modeRows + '</table>' +
+      '<h3>Cash position</h3><table>' +
+      '<tr><td>Cash received</td><td class="num">' + money(cashIn) + '</td></tr>' +
+      '<tr><td>Cash paid out</td><td class="num">' + money(cashOut) + '</td></tr>' +
+      '<tr class="tot"><td>Net cash in hand</td><td class="num">' + money(cashIn - cashOut) + '</td></tr></table>' +
+      '<h3>P&amp;L today</h3><table>' +
+      '<tr><td>Sales revenue</td><td class="num">' + money(salesRevenue) + '</td></tr>' +
+      '<tr><td>Expenses</td><td class="num">− ' + money(expenses) + '</td></tr>' +
+      '<tr class="tot"><td>Net position</td><td class="num">' + money(salesRevenue - expenses) + '</td></tr></table>' +
+      '<h3>Outstanding</h3><table>' +
+      '<tr><td>Receivables outstanding</td><td class="num">' + money(recvDue) + '</td></tr>' +
+      '<tr><td>Payables outstanding</td><td class="num">' + money(payDue) + '</td></tr></table>' +
+      '<script>print()<\/script></body></html>');
+    w.document.close();
+  }
+
   function renderCashPanel() {
     var tb = $('#cashTable'); if (!tb) return;
     var t = cashTotals();
@@ -3540,6 +3587,8 @@ var pid = paymentTarget.id;
         if (el) el.addEventListener('change', renderDashboard);
       });
     }
+    var eodBtn = $('#eodBtn');
+    if (eodBtn) eodBtn.addEventListener('click', printEndOfDay);
     if (page === 'billing') bindSale();
     if (page === 'inventory') bindInventory();
     if (page === 'suppliers') bindSuppliers();

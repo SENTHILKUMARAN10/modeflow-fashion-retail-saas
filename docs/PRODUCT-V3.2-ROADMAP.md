@@ -51,7 +51,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 |---|------|-------|
 | 8 | Invoice customisation | PARTIAL | A4 itemised invoice print + 58mm thermal receipt (letterhead/address, item lines, totals, paid/balance, status); add themes, logo, bank/UPI, QR, PDF/email |
 | 23 | Other income | commission/interest/rent/cashback ledger entries |
-| 24 | Cash management | PARTIAL | cash position panel on Analytics: received (cash sales + collections) vs paid out (supplier payments) + net + movement ledger; also on print report. Add opening balance, cash ledger with expenses by mode, deposits |
+| 24 | Cash management | PARTIAL | cash position panel on Analytics: received (cash sales + collections) vs paid out (supplier payments) + net + movement ledger + End-of-day sheet (payments by mode, cash in/out, net, P&L today, outstanding) on dashboard; also on print report. Add opening balance, cash ledger with expenses by mode, deposits |
 | 25 | Bank accounts | multiple accounts, opening balance, transfers, history |
 | 26 | Cheques | received/issued, deposited/cleared/bounced/cancelled |
 | 27 | Accounting | chart of accounts, ledger, journal entries, trial balance, P&L, balance sheet, cash flow (schema: accounts, journal_entries) |
