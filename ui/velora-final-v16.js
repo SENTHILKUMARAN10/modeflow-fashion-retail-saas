@@ -2,7 +2,7 @@
 // Preserves secure sessions and the current workspace view while applying one final customer-facing brand.
 (function(){
   'use strict';
-  const v='20260912-salesventory1';
+  const v='20260912-salesventory2';
   const $=s=>document.querySelector(s);
 
   function css(selector,href,attr){
@@ -34,6 +34,7 @@
   js('script[data-sv-footer],script[src*="ui/site-footer-v1.js"]','ui/site-footer-v1.js?v='+v,'data-sv-footer');
   js('script[data-sv-final18],script[src*="ui/velora-final-v18.js"]','ui/velora-final-v18.js?v='+v,'data-sv-final18');
   js('script[data-sv-market-v3],script[src*="ui/salesdesk-market-suite-v3.js"]','ui/salesdesk-market-suite-v3.js?v='+v,'data-sv-market-v3');
+  js('script[data-salesventory-rpc-bridge],script[src*="ui/salesventory-rpc-compat-v1.js"]','ui/salesventory-rpc-compat-v1.js?v='+v,'data-salesventory-rpc-bridge');
   js('script[data-sv-customer-production],script[src*="ui/customer-production-v1.js"]','ui/customer-production-v1.js?v='+v,'data-sv-customer-production');
   js('script[data-salesventory-brand],script[src*="ui/salesventory-brand-v1.js"]','ui/salesventory-brand-v1.js?v='+v,'data-salesventory-brand');
 
@@ -67,7 +68,7 @@
     if(routeRetries++<50)setTimeout(restoreRememberedView,80);else{routeRetries=0;writeRoute(activeView()||'dashboard','replace')}
   }
 
-  function brand(){window.SalesventoryBrand?.apply?.();window.SalesDeskFooters?.refresh?.()}
+  function brand(){window.SalesventoryBrand?.apply?.();window.SalesventoryFooters?.refresh?.();window.SalesDeskFooters?.refresh?.()}
   function reveal(){if(ready)return;brand();ready=true;document.body.classList.add('sv-ui-ready','sd-ui-ready')}
   function publicExperienceReady(){
     const landing=$('#veloraLanding');if(!landing)return false;brand();
