@@ -1,0 +1,23 @@
+/* Salesventory logo surface integration.
+   The supplied logo artwork stays unchanged; blend modes remove any raster canvas edge. */
+html[data-theme="light"] .login-brand img,
+html[data-theme="light"] .sv-sidebar-full-logo,
+html[data-theme="light"] .sv-footer-logo,
+html[data-theme="light"] .velora-site-footer__logo img{
+  background:transparent!important;
+  mix-blend-mode:multiply!important;
+  filter:none!important;
+}
+html[data-theme="dark"] .login-brand img,
+html[data-theme="dark"] .sv-sidebar-full-logo,
+html[data-theme="dark"] .sv-footer-logo,
+html[data-theme="dark"] .velora-site-footer__logo img{
+  background:transparent!important;
+  mix-blend-mode:screen!important;
+  filter:grayscale(1) invert(1) contrast(1.15)!important;
+}
+.invoice-preview img[src*="salesventory-full-logo"]{
+  background:transparent!important;
+  mix-blend-mode:multiply!important;
+  filter:none!important;
+}
