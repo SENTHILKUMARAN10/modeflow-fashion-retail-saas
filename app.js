@@ -2118,6 +2118,52 @@ var pid = paymentTarget.id;
     renderExpenseCats();
     renderCashPanel();
     renderPyblRecon();
+    renderPnl();
+  }
+
+  function pnlFor(from, to) {
+    var revenue = 0, cogs = 0;
+    state.invoices.forEach(function (i) {
+      if ((i.ts || 0) < from || (i.ts || 0) > to) return;
+      revenue += Number(i.total || 0);
+      var items = (i.items && i.items.length) ? i.items : [{ productId: i.productId, name: i.product, qty: i.qty, cost: i.cost, rate: i.rate, lineTotal: Number(i.total || 0) }];
+      items.forEach(function (it) {
+        var cst = Number(it.cost || 0);
+        if (!cst) { var pp = state.products.find(function (x) { return x.name === it.name; }); cst = pp ? Number(pp.cost || 0) : 0; }
+        cogs += cst * Number(it.qty || 0);
+      });
+    });
+    var expenses = 0;
+    state.expenses.forEach(function (e) {
+      var et = (typeof e.ts === 'number') ? e.ts : new Date(e.date || e.expense_date || 0).getTime();
+      if (et >= from && et <= to) expenses += Number(e.amount || 0);
+    });
+    var gross = revenue - cogs;
+    return { revenue: revenue, cogs: cogs, gross: gross, expenses: expenses, net: gross - expenses };
+  }
+  function renderPnl() {
+    if (!($('#pnlRevenue') && $('#pnlCogs'))) return;
+    var w = repWindow();
+    var p = pnlFor(w.from, w.to);
+    $('#pnlRevenue').textContent = money(p.revenue);
+    $('#pnlCogs').textContent = money(p.cogs);
+    $('#pnlGross').textContent = money(p.gross);
+    $('#pnlExpenses').textContent = money(p.expenses);
+    $('#pnlNet').textContent = money(p.net);
+    var tb = $('#pnlMonths');
+    if (tb) {
+      var now = new Date(), html = '';
+      for (var k = 5; k >= 0; k--) {
+        var d = new Date(now.getFullYear(), now.getMonth() - k, 1);
+        var from = d.getTime(), to = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime() - 1;
+        var m = pnlFor(from, to);
+        var lbl = d.toLocaleString('en', { month: 'short', year: 'numeric' });
+        html += '<tr><td data-label="Month"><b>' + lbl + '</b></td><td data-label="Revenue">' + money(m.revenue) + '</td>' +
+          '<td data-label="COGS">' + money(m.cogs) + '</td><td data-label="Gross">' + money(m.gross) + '</td>' +
+          '<td data-label="Expenses">' + money(m.expenses) + '</td><td data-label="Net"><b style="color:' + (m.net < 0 ? 'var(--danger)' : 'inherit') + '">' + money(m.net) + '</b></td></tr>';
+      }
+      tb.innerHTML = html;
+    }
   }
 
   function pyblReconRows() {
@@ -2548,6 +2594,7 @@ var pid = paymentTarget.id;
       '<li><span class="k">Inventory value</span><b>' + money(invValue) + '</b></li>' +
       '<li><span class="k">Outstanding</span><b>' + money(open.reduce(function (a, i) { return a + Number(i.balance || 0); }, 0)) + '</b></li>' +
       '<li><span class="k">Net cash</span><b>' + money(cashTotals().net) + '</b></li>' +
+      '<li><span class="k">Net profit</span><b>' + money(pnlFor(0, Date.now() + 864e5).net) + '</b></li>' +
       '</ul></div>' +
       '<h2>Transactions</h2><table><thead><tr><th>ID</th><th>Customer</th><th>Item</th><th class="num">Total</th><th>Status</th><th>Date</th></tr></thead><tbody>' + (invRows || '<tr><td colspan="6">No transactions</td></tr>') + '</tbody></table>' +
       '<h2>Expenses</h2><table><thead><tr><th>Date</th><th>Category</th><th class="num">Amount</th><th>Note</th></tr></thead><tbody>' + (expRows || '<tr><td colspan="4">No expenses</td></tr>') + '</tbody></table>' +

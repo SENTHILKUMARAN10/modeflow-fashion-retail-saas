@@ -21,7 +21,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 19 | Receivables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics with due-today/overdue chips + payments in. Add advance, credit note application |
 | 20 | Payables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics with due-today/overdue chips + payment out + supplier payables reconciliation (bills/billed/paid/outstanding/overdue/status, CSV, total outstanding); overdue surfaced on dashboard alerts |
 | 22 | Expenses | PARTIAL | category/vendor/amount/mode/date/notes + category filter chips (per-cat totals) + Analytics spend-by-category (share, CSV) + category presets. Add receipt image, GST, recurring, vendor field |
-| 34 | Reporting | PARTIAL | avg order, inventory value, product perf, payment mix, ageing + Sales performance suite (range KPIs: revenue/orders/units/gross profit/customers, top product/customer, sales by product/category/customer) + CSV + Print/PDF. Add full sales/purchase/financial suite with filters |
+| 34 | Reporting | PARTIAL | avg order, inventory value, product perf, payment mix, ageing + Sales performance suite (range KPIs: revenue/orders/units/gross profit/customers, top product/customer, sales by product/category/customer) + P&L + CSV + Print/PDF. Add full sales/purchase/financial suite with filters |
 | 61 | Business settings | DONE | profile, phone, address, currency, invoice prefix (owner-gated, DB-backed); GSTIN/PAN/taxes arrive with GST module |
 | 68 | Tenant isolation | DONE | RLS + verify scripts; every table carries business_id |
 
@@ -58,7 +58,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 30 | E-invoice | IRN/ack/QR architecture, modular gov API |
 | 31 | E-way bill | modular integration, fields on bill |
 | 32 | TDS/TCS | rates, invoice calc, reports |
-| 33 | Profit & loss | monthly/daily, product/customer/category-wise profit |
+| 33 | Profit & loss | PARTIAL | P&L panel on Analytics: revenue/COGS/gross/expenses/net for range + 6-month monthly table + on print report. Add product/customer-wise profit |
 | 36 | Manufacturing | BOM, production, auto material consumption (schema: BOM primitives) |
 | 37 | Bill of materials | raw→finished mapping, labour/cost capture |
 | 38 | Online store | per-business catalogue, slug store link, WhatsApp order, checkout |
