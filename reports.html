@@ -150,7 +150,11 @@
         <article class="panel full">
           <div class="panel-head">
             <div><p class="kicker">RECEIVABLES</p><h3>Receivables ageing</h3></div>
-            <span class="summary-chip" id="recvTotal">₹0</span>
+            <div class="chip-row">
+              <span class="summary-chip" id="recvTotal">₹0</span>
+              <span class="summary-chip" id="recvDueToday">Due today ₹0</span>
+              <span class="summary-chip danger" id="recvOverdue">Overdue ₹0</span>
+            </div>
           </div>
           <div class="age-strip" id="recvBuckets"></div>
           <div class="table-wrap"><table class="age-table">
@@ -161,7 +165,11 @@
         <article class="panel full">
           <div class="panel-head">
             <div><p class="kicker">PAYABLES</p><h3>Payables ageing</h3></div>
-            <span class="summary-chip" id="payTotal">₹0</span>
+            <div class="chip-row">
+              <span class="summary-chip" id="payTotal">₹0</span>
+              <span class="summary-chip" id="payDueToday">Due today ₹0</span>
+              <span class="summary-chip danger" id="payOverdue">Overdue ₹0</span>
+            </div>
           </div>
           <div class="age-strip" id="payBuckets"></div>
           <div class="table-wrap"><table class="age-table">

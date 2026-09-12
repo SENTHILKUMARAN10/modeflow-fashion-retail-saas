@@ -324,6 +324,8 @@ td .action-btn:last-child{margin-right:0}
 .ageing-layout{margin-top:18px}
 .ageing-layout .full{grid-column:1/-1}
 .summary-chip{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--brand);background:var(--surface-2);border:1px solid var(--line);padding:7px 12px;border-radius:999px;white-space:nowrap}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.chip-row .summary-chip.danger{color:var(--danger);border-color:rgba(220,38,38,.45);background:rgba(220,38,38,.08)}
 .age-strip{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 16px}
 .age-chip{flex:1;min-width:110px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .age-chip span{display:block;font-family:var(--font-mono);font-size:9px;letter-spacing:.13em;color:var(--ink-3);margin-bottom:4px}

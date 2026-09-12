@@ -14,12 +14,12 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 4 | Products / services | PARTIAL | name/cost/price/stock/reorder/service/category/sku/barcode/unit done. Add brand, HSN, GST rate, MRP, variants, images, batches, import/export |
 | 5 | Inventory | PARTIAL | stock via RPCs + suppliers/purchases receive. Add warehouses, stock movements, adjustments, transfers, valuation, audit/count, expiry alerts |
 | 7 | Sales billing | PARTIAL | multi-item checkout (complete_multi_item_sale) + single-item; statuses paid/partial/unpaid + overdue (due-date-aware), history filter. Remaining: persist due date/notes on client sales (RPC change), GST, PO#, transport |
-| 14 | Purchases | PARTIAL | multi-item, receive, payments. Add PO→bill, GST, freight, due date, supplier invoice #, batch/expiry capture |
+| 14 | Purchases | PARTIAL | multi-item, receive, payments, due date + overdue/status on every bill. Add GST, freight, PO→bill, supplier invoice #, batch/expiry capture |
 | 16 | Payments In | PARTIAL | customer receipts against invoices (amount/method/ref, auto outstanding → paid/partial status). Add advance, receipts list/print |
 | 17 | Payments Out | PARTIAL | Purchase payments exist; generalise to supplier payment out with ledger effect |
 | 18 | Payment modes | PARTIAL | cash/bank/upi/card/other selectable on sale + purchase + receipt flows; add cheque/wallet + custom modes + cheques lifecycle |
-| 19 | Receivables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics (due-date aware) + payments in. Add advance, credit note application |
-| 20 | Payables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics; due-today/overdue counts + payment out next |
+| 19 | Receivables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics with due-today/overdue chips + payments in. Add advance, credit note application |
+| 20 | Payables | PARTIAL | ageing 0-30/31-60/61-90/90+ on Analytics with due-today/overdue chips + payment out; overdue surfaced on dashboard alerts |
 | 22 | Expenses | PARTIAL | category/vendor/amount/mode/date/notes. Add receipt image, GST, recurring |
 | 34 | Reporting | PARTIAL | avg order, inventory value, product perf, payment mix, ageing + Sales performance suite (range KPIs: revenue/orders/units/gross profit/customers, top product/customer, sales by product/category/customer) + CSV + Print/PDF. Add full sales/purchase/financial suite with filters |
 | 61 | Business settings | DONE | profile, phone, address, currency, invoice prefix (owner-gated, DB-backed); GSTIN/PAN/taxes arrive with GST module |
@@ -43,7 +43,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 42 | WhatsApp | PARTIAL | invoice share exists; extend to receipts, statements, reminders, catalogue |
 | 45 | Multi-user | PLAN | invite members (schema: team_invitations), roles, acceptance flow |
 | 46 | Permissions | PARTIAL | client capability map; align with server `salesdesk_can` matrix |
-| 56 | Notifications | PLAN | low stock/OOS/expiry/overdue/subscription expiry centre (table exists) |
+| 56 | Notifications | PARTIAL | alerts centre on dashboard: low stock/OOS + overdue receivables/payables with amounts; add expiry/subscription expiry + push/email delivery |
 | 60 | Quick create + search | PLAN | global +New menu and global search |
 
 ## Phase 3 — Advanced

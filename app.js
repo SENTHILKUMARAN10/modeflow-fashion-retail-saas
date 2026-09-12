@@ -1216,8 +1216,15 @@
     var first = p.items.slice(0, 2).map(function (it) { return it.name + ' × ' + it.qty; }).join(', ');
     return p.items.length > 2 ? first + ' +' + (p.items.length - 2) + ' more' : first;
   }
+  function purchaseOverdue(p) {
+    if (p.status === 'cancelled') return false;
+    if (!(Number(p.balance || 0) > 0)) return false;
+    if (p.dueDate) return new Date(p.dueDate).getTime() < Date.now();
+    return p.ts ? (Date.now() - p.ts) > 30 * 864e5 : false;
+  }
   function purchasePaymentPill(p) {
     if (p.status === 'cancelled') return '<span class="status low">cancelled</span>';
+    if (purchaseOverdue(p)) return '<span class="status low">overdue</span>';
     var c = p.paymentStatus === 'unpaid' ? ' low' : (p.paymentStatus === 'partial' ? ' warn' : '');
     return '<span class="status' + c + '">' + esc(p.paymentStatus || 'unpaid') + '</span>';
   }
@@ -1248,13 +1255,14 @@
         '<td data-label="Supplier">' + esc(p.supplier) + '</td>' +
         '<td data-label="Items">' + esc(purchaseItemsLabel(p)) + '</td>' +
         '<td data-label="Amount"><b>' + money(p.total) + '</b></td>' +
+        '<td data-label="Due">' + esc((p.dueDate || '').slice(0, 10) || '—') + '</td>' +
         '<td data-label="Balance"><b>' + money(p.balance) + '</b></td>' +
         '<td data-label="Stock"><span class="status' + (p.status === 'received' ? '' : ' neutral') + '">' + esc(p.status) + '</span></td>' +
         '<td data-label="Payment">' + purchasePaymentPill(p) + '</td>' +
         '<td data-label="Date">' + esc(p.date) + '</td>' +
         '<td data-label="Actions">' + actions + '</td>' +
         '</tr>';
-    }).join('') || '<tr><td colspan="9" class="empty-cell">No purchase bills yet. Click “New purchase” to record one.</td></tr>';
+    }).join('') || '<tr><td colspan="10" class="empty-cell">No purchase bills yet. Click “New purchase” to record one.</td></tr>';
   }
   var paymentTarget = null;
   function openPaymentDialog(p) {
@@ -1572,8 +1580,19 @@ var pid = paymentTarget.id;
     if ($('#kpiTopCustomer')) $('#kpiTopCustomer').textContent = topCustomer ? topCustomer.name : '—';
     if ($('#kpiTopCustomerMeta')) $('#kpiTopCustomerMeta').textContent = topCustomer ? topCustomer.count + ' order(s) · ' + money(topCustomer.revenue) : 'No customers yet';
 
-    /* stock alerts */
+    /* stock + due alerts */
     if ($('#alerts')) {
+      var overRecv = state.invoices.filter(invoiceOverdue);
+      var overPay = state.purchases.filter(purchaseOverdue);
+      var extra = '';
+      if (overRecv.length) {
+        var amt = overRecv.reduce(function (a, i) { return a + invBal(i); }, 0);
+        extra += '<div class="alert"><div><b>Overdue receivables · ' + overRecv.length + '</b><div class="muted">' + money(amt) + ' outstanding past due</div></div><a class="status low" data-go="history" href="history.html" style="text-decoration:none">Collect</a></div>';
+      }
+      if (overPay.length) {
+        var pam = overPay.reduce(function (a, p) { return a + Math.max(Number(p.balance || 0), 0); }, 0);
+        extra += '<div class="alert"><div><b>Overdue payables · ' + overPay.length + '</b><div class="muted">' + money(pam) + ' due to suppliers</div></div><a class="status low" data-go="purchases" href="purchases.html" style="text-decoration:none">Pay</a></div>';
+      }
       var alerts = state.products.filter(function (p) { return !isService(p); }).slice()
         .sort(function (a, b) { return (a.stock / Math.max(a.reorder, 1)) - (b.stock / Math.max(b.reorder, 1)); })
         .slice(0, 5)
@@ -1582,7 +1601,7 @@ var pid = paymentTarget.id;
           return '<div class="alert"><div><b>' + esc(p.name) + '</b><div class="muted">' + p.stock + ' units available · reorder at ' + p.reorder + '</div></div>' +
             '<span class="status' + (low ? ' low' : '') + '">' + (low ? 'Restock' : 'Healthy') + '</span></div>';
         }).join('');
-      $('#alerts').innerHTML = alerts || '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">No inventory alerts. Everything looks healthy.</p>';
+      $('#alerts').innerHTML = (extra + alerts) || '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">No alerts. Everything looks healthy.</p>';
     }
 
     /* trends: revenue + expenses, bucketed by day (month when window > 35 days) */
@@ -1803,6 +1822,18 @@ var pid = paymentTarget.id;
     var total = function (arr) { return arr.reduce(function (a, x) { return a + x.balance; }, 0); };
     if ($('#recvTotal')) $('#recvTotal').textContent = money(total(recvItems));
     if ($('#payTotal')) $('#payTotal').textContent = money(total(payItems));
+
+    var todayS = new Date().toISOString().slice(0, 10);
+    var isDueToday = function (d) { return d && String(d).slice(0, 10) === todayS; };
+    var sumBals = function (arr) { return arr.reduce(function (a, x) { return a + x; }, 0); };
+    var recvDueToday = state.invoices.filter(function (i) { return invBal(i) > 0 && isDueToday(i.dueDate); });
+    var recvOverdue = state.invoices.filter(invoiceOverdue);
+    var payDueToday = state.purchases.filter(function (p) { return p.status !== 'cancelled' && Number(p.balance || 0) > 0 && isDueToday(p.dueDate); });
+    var payOverdue = state.purchases.filter(purchaseOverdue);
+    if ($('#recvDueToday')) $('#recvDueToday').textContent = 'Due today ' + money(sumBals(recvDueToday.map(invBal)));
+    if ($('#recvOverdue')) $('#recvOverdue').textContent = 'Overdue ' + money(sumBals(recvOverdue.map(invBal)));
+    if ($('#payDueToday')) $('#payDueToday').textContent = 'Due today ' + money(sumBals(payDueToday.map(function (p) { return Math.max(Number(p.balance || 0), 0); })));
+    if ($('#payOverdue')) $('#payOverdue').textContent = 'Overdue ' + money(sumBals(payOverdue.map(function (p) { return Math.max(Number(p.balance || 0), 0); })));
 
     var strip = function (el, items) {
       if (!el) return;
