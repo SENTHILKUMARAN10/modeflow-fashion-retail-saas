@@ -2,7 +2,7 @@
 // Preserves secure sessions and the current workspace view while applying one final customer-facing brand.
 (function(){
   'use strict';
-  const v='20260912-salesventory2';
+  const v='20260912-salesventory3';
   const $=s=>document.querySelector(s);
 
   function css(selector,href,attr){
@@ -25,7 +25,7 @@
     if(rememberedView&&viewPattern.test(rememberedView))sessionStorage.setItem(routeKey,rememberedView);else rememberedView=null;
   }catch{}
 
-  // Compatibility assets keep the mature production feature set; the final brand authority below owns all visible branding.
+  // Compatibility assets keep the mature production feature set; Salesventory owns every visible brand surface.
   css('link[data-sv-final18]','ui/velora-final-v18.css?v='+v,'data-sv-final18');
   css('link[data-sv-market-suite]','ui/salesdesk-market-suite-v2.css?v='+v,'data-sv-market-suite');
   css('link[data-sv-public-hotfix]','ui/salesdesk-public-hotfix-v1.css?v='+v,'data-sv-public-hotfix');
@@ -37,6 +37,7 @@
   js('script[data-salesventory-rpc-bridge],script[src*="ui/salesventory-rpc-compat-v1.js"]','ui/salesventory-rpc-compat-v1.js?v='+v,'data-salesventory-rpc-bridge');
   js('script[data-sv-customer-production],script[src*="ui/customer-production-v1.js"]','ui/customer-production-v1.js?v='+v,'data-sv-customer-production');
   js('script[data-salesventory-brand],script[src*="ui/salesventory-brand-v1.js"]','ui/salesventory-brand-v1.js?v='+v,'data-salesventory-brand');
+  js('script[data-salesventory-logo-system],script[src*="ui/salesventory-logo-system-v1.js"]','ui/salesventory-logo-system-v1.js?v='+v,'data-salesventory-logo-system');
 
   let replayingHistory=false,ready=false,routeRetries=0;
   const validView=id=>typeof id==='string'&&viewPattern.test(id);
@@ -68,11 +69,18 @@
     if(routeRetries++<50)setTimeout(restoreRememberedView,80);else{routeRetries=0;writeRoute(activeView()||'dashboard','replace')}
   }
 
-  function brand(){window.SalesventoryBrand?.apply?.();window.SalesventoryFooters?.refresh?.();window.SalesDeskFooters?.refresh?.()}
+  function brand(){
+    window.SalesventoryBrand?.apply?.();
+    window.SalesventoryFooters?.refresh?.();
+    window.SalesDeskFooters?.refresh?.();
+    window.SalesventoryLogoSystem?.apply?.();
+  }
   function reveal(){if(ready)return;brand();ready=true;document.body.classList.add('sv-ui-ready','sd-ui-ready')}
   function publicExperienceReady(){
     const landing=$('#veloraLanding');if(!landing)return false;brand();
-    const name=landing.querySelector('.ve-word')?.textContent?.trim();return name==='Salesventory'&&!!landing.querySelector('#sdPublicCommand');
+    const name=landing.querySelector('.ve-word')?.textContent?.trim();
+    const branded=!!landing.querySelector('.ve-logo img[data-salesventory-full-logo]')||name==='Salesventory';
+    return branded&&!!landing.querySelector('#sdPublicCommand');
   }
   function revealPublic(showLogin){
     const apply=()=>{
