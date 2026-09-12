@@ -1742,7 +1742,7 @@ var pid = paymentTarget.id;
       due +
       '<td data-label="Payment">' + invoicePayment(i) + '</td>' +
       '<td data-label="Date">' + esc(i.date) + '</td>' +
-      '<td data-label="Actions">' + receive + '<button class="action-btn" data-act="print-invoice" data-id="' + esc(i.id) + '">Print</button><button class="action-btn" data-act="share-invoice" data-id="' + esc(i.id) + '">WhatsApp</button>' + remind + del + '</td>' +
+      '<td data-label="Actions">' + receive + '<button class="action-btn" data-act="print-invoice" data-id="' + esc(i.id) + '">Print</button><button class="action-btn" data-act="print-invoice-thermal" data-id="' + esc(i.id) + '" title="58mm thermal receipt">58mm</button><button class="action-btn" data-act="share-invoice" data-id="' + esc(i.id) + '">WhatsApp</button>' + remind + del + '</td>' +
       '</tr>';
   }
   function renderInvoices() {
@@ -1861,6 +1861,7 @@ var pid = paymentTarget.id;
     var i = findInvoice(btn.dataset.id);
     if (!i) return;
     if (btn.dataset.act === 'print-invoice') { printInvoice(i); return; }
+    if (btn.dataset.act === 'print-invoice-thermal') { printInvoiceThermal(i); return; }
     if (btn.dataset.act === 'share-invoice') { shareInvoice(i); return; }
     if (btn.dataset.act === 'remind-invoice') { remindCustomer(i); return; }
     if (btn.dataset.act === 'receive-payment') { openReceiptDialog(i); return; }
@@ -1907,6 +1908,45 @@ var pid = paymentTarget.id;
       '</div>' +
       '<p>Payment: ' + String(i.paymentMethod || 'upi').toUpperCase() + ' · <b>' + status + '</b></p>' +
       '<p class="muted">Thank you for your business.</p>' +
+      '<script>print()<\/script></body></html>');
+    w.document.close();
+  }
+  function printInvoiceThermal(i) {
+    var w = window.open('', '_blank', 'width=380,height=820');
+    if (!w) { toast('Pop-up blocked. Allow pop-ups to print receipts.'); return; }
+    var sym = symbol();
+    var biz = state.businessProfile || {};
+    var lines = (i.items && i.items.length)
+      ? i.items.map(function (x) {
+          var amt = Number(x.lineTotal || x.qty * x.rate || 0);
+          return '<div class="tl"><span>' + esc(x.name) + '</span><b>' + sym + (Number(x.qty) || 0) + 'x' + amt.toLocaleString('en-IN') + '</b></div>';
+        }).join('')
+      : '<div class="tl"><span>' + esc(i.product) + '</span><b>' + sym + Number(i.qty || 0) + 'x' + Number((i.subtotal || i.total || 0)).toLocaleString('en-IN') + '</b></div>';
+    var paid = Number(i.paid || 0);
+    var bal = Math.max(Number(i.balance || 0), 0);
+    var status = invoiceOverdue(i) ? 'OVERDUE' : String(i.paymentStatus || 'paid').toUpperCase();
+    var div = function (k, v, bold) { return '<div class="tl"><span>' + k + '</span><b' + (bold ? ' class="big"' : '') + '>' + v + '</b></div>'; };
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(i.id) + '</title><style>' +
+      '@media print{@page{size:58mm auto;margin:0}}' +
+      'body{font-family:"Courier New",monospace;font-size:12px;color:#111;margin:0;padding:12px;width:54mm}' +
+      '.c{text-align:center}.muted{color:#555;font-size:11px}h1{font-size:15px;margin:0 0 4px}p{margin:4px 0}.dash{border-top:1px dashed #888;margin:6px 0}' +
+      '.tl{display:flex;justify-content:space-between;gap:6px;margin:2px 0}.big{font-size:14px}' +
+      '</style></head><body>' +
+      '<div class="c"><h1>' + esc(biz.name || state.businessName || '') + '</h1>' +
+      (biz.address ? '<p class="muted">' + esc(biz.address) + '</p>' : '') +
+      (biz.phone ? '<p class="muted">' + esc(biz.phone) + '</p>' : '') +
+      '<p class="muted"><b>INVOICE ' + esc(i.id) + '</b><br>' + esc(i.date) + (i.dueDate ? ' · Due ' + esc(String(i.dueDate).slice(0, 10)) : '') + '</p></div>' +
+      '<p>Customer: ' + esc(i.customer) + (i.phone ? ' · ' + esc(i.phone) : '') + '</p>' +
+      '<div class="dash"></div>' + lines +
+      '<div class="dash"></div>' +
+      div('Subtotal', sym + Number(i.subtotal || i.qty * i.rate || 0).toLocaleString('en-IN')) +
+      (i.discount ? div('Discount', '− ' + sym + Number(i.discount).toLocaleString('en-IN')) : '') +
+      div('TOTAL', sym + Number(i.total).toLocaleString('en-IN'), true) +
+      div('Paid', sym + paid.toLocaleString('en-IN')) +
+      div('Balance', sym + bal.toLocaleString('en-IN')) +
+      '<div class="dash"></div>' +
+      '<p class="c">' + esc(String(i.paymentMethod || 'upi').toUpperCase()) + ' · <b>' + esc(status) + '</b></p>' +
+      '<p class="c muted">Thank you for your business!</p>' +
       '<script>print()<\/script></body></html>');
     w.document.close();
   }
