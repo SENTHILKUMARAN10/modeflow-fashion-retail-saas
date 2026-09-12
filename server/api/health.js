@@ -23,7 +23,7 @@ export default async function handler(req,res){
   const coreOk=database==='ok';
   const billingReady=env.razorpay&&env.razorpayWebhook&&env.inrPlans;
   const body={
-    service:'SalesDesk',
+    service:'Salesventory',
     status:coreOk?(billingReady?'ok':'degraded'):'error',
     checks:{database,billing:billingReady?'ready':'configuration_required'},
     latencyMs:Date.now()-started,
