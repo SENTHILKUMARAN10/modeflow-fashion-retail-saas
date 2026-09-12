@@ -76,8 +76,8 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 49 | Security | DONE | auth, RLS, storage rules, server validation; add 2FA option later |
 | 50 | Backup | DONE | scripts + docs; automate scheduling |
 | 51 | Import | PARTIAL | CSV import on Products/Customers/Suppliers (header mapping, preview+confirm, per-row error skip, permission-gated); add opening-stock import |
-| 52 | Export | PARTIAL | JSON backup + CSV per module (sales/expenses/inventory/receivables, statement) + Print/PDF; add Excel/Tally export |
-| 53 | Tally export | PLAN | sales/purchases/ledgers export formats, modular |
+| 52 | Export | PARTIAL | JSON backup + CSV per module (sales/expenses/inventory/receivables/statement/payables) + Tally vouchers + Print/PDF; add Excel export |
+| 53 | Tally export | PARTIAL | Settings → Export to Tally: sales vouchers, purchase vouchers, party ledgers (Sundry Debtors/Creditors + outstanding), Tally-ready CSV |
 | 55 | Financial year | PLAN | FY selection, closing, carry-forward |
 | 57 | Search | PARTIAL | per-page filters + global search (products/customers/suppliers/invoices/purchases → deep-link & highlight rows) |
 | 58 | Responsive UI | DONE | 320px→large, mobile card tables; continue polish |

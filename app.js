@@ -2453,6 +2453,13 @@ var pid = paymentTarget.id;
     if (plan) plan.textContent = billingState && billingState.plan ? billingState.plan : 'Active subscription';
   }
   function bindSettings() {
+    ['#tallySalesBtn', '#tallyPurchasesBtn', '#tallyLedgersBtn'].forEach(function (id) {
+      var b = $(id);
+      if (b) b.addEventListener('click', function () {
+        var kind = id === '#tallySalesBtn' ? 'sales' : id === '#tallyPurchasesBtn' ? 'purchases' : 'ledgers';
+        exportTally(kind);
+      });
+    });
     var form = $('#settingsForm');
     if (!form) return;
     form.addEventListener('submit', async function (e) {
@@ -2596,6 +2603,41 @@ var pid = paymentTarget.id;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 500);
     toast('Report exported');
+  }
+  function exportTally(kind) {
+    var now = new Date().toISOString().slice(0, 10);
+    if (kind === 'sales') {
+      var srows = [];
+      state.invoices.forEach(function (i) {
+        var items = (i.items && i.items.length) ? i.items : [{ name: i.product, qty: i.qty, rate: i.rate, lineTotal: Number(i.total || 0) }];
+        items.forEach(function (it) {
+          var lineAmt = Number(it.lineTotal || 0) || Number(it.rate || 0) * Number(it.qty || 0);
+          srows.push([i.date, i.id, i.customer || 'Walk-in customer', 'Sundry Debtors', 'Sales Accounts', lineAmt, String(i.paymentStatus || 'paid'), String(i.paymentMethod || '')]);
+        });
+      });
+      downloadCSV('tally-sales-vouchers-' + now + '.csv',
+        ['Date', 'Voucher No', 'Party Ledger', 'Ledger Group', 'Sales Account', 'Amount', 'Payment Status', 'Payment Mode'], srows);
+      return;
+    }
+    if (kind === 'purchases') {
+      var prows = [];
+      state.purchases.forEach(function (p) {
+        prows.push([p.date || '', p.number, p.supplier, 'Sundry Creditors', 'Purchases Accounts', Number(p.total || 0), String(p.status || ''), String(p.balance || '')]);
+      });
+      downloadCSV('tally-purchase-vouchers-' + now + '.csv',
+        ['Date', 'Voucher No', 'Party Ledger', 'Ledger Group', 'Purchases Account', 'Amount', 'Status', 'Balance'], prows);
+      return;
+    }
+    var ledrows = [];
+    customers().forEach(function (c) {
+      ledrows.push([c.name, 'Sundry Debtors', String(c.phone || ''), c.orders, money(c.total || 0), money(c.outstanding || 0)]);
+    });
+    (state.suppliers || []).forEach(function (s) {
+      var billed = state.purchases.filter(function (p) { return String(p.supplierId) === String(s.id) && p.status !== 'cancelled'; }).reduce(function (a, p) { return a + Number(p.total || 0); }, 0);
+      ledrows.push([s.name, 'Sundry Creditors', String(s.phone || ''), supplierPurchaseCount(s), money(billed), money(supplierOutstanding(s))]);
+    });
+    downloadCSV('tally-party-ledgers-' + now + '.csv',
+      ['Ledger Name', 'Ledger Group', 'Phone', 'Transactions', 'Turnover', 'Outstanding Balance'], ledrows);
   }
   function reportCSV(kind) {
     var now = new Date().toISOString().slice(0, 10);
