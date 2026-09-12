@@ -2071,6 +2071,47 @@ var pid = paymentTarget.id;
     renderAging();
     renderSalesPerformance();
     renderExpenseCats();
+    renderCashPanel();
+  }
+
+  function cashMovements() {
+    var out = [];
+    state.invoices.forEach(function (i) {
+      if (String(i.paymentMethod || '').toLowerCase() === 'cash') {
+        out.push({ ts: i.ts || 0, date: i.date, party: i.customer, doc: i.id, type: 'Cash sale', amount: Number(i.total || 0), dir: 1 });
+      }
+      (i.receipts || []).forEach(function (p) {
+        if (String(p.method || '').toLowerCase() === 'cash') {
+          out.push({ ts: new Date(p.at).getTime() || i.ts || 0, date: fmtDay(new Date(p.at)), party: i.customer, doc: i.id, type: 'Cash collection', amount: Number(p.amount || 0), dir: 1 });
+        }
+      });
+    });
+    state.purchases.forEach(function (p) {
+      (p.payments || []).forEach(function (py) {
+        if (String(py.method || '').toLowerCase() === 'cash') {
+          out.push({ ts: new Date(py.at).getTime() || p.ts || 0, date: fmtDay(new Date(py.at)), party: p.supplier, doc: p.number, type: 'Supplier payment', amount: Number(py.amount || 0), dir: -1 });
+        }
+      });
+    });
+    return out.sort(function (a, b) { return b.ts - a.ts; });
+  }
+  function cashTotals() {
+    var mv = cashMovements();
+    var inn = 0, out = 0;
+    mv.forEach(function (x) { if (x.dir > 0) inn += x.amount; else out += x.amount; });
+    return { in: inn, out: out, net: inn - out, movements: mv };
+  }
+  function renderCashPanel() {
+    var tb = $('#cashTable'); if (!tb) return;
+    var t = cashTotals();
+    if ($('#cashIn')) $('#cashIn').textContent = 'Received ' + money(t.in);
+    if ($('#cashOut')) $('#cashOut').textContent = 'Paid out ' + money(t.out);
+    if ($('#cashNet')) $('#cashNet').textContent = 'Net cash ' + money(t.net);
+    tb.innerHTML = t.movements.slice(0, 50).map(function (x) {
+      return '<tr><td data-label="Date">' + esc(x.date) + '</td><td data-label="Party">' + esc(x.party) + '</td>' +
+        '<td data-label="Document"><span class="sku-tag">' + esc(x.doc) + '</span></td><td data-label="Type">' + esc(x.type) + '</td>' +
+        '<td data-label="Amount"><b style="color:' + (x.dir > 0 ? 'var(--success,#16a34a)' : 'var(--danger)') + '">' + (x.dir > 0 ? '+' : '−') + money(x.amount) + '</b></td></tr>';
+    }).join('') || '<tr><td colspan="5" class="empty-cell">No cash transactions recorded yet.</td></tr>';
   }
 
   function renderExpenseCats() {
@@ -2331,6 +2372,7 @@ var pid = paymentTarget.id;
       '<li><span class="k">Total expenses</span><b>' + money(expTotal) + '</b></li>' +
       '<li><span class="k">Inventory value</span><b>' + money(invValue) + '</b></li>' +
       '<li><span class="k">Outstanding</span><b>' + money(open.reduce(function (a, i) { return a + Number(i.balance || 0); }, 0)) + '</b></li>' +
+      '<li><span class="k">Net cash</span><b>' + money(cashTotals().net) + '</b></li>' +
       '</ul></div>' +
       '<h2>Transactions</h2><table><thead><tr><th>ID</th><th>Customer</th><th>Item</th><th class="num">Total</th><th>Status</th><th>Date</th></tr></thead><tbody>' + (invRows || '<tr><td colspan="6">No transactions</td></tr>') + '</tbody></table>' +
       '<h2>Expenses</h2><table><thead><tr><th>Date</th><th>Category</th><th class="num">Amount</th><th>Note</th></tr></thead><tbody>' + (expRows || '<tr><td colspan="4">No expenses</td></tr>') + '</tbody></table>' +

@@ -51,7 +51,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 |---|------|-------|
 | 8 | Invoice customisation | themes, logo, bank/UPI, QR, A4/A5/thermal, print/PDF/email/WhatsApp/share |
 | 23 | Other income | commission/interest/rent/cashback ledger entries |
-| 24 | Cash management | cash-in-hand ledger; cash sales vs expenses vs deposits |
+| 24 | Cash management | PARTIAL | cash position panel on Analytics: received (cash sales + collections) vs paid out (supplier payments) + net + movement ledger; also on print report. Add opening balance, cash ledger with expenses by mode, deposits |
 | 25 | Bank accounts | multiple accounts, opening balance, transfers, history |
 | 26 | Cheques | received/issued, deposited/cleared/bounced/cancelled |
 | 27 | Accounting | chart of accounts, ledger, journal entries, trial balance, P&L, balance sheet, cash flow (schema: accounts, journal_entries) |

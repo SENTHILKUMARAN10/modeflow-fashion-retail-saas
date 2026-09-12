@@ -180,6 +180,21 @@
       </div>
       <article class="panel full">
         <div class="panel-head">
+          <div><p class="kicker">CASH MANAGEMENT</p><h3>Cash in hand</h3></div>
+          <div class="chip-row">
+            <span class="summary-chip ok" id="cashIn">Received ₹0</span>
+            <span class="summary-chip danger" id="cashOut">Paid out ₹0</span>
+            <span class="summary-chip" id="cashNet">Net cash ₹0</span>
+          </div>
+        </div>
+        <p class="micro" style="margin:-4px 0 10px">Cash position from cash-mode transactions: sales booked as cash, cash collections on credit, and supplier payments made in cash.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>DATE</th><th>PARTY</th><th>DOCUMENT</th><th>TYPE</th><th>AMOUNT</th></tr></thead>
+          <tbody id="cashTable"></tbody>
+        </table></div>
+      </article>
+      <article class="panel full">
+        <div class="panel-head">
           <div><p class="kicker">EXPENSES</p><h3>Spend by category</h3></div>
           <button class="btn ghost" id="csvExpcatBtn" type="button">Export CSV</button>
         </div>
