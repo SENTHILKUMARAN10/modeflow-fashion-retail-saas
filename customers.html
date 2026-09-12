@@ -67,9 +67,12 @@
 
     <!-- CUSTOMERS -->
     <section id="customers" class="view active-view">
-      <div class="page-intro">
+<div class="page-intro">
         <div><p class="kicker">CUSTOMERS</p><h3>Know the people behind <em>the numbers.</em></h3></div>
-        <input id="customerSearch" class="search-input" placeholder="Search customers" aria-label="Search customers">
+        <div class="utility-row">
+          <input id="customerSearch" class="search-input" placeholder="Search customers" aria-label="Search customers">
+          <button id="newCustomerBtn" class="btn primary" type="button">New customer</button>
+        </div>
       </div>
 <article class="panel table-panel">
         <div class="table-wrap"><table>
@@ -111,6 +114,23 @@
     </section>
   </main>
 </div>
+
+<dialog id="customerDialog">
+  <form id="customerForm" class="dialog-card confirm-card" novalidate>
+    <div><p class="kicker">CUSTOMER</p><h3 id="customerDialogTitle">New customer</h3></div>
+    <label>Name*<input id="custName" required maxlength="80"></label>
+    <label>Phone<input id="custPhone" maxlength="20"></label>
+    <label>Email<input id="custEmail" type="email" maxlength="120"></label>
+    <label>Company<input id="custCompany" maxlength="120"></label>
+    <label>Address<input id="custAddress" maxlength="200"></label>
+    <label>Tags<input id="custTags" placeholder="VIP, wholesale, credit … (comma separated)"></label>
+    <label>Notes<input id="custNotes" maxlength="500"></label>
+    <div class="dialog-actions">
+      <button type="button" id="customerCancel" class="btn ghost">Cancel</button>
+      <button class="btn primary" type="submit">Save customer</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="confirmDialog">
   <div class="dialog-card confirm-card">

@@ -21,6 +21,7 @@
     products: [],
     invoices: [],
     expenses: [],
+    customers: [],
     suppliers: [],
     purchases: [],
     billing: null
@@ -68,10 +69,10 @@
 
   /* ============ role capabilities ============ */
   var capabilities = function (role) {
-    if (role === 'owner') return { manageProducts: true, managePurchases: true, finance: true, deleteSales: true, deleteExpenses: true };
-    if (role === 'manager') return { manageProducts: true, managePurchases: true, finance: false, deleteSales: false, deleteExpenses: false };
-    if (role === 'admin' || role === 'accountant') return { manageProducts: false, managePurchases: false, finance: true, deleteSales: false, deleteExpenses: false };
-    return { manageProducts: false, deleteSales: false, deleteExpenses: false, managePurchases: false, finance: false };
+    if (role === 'owner') return { manageProducts: true, managePurchases: true, finance: true, deleteSales: true, deleteExpenses: true, manageCustomers: true };
+    if (role === 'manager') return { manageProducts: true, managePurchases: true, finance: false, deleteSales: false, deleteExpenses: false, manageCustomers: true };
+    if (role === 'admin' || role === 'accountant') return { manageProducts: false, managePurchases: false, finance: true, deleteSales: false, deleteExpenses: false, manageCustomers: false };
+    return { manageProducts: false, deleteSales: false, deleteExpenses: false, managePurchases: false, finance: false, manageCustomers: false };
   };
   var caps = function () { return capabilities(state.role); };
 
@@ -290,13 +291,15 @@
         cloud.invoices.list(state.businessId).catch(function () { return []; }),
         cloud.expenses.list(state.businessId).catch(function () { return []; }),
         cloud.suppliers.list(state.businessId).catch(function () { return []; }),
-        cloud.purchases.list(state.businessId).catch(function () { return []; })
+        cloud.purchases.list(state.businessId).catch(function () { return []; }),
+        cloud.customers.list(state.businessId).catch(function () { return []; })
       ]);
       state.products = results[0].map(productFromCloud);
       state.invoices = results[1].map(invoiceFromCloud);
       state.expenses = results[2].map(expenseFromCloud);
       state.suppliers = results[3].map(supplierFromCloud);
       state.purchases = results[4].map(purchaseFromCloud);
+      state.customers = results[5].map(customerFromCloud);
       var el = $('#cloudStatus');
       var appEl = $('#app');
       if (el && appEl && !appEl.classList.contains('hidden')) el.textContent = '';
@@ -307,6 +310,13 @@
     }
   }
 
+  function customerFromCloud(r) {
+    return {
+      id: r.id, cloud: true, name: r.name, phone: r.phone || '',
+      email: r.email || '', company: r.company_name || '', address: r.address || '',
+      tags: r.tags || [], notes: r.notes || '', status: r.status || 'active'
+    };
+  }
   function supplierFromCloud(r) {
     return {
       id: r.id, cloud: true, name: r.name, phone: r.phone || '', email: r.email || '',
@@ -670,33 +680,86 @@
   /* ============ customers ============ */
   function customerKey(c) { return (c.phone || c.name || '').toLowerCase(); }
   function customers() {
-    var map = {};
+    var stats = {};
     state.invoices.forEach(function (i) {
       var key = customerKey(i);
-      if (!map[key]) map[key] = { name: i.customer, phone: i.phone, orders: 0, total: 0, last: i.date, ts: i.ts || 0, outstanding: 0, open: 0 };
-      map[key].orders++;
-      map[key].total += i.total;
+      if (!stats[key]) stats[key] = { name: i.customer, phone: i.phone, orders: 0, total: 0, last: i.date, ts: i.ts || 0, outstanding: 0, open: 0 };
+      stats[key].orders++;
+      stats[key].total += i.total;
       var bal = Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0);
-      if (bal > 0) { map[key].open++; map[key].outstanding += bal; }
-      if ((i.ts || 0) >= map[key].ts) { map[key].last = i.date; map[key].ts = i.ts || 0; }
+      if (bal > 0) { stats[key].open++; stats[key].outstanding += bal; }
+      if ((i.ts || 0) >= stats[key].ts) { stats[key].last = i.date; stats[key].ts = i.ts || 0; }
     });
-    return Object.keys(map).map(function (k) { return map[k]; });
+    var map = {};
+    state.customers.forEach(function (c) {
+      var key = customerKey(c);
+      var s = stats[key] || {};
+      map[key] = Object.assign({}, c, {
+        name: c.name || s.name || 'Unknown', phone: c.phone || s.phone || '',
+        email: c.email || '', company: c.company || '', address: c.address || '',
+        tags: c.tags || [], notes: c.notes || '', status: c.status || 'active',
+        orders: s.orders || 0, total: s.total || 0, last: s.last || null, outstanding: s.outstanding || 0, open: s.open || 0
+      });
+    });
+    Object.keys(stats).forEach(function (key) {
+      if (map[key]) return;
+      map[key] = { name: stats[key].name, phone: stats[key].phone || '', orders: stats[key].orders, total: stats[key].total, last: stats[key].last, outstanding: stats[key].outstanding, open: stats[key].open, id: null, status: 'active', email: '', company: '', address: '', tags: [], notes: [] };
+    });
+    return Object.keys(map).map(function (k) { return map[k]; })
+      .sort(function (a, b) { return (b.total || 0) - (a.total || 0); });
   }
   var selectedCustomerKey = null;
+  var customerDraftId = null;
+  function rawCustomerByKey(key) {
+    return state.customers.find(function (c) { return customerKey(c) === key; }) || null;
+  }
+  function openCustomerDialog(key) {
+    if (!state.businessId) { toast('Open your cloud workspace first'); return; }
+    if (!caps().manageCustomers) { toast('Only the owner or a manager can manage customers'); return; }
+    var c = key ? rawCustomerByKey(key) : null;
+    customerDraftId = c ? c.id : null;
+    if ($('#customerDialogTitle')) $('#customerDialogTitle').textContent = customerDraftId ? 'Edit customer' : 'New customer';
+    $('#custName').value = c ? c.name : '';
+    $('#custPhone').value = c ? (c.phone || '') : '';
+    $('#custEmail').value = c ? (c.email || '') : '';
+    $('#custCompany').value = c ? (c.company || '') : '';
+    $('#custAddress').value = c ? (c.address || '') : '';
+    $('#custTags').value = c ? (c.tags || []).join(', ') : '';
+    $('#custNotes').value = c ? (c.notes || '') : '';
+    $('#customerDialog').showModal();
+    setTimeout(function () { $('#custName').focus(); }, 30);
+  }
+  async function archiveCustomer(key) {
+    if (!caps().manageCustomers) { toast('Only the owner or a manager can manage customers'); return; }
+    var c = rawCustomerByKey(key);
+    if (!c) { toast('This customer has no saved record to archive'); return; }
+    var ok = await confirmDialog('Archive customer?', c.name + ' stays in history but is hidden from the active list. This can be re-enabled later.');
+    if (!ok) return;
+    try { await cloud.customers.archive(c.id); await refreshCloudData(); toast('Customer archived'); }
+    catch (err) { toast(friendly(err)); }
+  }
   function renderCustomers() {
     var rows = $('#customerRows'); if (!rows) return;
     var hasProfile = $('#customerProfile');
     if (hasProfile && selectedCustomerKey) { hasProfile.hidden = false; renderCustomerProfile(); }
     else if (hasProfile) hasProfile.hidden = true;
     var q = ($('#customerSearch').value || '').toLowerCase();
-    var list = customers().filter(function (c) { return (c.name + ' ' + c.phone).toLowerCase().indexOf(q) !== -1; });
+    var list = customers().filter(function (c) { return (c.name + ' ' + (c.phone || '') + ' ' + (c.company || '') + ' ' + (c.tags || []).join(' ')).toLowerCase().indexOf(q) !== -1; });
+    var canManage = caps().manageCustomers;
     rows.innerHTML = list.map(function (c) {
       var key = customerKey(c);
       var actions = '<button class="action-btn" data-cust="' + esc(key) + '" type="button">Statement</button>';
+      if (canManage) {
+        actions += '<button class="action-btn" data-act="edit-customer" data-key="' + esc(key) + '" type="button">Edit</button>';
+        if (c.status !== 'inactive') actions += '<button class="action-btn danger" data-act="archive-customer" data-key="' + esc(key) + '" type="button">Archive</button>';
+      }
       var phone = String(c.phone || '').replace(/\D/g, '');
       if (phone) actions += '<a class="action-btn" href="https://wa.me/91' + phone + '" target="_blank" rel="noopener" aria-label="WhatsApp ' + esc(c.name) + '">WhatsApp</a>';
       return '<tr data-cust="' + esc(key) + '" class="cust-row">' +
-        '<td data-label="Customer"><div class="cell-person"><span class="store-avatar">' + esc(initials(c.name)) + '</span><b>' + esc(c.name) + '</b></div></td>' +
+        '<td data-label="Customer"><div class="cell-person"><span class="store-avatar">' + esc(initials(c.name)) + '</span><b>' + esc(c.name) + '</b>' +
+        (c.company ? '<small>' + esc(c.company) + '</small>' : '') +
+        (c.status === 'inactive' ? ' <span class="status low">archived</span>' : '') +
+        '</div></td>' +
         '<td data-label="Phone">' + esc(c.phone || '—') + '</td>' +
         '<td data-label="Transactions">' + c.orders + '</td>' +
         '<td data-label="Lifetime value"><b>' + money(c.total) + '</b></td>' +
@@ -704,7 +767,7 @@
         '<td data-label="Outstanding"><b>' + (c.open ? money(c.outstanding) : '—') + '</b></td>' +
         '<td data-label="Actions">' + actions + '</td>' +
         '</tr>';
-    }).join('') || '<tr><td colspan="7" class="empty-cell">No matching customers. Customers appear once a sale is recorded.</td></tr>';
+    }).join('') || '<tr><td colspan="7" class="empty-cell">No matching customers. Add one or record a sale.</td></tr>';
   }
   function customerMatches(c, key) { return customerKey(c) === key; }
   function customerStatements() {
@@ -725,7 +788,13 @@
     if (!c) { closeCustomerProfile(); return; }
     if ($('#cpAvatar')) $('#cpAvatar').textContent = initials(c.name);
     if ($('#cpName')) $('#cpName').textContent = c.name;
-    if ($('#cpPhone')) $('#cpPhone').textContent = c.phone ? 'Phone · ' + c.phone : 'No phone on record';
+    if ($('#cpPhone')) {
+      var bits = [];
+      if (c.phone) bits.push('Phone · ' + c.phone);
+      if (c.email) bits.push(c.email);
+      if (c.company) bits.push(c.company);
+      $('#cpPhone').textContent = bits.join('  ·  ') || 'No contact details on record';
+    }
     var phone = String(c.phone || '').replace(/\D/g, '');
     var wa = $('#cpWhatsApp');
     if (wa) { if (phone) { wa.href = 'https://wa.me/91' + phone; wa.hidden = false; } else { wa.hidden = true; } }
@@ -856,12 +925,46 @@
     if (search) search.addEventListener('input', function () { selectedCustomerKey = null; renderCustomers(); });
     var rows = $('#customerRows');
     if (rows) rows.addEventListener('click', function (e) {
+      var actBtn = e.target.closest('[data-act="edit-customer"], [data-act="archive-customer"]');
+      if (actBtn) {
+        e.preventDefault();
+        if (actBtn.dataset.act === 'edit-customer') { openCustomerDialog(actBtn.dataset.key); return; }
+        archiveCustomer(actBtn.dataset.key);
+        return;
+      }
       var btn = e.target.closest('[data-cust]');
       if (!btn) return;
-      if (btn.tagName === 'A') return;
+      if (e.target.closest('a')) return;
       e.preventDefault();
       openCustomerProfile(btn.dataset.cust);
     });
+    var nb = $('#newCustomerBtn');
+    if (nb) nb.addEventListener('click', function () { openCustomerDialog(null); });
+    var cd = $('#customerDialog');
+    if (cd) {
+      $('#customerCancel').addEventListener('click', function () { cd.close(); });
+      $('#customerForm').addEventListener('submit', async function (ev) {
+        ev.preventDefault();
+        if (!state.businessId) { toast('Open your cloud workspace first'); return; }
+        var name = $('#custName').value.trim();
+        if (!name) { toast('Customer name is required'); return; }
+        var data = {
+          name: name, phone: $('#custPhone').value.trim() || null,
+          email: $('#custEmail').value.trim() || null, company: $('#custCompany').value.trim() || null,
+          address: $('#custAddress').value.trim() || null,
+          tags: $('#custTags').value.split(',').map(function (t) { return t.trim(); }).filter(Boolean),
+          notes: $('#custNotes').value.trim() || null
+        };
+        try {
+          if (customerDraftId) await cloud.customers.update(customerDraftId, data);
+          else await cloud.customers.create(state.businessId, data);
+          customerDraftId = null;
+          await refreshCloudData();
+          cd.close();
+          toast('Customer saved');
+        } catch (err) { toast(friendly(err)); }
+      });
+    }
     var pf = $('#customerProfile');
     if (pf) {
       var byId = function (id) { return $(id); };
