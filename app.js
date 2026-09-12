@@ -976,6 +976,8 @@
       if (csv) csv.addEventListener('click', downloadStatementCSV);
       var pr = byId('#cpPrint');
       if (pr) pr.addEventListener('click', printStatement);
+      var stmt = byId('#cpShareStmt');
+      if (stmt) stmt.addEventListener('click', function () { shareStatement(rawCustomerByKey(selectedCustomerKey)); });
       ['#stmtFrom', '#stmtTo'].forEach(function (sel) {
         var el = $(sel);
         if (el) el.addEventListener('change', renderCustomerProfile);
@@ -1611,7 +1613,7 @@ var pid = paymentTarget.id;
     state.invoices.forEach(function (i) {
       (i.receipts || []).forEach(function (p) {
         out.push({
-          id: p.id, invoiceId: i.cloudId, invoiceNo: i.id, customer: i.customer,
+          id: p.id, invoiceId: i.cloudId, invoiceNo: i.id, customer: i.customer, phone: i.phone || '',
           amount: p.amount, method: p.method, ref: p.ref, ts: new Date(p.at).getTime(),
           date: fmtDay(new Date(p.at))
         });
@@ -1631,7 +1633,7 @@ var pid = paymentTarget.id;
         '<td data-label="Method">' + esc(p.method.toUpperCase()) + '</td>' +
         '<td data-label="Reference">' + esc(p.ref || '—') + '</td>' +
         '<td data-label="Date">' + esc(p.date) + '</td>' +
-        '<td data-label="Actions"><button class="action-btn" data-act="print-receipt" data-id="' + esc(p.id) + '">Print</button></td></tr>';
+        '<td data-label="Actions"><button class="action-btn" data-act="print-receipt" data-id="' + esc(p.id) + '">Print</button><button class="action-btn" data-act="share-receipt" data-id="' + esc(p.id) + '">WhatsApp</button></td></tr>';
     }).join('') || '<tr><td colspan="8" class="empty-cell">No payments received yet.</td></tr>';
   }
   function printReceipt(p) {
@@ -1665,11 +1667,13 @@ var pid = paymentTarget.id;
     $('#historyRows').addEventListener('click', onInvoiceAction);
     var rr = $('#receiptRows');
     if (rr) rr.addEventListener('click', function (e) {
-      var btn = e.target.closest('[data-act="print-receipt"]');
+      var btn = e.target.closest('[data-act="print-receipt"], [data-act="share-receipt"]');
       if (!btn) return;
       var list = allReceipts();
       var found = list.find(function (x) { return String(x.id) === String(btn.dataset.id); });
-      if (found) printReceipt(found);
+      if (!found) return;
+      if (btn.dataset.act === 'print-receipt') printReceipt(found);
+      else shareReceipt(found);
     });
   }
   var receiptTarget = null;
@@ -1775,6 +1779,26 @@ var pid = paymentTarget.id;
     if (phone.length < 10) { toast('No customer phone on file — add one to send reminders'); return; }
     var target = phone.length === 10 ? '91' + phone : phone;
     window.open('https://wa.me/' + target + '?text=' + encodeURIComponent(reminderText(i)), '_blank');
+  }
+  function shareReceipt(p) {
+    var phone = String(p.phone || '').replace(/\D/g, '');
+    if (phone.length < 10) { toast('No customer phone for this receipt — add one to share'); return; }
+    var text = String(state.businessName).toUpperCase() + '\nPayment received ✔\nReceipt: ' + p.invoiceNo + '\nCustomer: ' + p.customer + '\nAmount: ' + symbol() + Number(p.amount).toLocaleString('en-IN') + '\nMethod: ' + String(p.method || 'upi').toUpperCase() + (p.ref ? '\nReference: ' + p.ref : '') + '\nDate: ' + p.date + '\nThank you for your business!';
+    var target = phone.length === 10 ? '91' + phone : phone;
+    window.open('https://wa.me/' + target + '?text=' + encodeURIComponent(text), '_blank');
+  }
+  function statementText(c) {
+    var invs = state.invoices.filter(function (i) { return i.customer === c.name && invBal(i) > 0; }).sort(function (a, b) { return (b.dueDate || b.date) > (a.dueDate || a.date) ? 1 : -1; });
+    var outstanding = invs.reduce(function (a, i) { return a + invBal(i); }, 0);
+    var head = String(state.businessName).toUpperCase() + '\nStatement: ' + c.name + (c.phone ? '\nPhone: ' + c.phone : '') + '\nOutstanding: ' + symbol() + outstanding.toLocaleString('en-IN') + ' (' + invs.length + ' open)\n\n';
+    var body = invs.slice(0, 12).map(function (i) { return '• ' + i.id + ' — ' + money(invBal(i)) + ' (due ' + (i.dueDate || i.date) + ')' + (invoiceOverdue(i) ? ' OVERDUE' : '') + ' · ' + i.date; }).join('\n');
+    return head + (body || 'No open invoices.') + '\n\nPlease clear the balance at your earliest convenience. Thank you!';
+  }
+  function shareStatement(c) {
+    var phone = String(c.phone || '').replace(/\D/g, '');
+    if (phone.length < 10) { toast('No phone on file for ' + c.name); return; }
+    var target = phone.length === 10 ? '91' + phone : phone;
+    window.open('https://wa.me/' + target + '?text=' + encodeURIComponent(statementText(c)), '_blank');
   }
 
   /* ============ dashboard ============ */

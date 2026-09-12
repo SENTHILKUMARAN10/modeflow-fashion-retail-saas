@@ -40,7 +40,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 29 | GST reports | PLAN | GSTR-1/3B summaries, HSN summary, input/output tax |
 | 35 | Warehouses | PLAN | creation, warehouse stock, transfers, reports (schema: warehouses, inventory_transfers) |
 | 39 | CRM | PLAN | leads, follow-ups (schema: customer_followups), tasks, customer value |
-| 42 | WhatsApp | PARTIAL | invoice share + overdue-payment reminders (Remind on Transactions) done; extend to receipts, statements, catalogue |
+| 42 | WhatsApp | PARTIAL | invoice share + overdue reminders (Transactions) + receipt Share + customer statement Share; extend to catalogue |
 | 45 | Multi-user | PLAN | invite members (schema: team_invitations), roles, acceptance flow |
 | 46 | Permissions | PARTIAL | client capability map; align with server `salesdesk_can` matrix |
 | 56 | Notifications | PARTIAL | alerts centre on dashboard (low stock/OOS + overdue recv/payables with amounts) + Cash focus strip (due today & overdue recv/payables); add expiry/subscription expiry + push/email delivery |
