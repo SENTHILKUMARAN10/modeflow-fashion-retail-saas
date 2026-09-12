@@ -575,7 +575,7 @@
         : '<span class="muted" style="font-size:12px">Read-only</span>';
       var low = !isService(p) && p.stock <= p.reorder;
       var meta = (p.sku ? 'SKU ' + esc(p.sku) : 'SKU SV-' + String(p.id).padStart(4, '0')) + (p.barcode ? ' · ' + esc(p.barcode) : '');
-      return '<tr>' +
+      return '<tr data-row-id="p-' + p.id + '">' +
         '<td data-label="Product"><div><b>' + esc(p.name) + '</b><div class="muted sku-tag">' + meta + '</div></div></td>' +
         '<td data-label="Category">' + (p.category ? '<span class="filter-chip static">' + esc(p.category) + '</span>' : '—') + '</td>' +
         '<td data-label="Cost">' + money(p.cost || 0) + '</td>' +
@@ -1437,7 +1437,7 @@
       if (p.status !== 'cancelled') {
         actions += '<button class="action-btn" data-act="print-purchase" data-id="' + esc(p.id) + '">Print</button>';
       }
-      return '<tr>' +
+      return '<tr data-row-id="b-' + p.id + '">' +
         '<td data-label="Purchase"><b><span class="doc-tag">' + esc(purchaseDocLabel(p)) + '</span>' + esc(p.number.replace(/^PO-/, '')) + '</b></td>' +
         '<td data-label="Supplier">' + esc(p.supplier) + '</td>' +
         '<td data-label="Items">' + esc(purchaseItemsLabel(p)) + '</td>' +
@@ -1589,7 +1589,7 @@ var pid = paymentTarget.id;
     var receive = receivable ? '<button class="action-btn" data-act="receive-payment" data-id="' + esc(i.id) + '">Receive</button>' : '';
     var remind = invoiceOverdue(i) ? '<button class="action-btn" data-act="remind-invoice" data-id="' + esc(i.id) + '">Remind</button>' : '';
     var del = canDelete ? '<button class="action-btn danger" data-act="delete-invoice" data-id="' + esc(i.id) + '">Delete</button>' : '';
-    return '<tr>' +
+    return '<tr data-row-id="i-' + esc(i.id) + '">' +
       '<td data-label="Transaction"><b>' + esc(i.id) + '</b></td>' +
       '<td data-label="Customer">' + esc(i.customer) + '</td>' +
       '<td data-label="Item">' + esc(i.product) + ' × ' + i.qty + '</td>' +
@@ -2807,7 +2807,127 @@ var pid = paymentTarget.id;
       productOptions(); renderInventory(); renderCustomers(); renderSuppliers(); renderPurchases(); renderExpenses();
       renderInvoices(); renderReceipts(); renderDashboard(); renderReports();
       renderPlans(); updatePreview(); renderSettings();
+      handleOpenIntent();
     } finally { rendering = false; }
+  }
+
+  /* ============ quick create + global search ============ */
+  function initQuickCreate() {
+    var btn = $('#quickCreateBtn'), menu = $('#quickCreateMenu');
+    if (!btn || !menu) return;
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var was = menu.hidden;
+      hideQuickMenu(); menu.hidden = !was;
+    });
+    document.addEventListener('click', hideQuickMenu);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideQuickMenu(); });
+  }
+  function hideQuickMenu() {
+    var menu = $('#quickCreateMenu');
+    if (menu) menu.hidden = true;
+  }
+  function globalResultsData(q) {
+    q = String(q || '').toLowerCase().trim();
+    var out = [];
+    if (!q) return out;
+    var push = function (type, page, id, label, sub) {
+      if (out.length >= 8) return;
+      out.push({ type: type, href: page + '#open=' + type + ':' + encodeURIComponent(String(id)), label: label, sub: sub });
+    };
+    (state.products || []).forEach(function (p) {
+      if (out.length >= 8) return;
+      if ((p.name + ' ' + (p.sku || '') + ' ' + (p.barcode || '') + ' ' + (p.category || '')).toLowerCase().indexOf(q) !== -1)
+        push('product', 'products.html', p.id, p.name, (p.category || 'Product') + (p.stock != null ? ' · stock ' + p.stock : ''));
+    });
+    customers().forEach(function (c) {
+      if (out.length >= 8) return;
+      if ((c.name + ' ' + (c.phone || '') + ' ' + (c.company || '')).toLowerCase().indexOf(q) !== -1)
+        push('customer', 'customers.html', customerKey(c), c.name, (c.phone || '') + ' · paid ' + money(c.total || 0));
+    });
+    (state.suppliers || []).forEach(function (s) {
+      if (out.length >= 8) return;
+      if ((s.name + ' ' + (s.phone || '') + ' ' + (s.gst || '')).toLowerCase().indexOf(q) !== -1)
+        push('supplier', 'suppliers.html', s.id, s.name, (s.phone || '') + ' · ' + money(supplierOutstanding(s)) + ' owed');
+    });
+    (state.invoices || []).slice(0, 300).forEach(function (i) {
+      if (out.length >= 8) return;
+      if ((i.id + ' ' + i.customer + ' ' + (i.product || '')).toLowerCase().indexOf(q) !== -1)
+        push('invoice', 'history.html', i.id, i.id, i.customer + ' · ' + money(i.total) + ' · ' + i.date);
+    });
+    (state.purchases || []).slice(0, 200).forEach(function (p) {
+      if (out.length >= 8) return;
+      if ((p.number + ' ' + p.supplier + ' ' + (p.supplierId || '')).toLowerCase().indexOf(q) !== -1)
+        push('purchase', 'purchases.html', p.id, p.number, p.supplier + ' · ' + money(p.total || 0));
+    });
+    return out;
+  }
+  function initGlobalSearch() {
+    var input = $('#globalSearch'), box = $('#globalResults');
+    if (!input || !box) return;
+    var timer = null;
+    input.addEventListener('input', function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        var items = globalResultsData(input.value);
+        box.innerHTML = '';
+        if (!input.value.trim()) { box.hidden = true; return; }
+        if (!items.length) {
+          box.innerHTML = '<div class="gs-empty">No matches for “' + esc(input.value.trim()) + '”.</div>';
+        } else {
+          items.forEach(function (r) {
+            var a = document.createElement('a');
+            a.className = 'gs-hit';
+            a.href = r.href;
+            a.innerHTML = '<span class="q-type">' + r.type.toUpperCase() + '</span><span class="gs-main"><b>' + esc(r.label) + '</b><small>' + esc(r.sub) + '</small></span>';
+            a.addEventListener('click', function () { box.hidden = true; input.value = ''; hideQuickMenu(); });
+            box.appendChild(a);
+          });
+        }
+        box.hidden = false;
+      }, 150);
+    });
+    input.addEventListener('keydown', function (e) { if (e.key === 'Escape') { box.hidden = true; input.blur(); } });
+    document.addEventListener('click', function (e) {
+      if (e.target !== input && !box.contains(e.target)) box.hidden = true;
+      if (e.target !== input && !box.contains(e.target) && e.target.closest && !e.target.closest('.quick-create')) hideQuickMenu();
+    });
+    input.addEventListener('focus', function () { if (input.value.trim()) box.hidden = false; });
+  }
+  var lastIntent = null;
+  function handleOpenIntent() {
+    var h = location.hash;
+    if (h.indexOf('#open=') !== 0 || h === lastIntent) return;
+    lastIntent = h;
+    var payload = decodeURIComponent(h.slice(6));
+    var sep = payload.indexOf(':');
+    var kind = sep === -1 ? payload : payload.slice(0, sep);
+    var id = sep === -1 ? '' : payload.slice(sep + 1);
+    var m = {
+      product: ['#inventoryRows tr[data-row-id="p-' + id + '"]', 'products.html'],
+      customer: ['#customerRows [data-cust="' + id + '"]', 'customers.html'],
+      supplier: ['#supplierRows [data-sup="' + id + '"]', 'suppliers.html'],
+      invoice: ['#historyRows tr[data-row-id="i-' + id + '"]', 'history.html'],
+      purchase: ['#purchaseRows tr[data-row-id="b-' + id + '"]', 'purchases.html']
+    };
+    if (m[kind]) {
+      var el = $(m[kind][0]);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('hit');
+        setTimeout(function () { el.classList.remove('hit'); }, 2600);
+        if (kind === 'customer' && el.click) el.click();
+      }
+      return;
+    }
+    if (kind === 'new') {
+      if (id === 'product') openProductDialog(null);
+      else if (id === 'customer') openCustomerDialog(null);
+      else if (id === 'supplier') openSupplierDialog();
+      else if (id === 'purchase') openPurchaseDialog();
+      else if (id === 'expense') { var f = $('#expenseForm'); if (f) { f.scrollIntoView({ behavior: 'smooth', block: 'center' }); var fi = f.querySelector('input,select'); if (fi) fi.focus(); } }
+      else if (id === 'sale') gotoView('billing');
+    }
   }
 
 /* ============ mobile menu ============ */
@@ -2850,6 +2970,9 @@ var pid = paymentTarget.id;
     bindMenu();
     bindAuth();
     bindExport();
+    initQuickCreate();
+    initGlobalSearch();
+    window.addEventListener('hashchange', handleOpenIntent);
     var dashRange = $('#dashRange');
     if (dashRange) {
       dashRange.addEventListener('change', function () {

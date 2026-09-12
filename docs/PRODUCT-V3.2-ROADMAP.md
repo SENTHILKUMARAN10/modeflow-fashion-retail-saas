@@ -44,7 +44,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 45 | Multi-user | PLAN | invite members (schema: team_invitations), roles, acceptance flow |
 | 46 | Permissions | PARTIAL | client capability map; align with server `salesdesk_can` matrix |
 | 56 | Notifications | PARTIAL | alerts centre on dashboard (low stock/OOS + overdue recv/payables with amounts) + Cash focus strip (due today & overdue recv/payables); add expiry/subscription expiry + push/email delivery |
-| 60 | Quick create + search | PLAN | global +New menu and global search |
+| 60 | Quick create + search | PARTIAL | global ＋ New menu (sale/product/customer/supplier/purchase/expense, deep-links & auto-opens dialogs) + global search |
 
 ## Phase 3 — Advanced
 | # | Area | Notes |
@@ -79,7 +79,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 52 | Export | PARTIAL | JSON backup + CSV per module (sales/expenses/inventory/receivables, statement) + Print/PDF; add Excel/Tally export |
 | 53 | Tally export | PLAN | sales/purchases/ledgers export formats, modular |
 | 55 | Financial year | PLAN | FY selection, closing, carry-forward |
-| 57 | Search | PARTIAL | per-page filters; add global search |
+| 57 | Search | PARTIAL | per-page filters + global search (products/customers/suppliers/invoices/purchases → deep-link & highlight rows) |
 | 58 | Responsive UI | DONE | 320px→large, mobile card tables; continue polish |
 | 59 | UI/UX premium | DONE | dark/light, Jakarta Sans, KPI cards; keep improving |
 | 62 | Subscriptions | DONE | Razorpay + UPI fallback; add free trial, plan gating |
