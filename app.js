@@ -40,6 +40,31 @@
   var isService = function (p) { return Number(p.stock) >= 900; };
   var isSameDay = function (ts) { var d = new Date(ts); var n = new Date(); return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate(); };
   var isSameMonth = function (ts) { var d = new Date(ts); var n = new Date(); return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth(); };
+  var moneySigned = function (n) { return Number(n) < 0 ? '−' + money(Math.abs(Number(n))) : money(n); };
+
+  /* ============ dashboard range window ============ */
+  var dayStart = function (ts) { var d = new Date(ts); d.setHours(0, 0, 0, 0); return d; };
+  var dayEnd = function (ts) { var d = new Date(ts); d.setHours(23, 59, 59, 999); return d; };
+  var inWin = function (ts, w) { return !!(ts && w && ts >= w.from && ts <= w.to); };
+  function dashWindow() {
+    var sel = $('#dashRange');
+    var v = sel ? sel.value : '7d';
+    var now = new Date();
+    var f = $('#dashFrom'), t = $('#dashTo');
+    var from, to;
+    if (v === 'today') { from = dayStart(now).getTime(); to = now.getTime(); }
+    else if (v === 'yesterday') { var y = new Date(now); y.setDate(y.getDate() - 1); from = dayStart(y).getTime(); to = dayStart(now).getTime() - 1; }
+    else if (v === 'month') { from = new Date(now.getFullYear(), now.getMonth(), 1).getTime(); to = now.getTime(); }
+    else if (v === 'lastmonth') { from = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime(); to = dayEnd(new Date(now.getFullYear(), now.getMonth(), 0)).getTime(); }
+    else if (v === 'year') { from = new Date(now.getFullYear(), 0, 1).getTime(); to = now.getTime(); }
+    else if (v === 'custom') {
+      from = f && f.value ? dayStart(new Date(f.value)).getTime() : new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      to = t && t.value ? dayEnd(new Date(t.value)).getTime() : now.getTime();
+      if (from > to) { var tmp = from; from = to; to = tmp; }
+    }
+    else { from = now.getTime() - Number(v || 7) * 864e5; to = now.getTime(); }
+    return { from: from, to: to, key: v, label: sel ? (sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : v) : v };
+  }
 
   /* ============ role capabilities ============ */
   var capabilities = function (role) {
@@ -90,18 +115,20 @@
     expenses: ['OPERATIONS', 'Business expenses'],
     history: ['TRANSACTIONS', 'Sales history'],
     reports: ['BUSINESS INTELLIGENCE', 'Performance analytics'],
-    plans: ['PLANS & BILLING', 'Manage your subscription']
+    plans: ['PLANS & BILLING', 'Manage your subscription'],
+    settings: ['WORKSPACE SETTINGS', 'Tune your business profile.']
   };
   var PAGE_FILES = {
     dashboard: 'dashboard.html', billing: 'sales.html', inventory: 'products.html',
     customers: 'customers.html', suppliers: 'suppliers.html', purchases: 'purchases.html',
     expenses: 'expenses.html', history: 'history.html', reports: 'reports.html',
-    plans: 'plans.html', login: 'index.html'
+    plans: 'plans.html', settings: 'settings.html', login: 'index.html'
   };
   var SECTION_PAGE = {
     dashboard: 'dashboard.html', billing: 'sales.html', inventory: 'products.html',
     customers: 'customers.html', suppliers: 'suppliers.html', purchases: 'purchases.html',
-    expenses: 'expenses.html', history: 'history.html', reports: 'reports.html', plans: 'plans.html'
+    expenses: 'expenses.html', history: 'history.html', reports: 'reports.html', plans: 'plans.html',
+    settings: 'settings.html'
   };
   function currentPage() {
     return (document.body && document.body.dataset && document.body.dataset.page) || 'login';
@@ -158,11 +185,15 @@
       cost: Number(r.cost_price || 0), price: Number(r.selling_price || 0),
       stock: Number(r.track_stock === false ? 999 : (r.stock || 0)),
       reorder: Number(r.reorder_level || 0),
+      category: r.category || '', sku: r.sku || '', barcode: r.barcode || '',
+      unit: r.unit || (r.track_stock === false ? 'service' : 'pcs'),
       cloud: true, service: r.track_stock === false
     };
   }
   function invoiceFromCloud(r) {
     var it = (r.invoice_items || [])[0] || {};
+    var paid = (r.invoice_payments || []).reduce(function (a, p) { return a + Number(p.amount || 0); }, 0);
+    var total = Number(r.total || 0);
     return {
       id: r.invoice_number || 'INV-' + String(r.id).slice(0, 8),
       cloudId: r.id,
@@ -170,8 +201,9 @@
       product: it.product_name || 'Item', productId: it.product_id,
       qty: Number(it.quantity || 1), rate: Number(it.rate || 0), cost: Number(it.cost_price || 0),
       discount: Number(r.discount || 0), subtotal: Number(r.subtotal || 0),
-      total: Number(r.total || 0),
+      total: total, paid: paid, balance: Math.max(0, total - paid),
       paymentMethod: r.payment_method || 'upi', paymentStatus: r.payment_status || 'paid',
+      dueDate: r.due_date || null,
       date: fmtDay(new Date(r.created_at)), ts: new Date(r.created_at).getTime()
     };
   }
@@ -225,6 +257,19 @@
     state.currency = currency || 'INR'; state.role = role || 'owner';
     if (state.channel) { cloud.realtime.unsubscribe(state.channel); state.channel = null; }
     await refreshCloudData();
+    cloud.businesses.get(id).then(function (biz) {
+      if (biz) {
+        state.businessProfile = biz; state.businessName = biz.name || state.businessName;
+        if (biz.currency) state.currency = biz.currency;
+        var bn = $('#businessName'); if (bn) bn.textContent = state.businessName;
+        var sn = $('#storeName'); if (sn) sn.textContent = state.businessName;
+        var meta = $('#storeMeta'); if (meta) meta.textContent = 'Business · cloud · ' + state.currency;
+        var initialsText = initials(state.businessName);
+        var sa = $('#storeAvatar'); if (sa) sa.textContent = initialsText;
+        var pb = $('#profileBadge'); if (pb) pb.textContent = initialsText;
+        renderSettings();
+      }
+    }).catch(function () { });
     state.channel = cloud.realtime.subscribe(id, function () { clearTimeout(state._rt); state._rt = setTimeout(refreshCloudData, 300); });
     toast('Workspace loaded');
     showApp();
@@ -382,8 +427,9 @@
   }
 
   /* ============ sale form ============ */
+  var saleLines = [];
   function productOptions() {
-    var s = $('#product'); if (!s) return;
+    var s = $('#itemSelect'); if (!s) return;
     var current = s.value;
     s.innerHTML = state.products.map(function (p) {
       return '<option value="' + p.id + '">' + esc(p.name) + ' · ' + money(p.price) + '</option>';
@@ -391,28 +437,53 @@
     if (current && state.products.some(function (p) { return String(p.id) === current; })) s.value = current;
     syncRate();
   }
-  function selectedProduct() { var s = $('#product'); if (!s) return null; return state.products.find(function (p) { return String(p.id) === String(s.value); }) || state.products[0]; }
-  function syncRate() { var p = selectedProduct(); if (p && $('#rate')) $('#rate').value = p.price; updatePreview(); }
-  function calcTotal() {
-    var qty = Number($('#qty').value) || 0;
-    var rate = Number($('#rate').value) || 0;
-    var disc = Math.max(0, Number($('#discount').value) || 0);
-    var subtotal = qty * rate;
-    return { subtotal: subtotal, discount: Math.min(disc, subtotal), total: Math.max(0, subtotal - Math.min(disc, subtotal)) };
+  function selectedProduct() { var s = $('#itemSelect'); if (!s) return null; return state.products.find(function (p) { return String(p.id) === String(s.value); }) || state.products[0]; }
+  function syncRate() { var p = selectedProduct(); if (p && $('#itemRate')) $('#itemRate').value = p.price; }
+  function saleTotals() {
+    var discount = Math.max(0, Number($('#discount') ? $('#discount').value : 0) || 0);
+    var subtotal = saleLines.reduce(function (a, l) { return a + l.qty * l.rate; }, 0);
+    var d = Math.min(discount, subtotal);
+    return { subtotal: subtotal, discount: d, total: Math.max(0, subtotal - d) };
+  }
+  function renderSaleItems() {
+    var box = $('#saleItems'); if (!box) return;
+    var count = $('#lineCount'); if (count) count.textContent = saleLines.length;
+    box.innerHTML = saleLines.length
+      ? saleLines.map(function (l, idx) {
+          return '<div class="sale-item"><div><b>' + esc(l.name) + '</b><small>' + l.qty + ' × ' + money(l.rate) + '</small></div>' +
+            '<div class="sale-item-side"><b>' + money(l.qty * l.rate) + '</b>' +
+            '<button type="button" class="action-btn danger" data-remove="' + idx + '" aria-label="Remove ' + esc(l.name) + '">×</button></div></div>';
+        }).join('')
+      : '<p class="muted" style="padding:6px 2px">No items yet. Pick a product and press “Add item”.</p>';
+    updatePreview();
+  }
+  function addSaleItem() {
+    var p = selectedProduct();
+    if (!p) { toast('Add a product or service first'); return; }
+    var qty = Number($('#itemQty').value);
+    if (!(qty > 0)) { toast('Enter a valid quantity'); return; }
+    var rate = Number($('#itemRate').value);
+    if (!(rate >= 0)) { toast('Enter a valid selling price'); return; }
+    if (!isService(p) && qty > p.stock) { toast('Not enough stock for ' + p.name); return; }
+    saleLines.push({ productId: p.id, name: p.name, qty: qty, rate: rate });
+    $('#itemQty').value = 1;
+    syncRate();
+    renderSaleItems();
   }
   function updatePreview() {
     if (!$('#preview') || !$('#previewTotal')) return;
-    var p = selectedProduct() || { name: 'Business item' };
-    var qty = Number($('#qty').value) || 0;
-    var t = calcTotal();
+    var t = saleTotals();
     $('#previewTotal').textContent = money(t.total);
     var name = $('#customerName').value.trim();
+    var linesHtml = saleLines.map(function (l) {
+      return '<div class="line-item"><span>' + esc(l.name) + ' × ' + l.qty + '</span><b>' + money(l.qty * l.rate) + '</b></div>';
+    }).join('') || '<div class="line-item"><span>No items yet</span><b>—</b></div>';
     $('#preview').innerHTML =
       '<div class="bill-head"><div><b>' + esc(state.businessName) + '</b><div class="muted">Business workspace</div></div>' +
       '<div class="text-right"><b>RECEIPT</b><div class="muted">Powered by Salesventory</div></div></div>' +
       '<p><b>Customer</b><br>' + esc(name || 'Walk-in customer') + '</p>' +
       '<p class="muted">' + esc($('#phone').value.trim() || 'No mobile number') + '</p>' +
-      '<div class="line-item"><span>' + esc(p.name) + ' × ' + qty + '</span><b>' + money(qty * (Number($('#rate').value) || 0)) + '</b></div>' +
+      linesHtml +
       '<div class="line-item"><span>Discount</span><span>− ' + money(t.discount) + '</span></div>' +
       '<div class="line-item"><span>Payment</span><span>' + esc(($('#paymentMethod').value || 'upi').toUpperCase()) + ' · ' + esc($('#paymentStatus').value || 'paid') + '</span></div>' +
       '<div class="bill-total"><span>Total</span><span>' + money(t.total) + '</span></div>' +
@@ -420,40 +491,46 @@
   }
   function bindSale() {
     var q = function (s) { return $(s); };
-    if (q('#product')) q('#product').addEventListener('change', syncRate);
-    ['#qty', '#rate', '#discount', '#customerName', '#phone', '#paymentMethod', '#paymentStatus'].forEach(function (id) {
+    if (q('#itemSelect')) q('#itemSelect').addEventListener('change', syncRate);
+    if (q('#addItemBtn')) q('#addItemBtn').addEventListener('click', addSaleItem);
+    $('#saleItems').addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-remove]');
+      if (!btn) return;
+      saleLines.splice(Number(btn.dataset.remove), 1);
+      renderSaleItems();
+    });
+    ['#discount', '#customerName', '#phone', '#paymentMethod', '#paymentStatus'].forEach(function (id) {
       var el = q(id); if (el) el.addEventListener('input', updatePreview);
     });
     $('#invoiceForm').addEventListener('submit', async function (e) {
       e.preventDefault();
-      var p = selectedProduct();
-      var qty = Number($('#qty').value);
-      if (!p) { toast('Add at least one product first'); return; }
-      if (qty <= 0) { toast('Enter a valid quantity'); return; }
-      if (!isService(p) && !cloud) { toast('Cloud checkout is not available'); return; }
-      if (!isService(p) && qty > p.stock) { toast('Not enough stock for this sale'); return; }
-      var rate = Number($('#rate').value || p.price);
-      if (rate < 0) { toast('Enter a valid selling price'); return; }
+      if (!saleLines.length) { toast('Add at least one item to this sale'); return; }
+      var t = saleTotals();
       var discount = Math.max(0, Number($('#discount').value) || 0);
-      if (discount > qty * rate) { toast('Discount cannot exceed the subtotal'); return; }
+      if (discount > t.subtotal) { toast('Discount cannot exceed the subtotal'); return; }
+      if (!cloud) { toast('Cloud checkout is not available'); return; }
+      var items = saleLines.map(function (l) { return { product_id: l.productId, quantity: l.qty, rate: l.rate }; });
       var done = function () {
         e.target.reset();
-        $('#qty').value = 1; $('#discount').value = 0;
+        saleLines = [];
+        $('#itemQty').value = 1;
+        $('#discount').value = 0;
         productOptions(); renderAll();
         toast('Sale completed successfully');
         gotoView('history');
       };
-      if (!cloud) { toast('Cloud checkout is not available'); return; }
       var submit = $('#invoiceForm').querySelector('button[type=submit]');
       if (submit) submit.disabled = true;
       try {
-        await cloud.invoices.checkout({
+        await cloud.invoices.checkoutMulti({
           p_business_id: state.businessId,
-          p_product_id: p.id,
           p_customer_name: $('#customerName').value.trim() || 'Walk-in customer',
           p_customer_phone: $('#phone').value.trim(),
-          p_quantity: qty, p_rate: rate, p_discount: discount,
-          p_payment_method: $('#paymentMethod').value, p_payment_status: $('#paymentStatus').value,
+          p_items: items,
+          p_discount: discount,
+          p_payment_method: $('#paymentMethod').value,
+          p_payment_status: $('#paymentStatus').value,
+          p_branch_id: null,
           p_idempotency_key: window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : null
         });
         await refreshCloudData();
@@ -469,7 +546,7 @@
     var rows = $('#inventoryRows'); if (!rows) return;
     var q = ($('#productSearch').value || '').toLowerCase();
     var list = state.products
-      .filter(function (p) { return p.name.toLowerCase().indexOf(q) !== -1; })
+      .filter(function (p) { return (p.name + ' ' + (p.category || '') + ' ' + (p.sku || '') + ' ' + (p.barcode || '')).toLowerCase().indexOf(q) !== -1; })
       .filter(function (p) {
         return stockFilter === 'low' ? (!isService(p) && p.stock <= p.reorder) : stockFilter === 'in' ? (isService(p) || p.stock > p.reorder) : true;
       });
@@ -480,16 +557,18 @@
           '<button class="action-btn danger" data-act="delete-product" data-id="' + p.id + '">Delete</button>'
         : '<span class="muted" style="font-size:12px">Read-only</span>';
       var low = !isService(p) && p.stock <= p.reorder;
+      var meta = (p.sku ? 'SKU ' + esc(p.sku) : 'SKU SV-' + String(p.id).padStart(4, '0')) + (p.barcode ? ' · ' + esc(p.barcode) : '');
       return '<tr>' +
-        '<td data-label="Product"><div><b>' + esc(p.name) + '</b><div class="muted sku-tag">SKU SV-' + String(p.id).padStart(4, '0') + '</div></div></td>' +
+        '<td data-label="Product"><div><b>' + esc(p.name) + '</b><div class="muted sku-tag">' + meta + '</div></div></td>' +
+        '<td data-label="Category">' + (p.category ? '<span class="filter-chip static">' + esc(p.category) + '</span>' : '—') + '</td>' +
         '<td data-label="Cost">' + money(p.cost || 0) + '</td>' +
         '<td data-label="Selling"><b>' + money(p.price) + '</b></td>' +
-        '<td data-label="Stock">' + (isService(p) ? 'Service' : p.stock + ' units') + '</td>' +
-        '<td data-label="Reorder">' + (isService(p) ? '—' : p.reorder + ' units') + '</td>' +
+        '<td data-label="Stock">' + (isService(p) ? 'Service' : p.stock + ' ' + esc(p.unit || 'units')) + '</td>' +
+        '<td data-label="Reorder">' + (isService(p) ? '—' : p.reorder + ' ' + esc(p.unit || 'units')) + '</td>' +
         '<td data-label="Status"><span class="status' + (low ? ' low' : '') + '">' + (isService(p) ? 'Active' : (low ? 'Low stock' : 'In stock')) + '</span></td>' +
         '<td data-label="Actions">' + actions + '</td>' +
         '</tr>';
-    }).join('') || '<tr><td colspan="7" class="empty-cell">No matching products.</td></tr>';
+    }).join('') || '<tr><td colspan="8" class="empty-cell">No matching products.</td></tr>';
     var addBtn = $('#addProduct');
     if (addBtn) addBtn.hidden = !canManage;
   }
@@ -497,7 +576,7 @@
     if (!id) {
       $('#productForm').reset();
       $('#pId').value = '';
-      $('#pStock').value = 1; $('#pReorder').value = 5;
+      $('#pStock').value = 1; $('#pReorder').value = 5; $('#pUnit').value = 'pcs';
       $('#pStock').disabled = false; $('#pReorder').disabled = false;
       $('#pService').checked = false;
       $('#productDialogTitle').textContent = 'Add product';
@@ -507,6 +586,10 @@
       $('#productDialogTitle').textContent = 'Edit product';
       $('#pId').value = p.id;
       $('#pName').value = p.name;
+      $('#pCategory').value = p.category || '';
+      $('#pSku').value = p.sku || '';
+      $('#pBarcode').value = p.barcode || '';
+      $('#pUnit').value = p.unit && p.unit !== 'service' ? p.unit : 'pcs';
       $('#pCost').value = p.cost || 0;
       $('#pPrice').value = p.price;
       $('#pService').checked = isService(p);
@@ -540,6 +623,10 @@
       var svc = $('#pService').checked;
       var data = {
         name: $('#pName').value.trim(),
+        category: $('#pCategory').value.trim(),
+        sku: $('#pSku').value.trim(),
+        barcode: $('#pBarcode').value.trim(),
+        unit: $('#pUnit').value.trim() || 'pcs',
         cost: Number($('#pCost').value),
         price: Number($('#pPrice').value),
         stock: svc ? 999 : Number($('#pStock').value),
@@ -574,30 +661,216 @@
   }
 
   /* ============ customers ============ */
+  function customerKey(c) { return (c.phone || c.name || '').toLowerCase(); }
   function customers() {
     var map = {};
     state.invoices.forEach(function (i) {
-      var key = (i.phone || i.customer || '').toLowerCase();
-      if (!map[key]) map[key] = { name: i.customer, phone: i.phone, orders: 0, total: 0, last: i.date, ts: i.ts || 0 };
+      var key = customerKey(i);
+      if (!map[key]) map[key] = { name: i.customer, phone: i.phone, orders: 0, total: 0, last: i.date, ts: i.ts || 0, outstanding: 0, open: 0 };
       map[key].orders++;
       map[key].total += i.total;
+      var bal = Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0);
+      if (bal > 0) { map[key].open++; map[key].outstanding += bal; }
       if ((i.ts || 0) >= map[key].ts) { map[key].last = i.date; map[key].ts = i.ts || 0; }
     });
     return Object.keys(map).map(function (k) { return map[k]; });
   }
+  var selectedCustomerKey = null;
   function renderCustomers() {
     var rows = $('#customerRows'); if (!rows) return;
+    var hasProfile = $('#customerProfile');
+    if (hasProfile && selectedCustomerKey) { hasProfile.hidden = false; renderCustomerProfile(); }
+    else if (hasProfile) hasProfile.hidden = true;
     var q = ($('#customerSearch').value || '').toLowerCase();
     var list = customers().filter(function (c) { return (c.name + ' ' + c.phone).toLowerCase().indexOf(q) !== -1; });
     rows.innerHTML = list.map(function (c) {
-      return '<tr>' +
+      var key = customerKey(c);
+      var actions = '<button class="action-btn" data-cust="' + esc(key) + '" type="button">Statement</button>';
+      var phone = String(c.phone || '').replace(/\D/g, '');
+      if (phone) actions += '<a class="action-btn" href="https://wa.me/91' + phone + '" target="_blank" rel="noopener" aria-label="WhatsApp ' + esc(c.name) + '">WhatsApp</a>';
+      return '<tr data-cust="' + esc(key) + '" class="cust-row">' +
         '<td data-label="Customer"><div class="cell-person"><span class="store-avatar">' + esc(initials(c.name)) + '</span><b>' + esc(c.name) + '</b></div></td>' +
         '<td data-label="Phone">' + esc(c.phone || '—') + '</td>' +
         '<td data-label="Transactions">' + c.orders + '</td>' +
         '<td data-label="Lifetime value"><b>' + money(c.total) + '</b></td>' +
         '<td data-label="Last purchase">' + esc(c.last || '—') + '</td>' +
+        '<td data-label="Outstanding"><b>' + (c.open ? money(c.outstanding) : '—') + '</b></td>' +
+        '<td data-label="Actions">' + actions + '</td>' +
         '</tr>';
-    }).join('') || '<tr><td colspan="5" class="empty-cell">No matching customers. Customers appear once a sale is recorded.</td></tr>';
+    }).join('') || '<tr><td colspan="7" class="empty-cell">No matching customers. Customers appear once a sale is recorded.</td></tr>';
+  }
+  function customerMatches(c, key) { return customerKey(c) === key; }
+  function customerStatements() {
+    return state.invoices
+      .filter(function (i) { return customerMatches(i, selectedCustomerKey); })
+      .slice()
+      .sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
+  }
+  function statementRange() {
+    var from = $('#stmtFrom'), to = $('#stmtTo');
+    var lo = from && from.value ? dayStart(new Date(from.value)).getTime() : 0;
+    var hi = to && to.value ? dayEnd(new Date(to.value)).getTime() : Number.MAX_SAFE_INTEGER;
+    return { lo: lo, hi: hi };
+  }
+  function renderCustomerProfile() {
+    var list = customers();
+    var c = list.filter(function (x) { return customerKey(x) === selectedCustomerKey; })[0];
+    if (!c) { closeCustomerProfile(); return; }
+    if ($('#cpAvatar')) $('#cpAvatar').textContent = initials(c.name);
+    if ($('#cpName')) $('#cpName').textContent = c.name;
+    if ($('#cpPhone')) $('#cpPhone').textContent = c.phone ? 'Phone · ' + c.phone : 'No phone on record';
+    var phone = String(c.phone || '').replace(/\D/g, '');
+    var wa = $('#cpWhatsApp');
+    if (wa) { if (phone) { wa.href = 'https://wa.me/91' + phone; wa.hidden = false; } else { wa.hidden = true; } }
+    if ($('#cpOrders')) $('#cpOrders').textContent = c.orders;
+    if ($('#cpLifetime')) $('#cpLifetime').textContent = money(c.total);
+    if ($('#cpOutstanding')) $('#cpOutstanding').textContent = money(c.outstanding);
+    if ($('#cpLast')) $('#cpLast').textContent = c.last || '—';
+    var invs = customerStatements();
+    var range = statementRange();
+    var win = invs.filter(function (i) { return (i.ts || 0) >= range.lo && (i.ts || 0) <= range.hi; });
+    var table = $('#statementTable');
+    if (table) {
+      table.innerHTML = win.length
+        ? win.map(function (i) {
+            var bal = Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0);
+            return '<tr>' +
+              '<td data-label="Date">' + esc(i.date) + '</td>' +
+              '<td data-label="Invoice"><span class="sku-tag">' + esc(i.id || i.number || '') + '</span></td>' +
+              '<td data-label="Item">' + esc(i.product || '—') + '</td>' +
+              '<td data-label="Total">' + money(i.total) + '</td>' +
+              '<td data-label="Paid">' + money(i.paid || 0) + '</td>' +
+              '<td data-label="Balance">' + (bal > 0 ? '<b>' + money(bal) + '</b>' : '—') + '</td>' +
+              '<td data-label="Status"><span class="status' + (i.paymentStatus === 'paid' ? '' : i.paymentStatus === 'partial' ? ' warn' : ' low') + '">' + esc(i.paymentStatus || 'paid') + '</span></td>' +
+              '</tr>';
+          }).join('')
+        : '<tr><td colspan="7" class="empty-cell">No invoices in this period.</td></tr>';
+    }
+    var closing = win.reduce(function (a, i) { return a + (Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0)); }, 0);
+    if ($('#stmtClosing')) $('#stmtClosing').textContent = 'Closing: ' + money(closing);
+    if ($('#customerProfile')) $('#customerProfile').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  function openCustomerProfile(key) {
+    selectedCustomerKey = key;
+    var box = $('#customerProfile');
+    if (box) box.hidden = false;
+    renderCustomerProfile();
+  }
+  function closeCustomerProfile() {
+    selectedCustomerKey = null;
+    var box = $('#customerProfile');
+    if (box) box.hidden = true;
+    var rows = $('#customerRows');
+    if (rows) rows.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  function statementText() {
+    var list = customers();
+    var c = list.filter(function (x) { return customerKey(x) === selectedCustomerKey; })[0];
+    if (!c) return '';
+    var range = statementRange();
+    var win = customerStatements().filter(function (i) { return (i.ts || 0) >= range.lo && (i.ts || 0) <= range.hi; });
+    var closing = win.reduce(function (a, i) { return a + (Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0)); }, 0);
+    var lines = [];
+    lines.push('Salesventory — Customer statement');
+    lines.push(c.name + (c.phone ? ' · ' + c.phone : ''));
+    lines.push('Created ' + fmtDay(Date.now()));
+    lines.push('');
+    lines.push('Date'.padEnd(12) + 'Invoice'.padEnd(14) + 'Total'.padEnd(12) + 'Paid'.padEnd(10) + 'Balance');
+    win.forEach(function (i) {
+      var bal = Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0);
+      lines.push((i.date || '').padEnd(12) + (i.id || '').slice(0, 13).padEnd(14) + money(i.total).padEnd(12) + money(i.paid || 0).padEnd(10) + money(bal));
+    });
+    lines.push('');
+    lines.push('Closing balance: ' + money(closing));
+    return lines.join('\n');
+  }
+  function copyStatement() {
+    var txt = statementText();
+    if (!txt) { toast('Nothing to copy'); return; }
+    function done() { toast('Statement copied'); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function () { fallbackCopy(txt, done); });
+    } else { fallbackCopy(txt, done); }
+  }
+  function fallbackCopy(txt, done) {
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { toast('Copy not supported'); }
+    document.body.removeChild(ta);
+  }
+  function downloadStatementCSV() {
+    var list = customers();
+    var c = list.filter(function (x) { return customerKey(x) === selectedCustomerKey; })[0];
+    if (!c) return;
+    var range = statementRange();
+    var win = customerStatements().filter(function (i) { return (i.ts || 0) >= range.lo && (i.ts || 0) <= range.hi; });
+    var rows = [['Date', 'Invoice', 'Item', 'Total', 'Paid', 'Balance', 'Status']];
+    win.forEach(function (i) {
+      var bal = Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0);
+      rows.push([i.date || '', i.id || '', i.product || '', i.total, i.paid || 0, bal, i.paymentStatus || '']);
+    });
+    var csv = rows.map(function (r) { return r.map(function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+    var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'customer-statement-' + (c.name || 'customer').replace(/\s+/g, '-').toLowerCase() + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 500);
+    toast('Statement exported as CSV');
+  }
+  function printStatement() {
+    var list = customers();
+    var c = list.filter(function (x) { return customerKey(x) === selectedCustomerKey; })[0];
+    if (!c) { toast('Nothing to print'); return; }
+    var range = statementRange();
+    var win = customerStatements().filter(function (i) { return (i.ts || 0) >= range.lo && (i.ts || 0) <= range.hi; });
+    var closing = win.reduce(function (a, i) { return a + (Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0)); }, 0);
+    var html = '<!doctype html><html><head><meta charset="utf-8"><title>Customer statement — ' + esc(c.name) + '</title>' +
+      '<style>body{font:13px/1.6 system-ui,sans-serif;color:#0F172A;margin:36px}h1{font-size:20px;margin:0 0 2px}p{color:#46566D;margin:2px 0}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #E4EAF2}th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#46566D}.sum{margin-top:16px;font-weight:700}</style></head><body>' +
+      '<h1>Salesventory — Customer statement</h1>' +
+      '<p><b>' + esc(c.name) + '</b></p>' +
+      '<p>' + (c.phone ? esc(c.phone) : 'No phone on record') + '</p>' +
+      '<p>Prepared ' + fmtDay(Date.now()) + '</p>' +
+      '<table><thead><tr><th>Date</th><th>Invoice</th><th>Item</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead><tbody>' +
+      (win.map(function (i) {
+        var bal = Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0);
+        return '<tr><td>' + esc(i.date) + '</td><td>' + esc(i.id || '') + '</td><td>' + esc(i.product || '') + '</td><td>' + money(i.total) + '</td><td>' + money(i.paid || 0) + '</td><td>' + (bal > 0 ? money(bal) : '—') + '</td><td>' + esc(i.paymentStatus || '') + '</td></tr>';
+      }).join('') || '<tr><td colspan="7">No invoices in this period.</td></tr>') +
+      '</tbody></table>' +
+      '<p class="sum">Closing balance: ' + money(closing) + '</p>' +
+      '</body></html>';
+    var pw = window.open('', '_blank', 'width=760,height=900');
+    if (pw) { pw.document.write(html); pw.document.close(); pw.focus(); setTimeout(function () { pw.print(); }, 350); }
+    else toast('Allow pop-ups to print');
+  }
+  function bindCustomers() {
+    var search = $('#customerSearch');
+    if (search) search.addEventListener('input', function () { selectedCustomerKey = null; renderCustomers(); });
+    var rows = $('#customerRows');
+    if (rows) rows.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-cust]');
+      if (!btn) return;
+      if (btn.tagName === 'A') return;
+      e.preventDefault();
+      openCustomerProfile(btn.dataset.cust);
+    });
+    var pf = $('#customerProfile');
+    if (pf) {
+      var byId = function (id) { return $(id); };
+      var close = byId('#cpClose');
+      if (close) close.addEventListener('click', closeCustomerProfile);
+      var copy = byId('#cpCopy');
+      if (copy) copy.addEventListener('click', copyStatement);
+      var csv = byId('#cpCsv');
+      if (csv) csv.addEventListener('click', downloadStatementCSV);
+      var pr = byId('#cpPrint');
+      if (pr) pr.addEventListener('click', printStatement);
+      ['#stmtFrom', '#stmtTo'].forEach(function (sel) {
+        var el = $(sel);
+        if (el) el.addEventListener('change', renderCustomerProfile);
+      });
+    }
   }
 
   /* ============ expenses ============ */
@@ -913,44 +1186,106 @@ var pid = paymentTarget.id;
   }
 
   /* ============ invoices / history ============ */
+  function invoiceOverdue(i) {
+    var bal = Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0);
+    if (!(bal > 0)) return false;
+    if (i.dueDate) return new Date(i.dueDate).getTime() < Date.now();
+    return i.ts ? (Date.now() - i.ts) > 30 * 864e5 : false;
+  }
   function invoicePayment(i) {
-    var c = i.paymentStatus === 'unpaid' ? ' low' : (i.paymentStatus === 'partial' ? ' warn' : '');
-    return '<span class="status' + c + '">' + esc(i.paymentStatus || 'paid') + '</span>';
+    if (invoiceOverdue(i)) return '<span class="status low">overdue</span>';
+    var stored = i.paymentStatus || 'paid';
+    var total = Number(i.total || 0);
+    var bal = Number(i.balance || 0);
+    var received = Number(i.paid || 0);
+    var status = stored;
+    if (received > 0) status = total > 0 && bal <= 0 ? 'paid' : (bal < total ? 'partial' : 'unpaid');
+    var c = status === 'unpaid' || status === 'partial' ? ' warn' : '';
+    var txt = status;
+    if (status === 'partial' && bal > 0) txt += ' · ' + money(bal) + ' left';
+    return '<span class="status' + c + '">' + esc(txt) + '</span>';
+  }
+  var invoiceFilter = 'all';
+  function invoiceFilterMatch(i) {
+    if (invoiceFilter === 'all') return true;
+    if (invoiceFilter === 'overdue') return invoiceOverdue(i);
+    return (i.paymentStatus || 'paid') === invoiceFilter;
   }
   function invoiceRow(i, compact) {
+    var due = '<td data-label="Due">' + esc(i.dueDate || '—') + '</td>';
     if (compact) {
       return '<tr>' +
         '<td data-label="Transaction"><b>' + esc(i.id) + '</b></td>' +
         '<td data-label="Customer">' + esc(i.customer) + '</td>' +
         '<td data-label="Item">' + esc(i.product) + '</td>' +
         '<td data-label="Amount"><b>' + money(i.total) + '</b></td>' +
+        due +
         '<td data-label="Status">' + invoicePayment(i) + '</td>' +
         '<td data-label="Date">' + esc(i.date) + '</td>' +
         '</tr>';
     }
     var canDelete = caps().deleteSales;
+    var receivable = Number(i.balance || 0) > 0;
+    var receive = receivable ? '<button class="action-btn" data-act="receive-payment" data-id="' + esc(i.id) + '">Receive</button>' : '';
     var del = canDelete ? '<button class="action-btn danger" data-act="delete-invoice" data-id="' + esc(i.id) + '">Delete</button>' : '';
     return '<tr>' +
       '<td data-label="Transaction"><b>' + esc(i.id) + '</b></td>' +
       '<td data-label="Customer">' + esc(i.customer) + '</td>' +
       '<td data-label="Item">' + esc(i.product) + ' × ' + i.qty + '</td>' +
       '<td data-label="Amount"><b>' + money(i.total) + '</b></td>' +
+      due +
       '<td data-label="Payment">' + invoicePayment(i) + '</td>' +
       '<td data-label="Date">' + esc(i.date) + '</td>' +
-      '<td data-label="Actions"><button class="action-btn" data-act="print-invoice" data-id="' + esc(i.id) + '">Print</button><button class="action-btn" data-act="share-invoice" data-id="' + esc(i.id) + '">WhatsApp</button>' + del + '</td>' +
+      '<td data-label="Actions">' + receive + '<button class="action-btn" data-act="print-invoice" data-id="' + esc(i.id) + '">Print</button><button class="action-btn" data-act="share-invoice" data-id="' + esc(i.id) + '">WhatsApp</button>' + del + '</td>' +
       '</tr>';
   }
   function renderInvoices() {
     var searchEl = $('#invoiceSearch');
     var q = (searchEl ? searchEl.value : '').toLowerCase();
-    var filtered = state.invoices.filter(function (i) { return (i.id + ' ' + i.customer + ' ' + i.phone).toLowerCase().indexOf(q) !== -1; });
-    if ($('#historyRows')) $('#historyRows').innerHTML = filtered.map(function (i) { return invoiceRow(i, false); }).join('') || '<tr><td colspan="7" class="empty-cell">No matching transactions.</td></tr>';
-    if ($('#recent')) $('#recent').innerHTML = state.invoices.slice(0, 5).map(function (i) { return invoiceRow(i, true); }).join('') || '<tr><td colspan="6" class="empty-cell">No transactions yet.</td></tr>';
+    var filtered = state.invoices.filter(function (i) { return (i.id + ' ' + i.customer + ' ' + i.phone).toLowerCase().indexOf(q) !== -1 && invoiceFilterMatch(i); });
+    if ($('#historyRows')) $('#historyRows').innerHTML = filtered.map(function (i) { return invoiceRow(i, false); }).join('') || '<tr><td colspan="8" class="empty-cell">No matching transactions.</td></tr>';
+    if ($('#recent')) $('#recent').innerHTML = state.invoices.slice(0, 5).map(function (i) { return invoiceRow(i, true); }).join('') || '<tr><td colspan="7" class="empty-cell">No transactions yet.</td></tr>';
   }
   function findInvoice(id) { return state.invoices.find(function (x) { return x.id === id; }); }
   function bindInvoices() {
     if ($('#invoiceSearch')) $('#invoiceSearch').addEventListener('input', renderInvoices);
+    var filter = $('#invoiceFilter');
+    if (filter) filter.addEventListener('change', function () { invoiceFilter = filter.value; renderInvoices(); });
     $('#historyRows').addEventListener('click', onInvoiceAction);
+  }
+  var receiptTarget = null;
+  function openReceiptDialog(i) {
+    receiptTarget = i;
+    var bal = Number(i.balance || 0);
+    $('#receiptAmount').value = bal > 0 ? bal : '';
+    $('#receiptBalance').textContent = 'Outstanding: ' + money(bal) + ' on ' + i.id;
+    $('#receiptMethod').value = 'cash';
+    $('#receiptRef').value = '';
+    $('#receiptDialog').showModal();
+  }
+  function bindReceiptDialog() {
+    if (!$('#receiptDialog')) return;
+    $('#receiptCancel').addEventListener('click', function () { $('#receiptDialog').close(); });
+    $('#receiptForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (!receiptTarget) return;
+      var amount = parseFloat($('#receiptAmount').value);
+      var method = $('#receiptMethod').value;
+      var ref = $('#receiptRef').value.trim();
+      if (!(amount > 0)) { toast('Enter the amount received'); return; }
+      var i = receiptTarget;
+      if (amount > Number(i.balance || 0) + 0.01) { toast('Amount exceeds the outstanding balance'); return; }
+      var newBal = Math.max(0, Number(i.balance || 0) - amount);
+      var newStatus = newBal <= 0.01 ? 'paid' : 'partial';
+      try {
+        await cloud.invoicePayments.create(state.businessId, i.cloudId, amount, method, ref || null, state.user ? state.user.id : null);
+        try { await cloud.invoices.updateStatus(i.cloudId, newStatus, method); }
+        catch (st) { toast('Payment saved but status sync failed'); }
+        await refreshCloudData();
+        $('#receiptDialog').close();
+        toast('Payment received');
+      } catch (err) { toast(friendly(err)); }
+    });
   }
   async function onInvoiceAction(e) {
     var btn = e.target.closest('[data-act]');
@@ -959,6 +1294,7 @@ var pid = paymentTarget.id;
     if (!i) return;
     if (btn.dataset.act === 'print-invoice') { printInvoice(i); return; }
     if (btn.dataset.act === 'share-invoice') { shareInvoice(i); return; }
+    if (btn.dataset.act === 'receive-payment') { openReceiptDialog(i); return; }
     if (btn.dataset.act === 'delete-invoice') {
       var ok = await confirmDialog('Delete transaction?', 'The transaction ' + i.id + ' will be removed and stock will be restored.');
       if (!ok) return;
@@ -995,42 +1331,84 @@ var pid = paymentTarget.id;
 
   /* ============ dashboard ============ */
   function renderDashboard() {
-    var revenue = state.invoices.reduce(function (a, b) { return a + b.total; }, 0);
-    var expenses = state.expenses.reduce(function (a, b) { return a + b.amount; }, 0);
-    var cogs = state.invoices.reduce(function (a, b) { return a + (Number(b.cost || 0) * Number(b.qty || 0)); }, 0);
-    if ($('#revenue')) $('#revenue').textContent = money(revenue);
-    if ($('#profit')) $('#profit').textContent = money(revenue - cogs - expenses);
-    if ($('#invoiceCount')) $('#invoiceCount').textContent = state.invoices.length;
-    if ($('#lowStock')) $('#lowStock').textContent = state.products.filter(function (p) { return !isService(p) && p.stock <= p.reorder; }).length;
+    var w = dashWindow();
+    var rangeInvs = state.invoices.filter(function (i) { return inWin(i.ts, w); });
+    var rangeExps = state.expenses.filter(function (x) { return inWin(x.ts, w); });
+    var rangePchs = state.purchases.filter(function (p) { return p.status !== 'cancelled' && inWin(p.ts, w); });
 
-    /* KPI strip */
+    var sales = rangeInvs.reduce(function (a, b) { return a + Number(b.total || 0); }, 0);
+    var cogs = rangeInvs.reduce(function (a, b) { return a + (Number(b.cost || 0) * Number(b.qty || 0)); }, 0);
+    var discounts = rangeInvs.reduce(function (a, b) { return a + Number(b.discount || 0); }, 0);
+    var expenses = rangeExps.reduce(function (a, b) { return a + Number(b.amount || 0); }, 0);
+    var purchases = rangePchs.reduce(function (a, b) { return a + Number(b.total || 0); }, 0);
+    var gross = sales - cogs - discounts;
+
+    if ($('#revenue')) $('#revenue').textContent = money(sales);
+    if ($('#dashRangeLabel')) $('#dashRangeLabel').textContent = w.label;
+    if ($('#dashPurchases')) $('#dashPurchases').textContent = money(purchases);
+    if ($('#dashExpenses')) $('#dashExpenses').textContent = money(expenses);
+    if ($('#dashGross')) $('#dashGross').textContent = moneySigned(gross);
+    if ($('#dashMargin')) $('#dashMargin').textContent = sales > 0 ? Math.round((gross / sales) * 100) + '%' : '0%';
+    if ($('#profit')) $('#profit').textContent = moneySigned(gross - expenses);
+    if ($('#kpiPnL')) $('#kpiPnL').textContent = moneySigned(gross - expenses);
+    if ($('#kpiPnLMeta')) $('#kpiPnLMeta').textContent = 'Net after COGS & expenses · ' + w.label;
+
+    var lowProds = state.products.filter(function (p) { return !isService(p) && p.stock <= p.reorder; });
+    if ($('#lowStock')) $('#lowStock').textContent = lowProds.length;
+    if ($('#oos')) $('#oos').textContent = state.products.filter(function (p) { return !isService(p) && p.stock <= 0; }).length;
+
+    /* today's sales */
     var todayInvoices = state.invoices.filter(function (i) { return isSameDay(i.ts); });
-    var todayRevenue = todayInvoices.reduce(function (a, b) { return a + b.total; }, 0);
-    var todayCogs = todayInvoices.reduce(function (a, b) { return a + (Number(b.cost || 0) * Number(b.qty || 0)); }, 0);
+    var todayRevenue = todayInvoices.reduce(function (a, b) { return a + Number(b.total || 0); }, 0);
     if ($('#kpiToday')) $('#kpiToday').textContent = money(todayRevenue);
     if ($('#kpiTodayMeta')) $('#kpiTodayMeta').textContent = todayInvoices.length ? todayInvoices.length + (todayInvoices.length === 1 ? ' sale today' : ' sales today') : 'No sales recorded yet';
-    var perProduct = {};
-    state.invoices.forEach(function (i) {
-      if (!perProduct[i.product]) perProduct[i.product] = { qty: 0, revenue: 0 };
-      perProduct[i.product].qty += Number(i.qty); perProduct[i.product].revenue += Number(i.total);
-    });
-    var ranked = Object.keys(perProduct)
-      .map(function (k) { return { name: k, qty: perProduct[k].qty, revenue: perProduct[k].revenue }; })
-      .sort(function (a, b) { return (b.qty - a.qty) || (b.revenue - a.revenue); });
-    var best = ranked[0];
-    if ($('#kpiBest')) $('#kpiBest').textContent = best ? best.name : '—';
-    if ($('#kpiBestMeta')) $('#kpiBestMeta').textContent = best ? best.qty + ' units · ' + money(best.revenue) : 'No sales data yet';
-    var pending = state.invoices.reduce(function (a, b) { return a + (b.paymentStatus !== 'paid' ? b.total : 0); }, 0);
+
+    /* balance-sheet KPIs */
+    var invBal = function (i) { return Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0); };
+    var receivables = state.invoices.reduce(function (a, b) { return a + invBal(b); }, 0);
+    var recvCount = state.invoices.filter(function (i) { return invBal(i) > 0; }).length;
+    var payables = state.purchases.filter(function (p) { return p.status !== 'cancelled'; }).reduce(function (a, b) { return a + Math.max(Number(b.balance || 0), 0); }, 0);
+    if ($('#kpiReceivables')) $('#kpiReceivables').textContent = money(receivables);
+    if ($('#kpiReceivablesMeta')) $('#kpiReceivablesMeta').textContent = recvCount ? recvCount + ' invoice(s) with balance' : 'No outstanding receivables';
+    if ($('#kpiPayables')) $('#kpiPayables').textContent = money(payables);
+    if ($('#kpiPayablesMeta')) $('#kpiPayablesMeta').textContent = 'Supplier bills to pay';
+    var stockValue = state.products.filter(function (p) { return !isService(p); }).reduce(function (a, p) { return a + (Number(p.cost || 0) * Number(p.stock || 0)); }, 0);
+    if ($('#kpiStockValue')) $('#kpiStockValue').textContent = money(stockValue);
+    if ($('#kpiStockValueMeta')) $('#kpiStockValueMeta').textContent = 'Valued at purchase cost';
+
+    /* outstanding + overdue */
+    var pending = state.invoices.reduce(function (a, b) { return a + invBal(b); }, 0);
     if ($('#kpiPending')) $('#kpiPending').textContent = money(pending);
     if ($('#kpiPendingMeta')) {
-      var pendCount = state.invoices.filter(function (i) { return i.paymentStatus !== 'paid'; }).length;
-      $('#kpiPendingMeta').textContent = pendCount ? pendCount + ' invoice(s) with outstanding balance' : 'No outstanding amounts';
+      var pendCount = state.invoices.filter(function (i) { return invBal(i) > 0; }).length;
+      var overdueCount = state.invoices.filter(function (i) {
+        if (!(invBal(i) > 0)) return false;
+        if (i.dueDate && new Date(i.dueDate).getTime() < Date.now()) return true;
+        return i.ts && !isSameDay(i.ts) && (Date.now() - i.ts) > 30 * 864e5;
+      }).length;
+      $('#kpiPendingMeta').textContent = (overdueCount ? overdueCount + ' overdue · ' : '') + (pendCount ? pendCount + ' invoice(s) with balance' : 'No outstanding amounts');
     }
-    var monthInvoices = state.invoices.filter(function (i) { return isSameMonth(i.ts); });
-    var monthCogs = monthInvoices.reduce(function (a, b) { return a + (Number(b.cost || 0) * Number(b.qty || 0)); }, 0);
-    var monthExpenses = state.expenses.filter(function (x) { return isSameMonth(x.ts); }).reduce(function (a, b) { return a + b.amount; }, 0);
-    if ($('#kpiPnL')) $('#kpiPnL').textContent = money(monthInvoices.reduce(function (a, b) { return a + b.total; }, 0) - monthCogs - monthExpenses);
-    if ($('#kpiPnLMeta')) $('#kpiPnLMeta').textContent = 'Sales minus cost & expenses this month';
+
+    /* top product + top customer (range) */
+    var perProduct = {}, perCustomer = {};
+    rangeInvs.forEach(function (i) {
+      if (!perProduct[i.product]) perProduct[i.product] = { qty: 0, revenue: 0 };
+      perProduct[i.product].qty += Number(i.qty); perProduct[i.product].revenue += Number(i.total);
+      if (!perCustomer[i.customer]) perCustomer[i.customer] = { count: 0, revenue: 0 };
+      perCustomer[i.customer].count += 1; perCustomer[i.customer].revenue += Number(i.total);
+    });
+    var prodRank = Object.keys(perProduct)
+      .map(function (k) { return { name: k, qty: perProduct[k].qty, revenue: perProduct[k].revenue }; })
+      .sort(function (a, b) { return (b.revenue - a.revenue) || (b.qty - a.qty); });
+    var best = prodRank[0];
+    if ($('#kpiBest')) $('#kpiBest').textContent = best ? best.name : '—';
+    if ($('#kpiBestMeta')) $('#kpiBestMeta').textContent = best ? best.qty + ' units · ' + money(best.revenue) : 'No sales data yet';
+    var custRank = Object.keys(perCustomer)
+      .map(function (k) { return { name: k, count: perCustomer[k].count, revenue: perCustomer[k].revenue }; })
+      .sort(function (a, b) { return b.revenue - a.revenue; });
+    var topCustomer = custRank[0];
+    if ($('#kpiTopCustomer')) $('#kpiTopCustomer').textContent = topCustomer ? topCustomer.name : '—';
+    if ($('#kpiTopCustomerMeta')) $('#kpiTopCustomerMeta').textContent = topCustomer ? topCustomer.count + ' order(s) · ' + money(topCustomer.revenue) : 'No customers yet';
 
     /* stock alerts */
     if ($('#alerts')) {
@@ -1045,27 +1423,40 @@ var pid = paymentTarget.id;
       $('#alerts').innerHTML = alerts || '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">No inventory alerts. Everything looks healthy.</p>';
     }
 
-    /* revenue chart */
-    var rangeSel = $('#rangeSel');
-    var range = Number(rangeSel ? rangeSel.value : 7);
-    var now = new Date();
-    var cutoff = range >= 30 ? new Date(now.getFullYear(), now.getMonth(), 1).getTime() : Date.now() - range * 864e5;
-    var daily = {};
-    state.invoices.forEach(function (i) {
-      if (i.ts && i.ts < cutoff) return;
-      var key = new Date(i.ts).toISOString().slice(0, 10);
-      daily[key] = (daily[key] || 0) + i.total;
+    /* trends: revenue + expenses, bucketed by day (month when window > 35 days) */
+    var monthMode = (w.to - w.from) > 35 * 864e5;
+    var bucketKey = function (d) { return monthMode ? (d.getFullYear() + '-' + String(d.getMonth() + 1)) : d.toISOString().slice(0, 10); };
+    var buckets = {};
+    rangeInvs.forEach(function (i) {
+      if (!i.ts) return;
+      var d = new Date(i.ts); if (isNaN(d.getTime())) return;
+      var k = bucketKey(d);
+      if (!buckets[k]) buckets[k] = { sales: 0, expenses: 0 };
+      buckets[k].sales += Number(i.total || 0);
     });
-    var keys = Object.keys(daily).sort();
-    var vals = keys.slice(-Math.min(range, keys.length)).map(function (k) { return [k, daily[k]]; });
-    var max = Math.max.apply(Math, vals.map(function (v) { return v[1]; }).concat([1]));
+    rangeExps.forEach(function (x) {
+      if (!x.ts) return;
+      var d = new Date(x.ts); if (isNaN(d.getTime())) return;
+      var k = bucketKey(d);
+      if (!buckets[k]) buckets[k] = { sales: 0, expenses: 0 };
+      buckets[k].expenses += Number(x.amount || 0);
+    });
+    var bvals = Object.keys(buckets).sort().map(function (k) { return [k, buckets[k]]; });
+    if (bvals.length > 40) bvals = bvals.slice(-40);
+    var maxSales = Math.max.apply(Math, bvals.map(function (v) { return v[1].sales; }).concat([1]));
+    var maxExp = Math.max.apply(Math, bvals.map(function (v) { return v[1].expenses; }).concat([1]));
+    var barFeed = function (key, v, max) {
+      return '<div class="bar-wrap"><div class="bar" style="height:' + Math.max(12, (v / max) * 150) + 'px" title="' + money(v) + '"></div><span>' + esc(key.slice(5).replace('-', '/')) + '</span></div>';
+    };
     if ($('#bars')) {
-      $('#bars').innerHTML = vals.length
-        ? vals.map(function (v) {
-            var label = v[0].slice(5);
-            return '<div class="bar-wrap"><div class="bar" style="height:' + Math.max(12, (v[1] / max) * 150) + 'px" title="' + money(v[1]) + '"></div><span>' + esc(label) + '</span></div>';
-          }).join('')
+      $('#bars').innerHTML = bvals.length
+        ? bvals.map(function (v) { return barFeed(v[0], v[1].sales, maxSales); }).join('')
         : '<p class="muted" style="padding:28px 22px">Sales chart appears once transactions are created.</p>';
+    }
+    if ($('#barsExp')) {
+      $('#barsExp').innerHTML = bvals.length
+        ? bvals.map(function (v) { return '<div class="bar-wrap"><div class="bar exp" style="height:' + Math.max(12, (v[1].expenses / maxExp) * 150) + 'px" title="' + money(v[1].expenses) + '"></div><span>' + esc(v[0].slice(5).replace('-', '/')) + '</span></div>'; }).join('')
+        : '<p class="muted" style="padding:28px 22px">Expense chart appears once expenses are recorded.</p>';
     }
   }
 
@@ -1100,6 +1491,124 @@ var pid = paymentTarget.id;
           return '<div class="report-row"><div><b>' + esc(name.toUpperCase()) + '</b><small>' + (revenue ? Math.round((v / revenue) * 100) : 0) + '% of sales</small></div><strong>' + money(v) + '</strong></div>';
         }).join('') || '<p class="muted" style="color:rgba(255,255,255,.85);padding:10px 0">No payment data yet.</p>';
     }
+    renderAging();
+  }
+
+  /* ============ receivables & payables ageing ============ */
+  function renderAging() {
+    var now = Date.now();
+    var ageDays = function (ts, due) {
+      var base = 0;
+      if (due) { var d = new Date(due); if (!isNaN(d.getTime())) base = d.getTime(); }
+      if (!base) base = ts || now;
+      return Math.max(0, Math.floor((now - base) / 864e5));
+    };
+    var bucketOf = function (d) { return d <= 30 ? '0-30' : d <= 60 ? '31-60' : d <= 90 ? '61-90' : '90+'; };
+    var invBal = function (i) { return Math.max(Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0), 0); };
+
+    var recvItems = state.invoices
+      .filter(function (i) { return invBal(i) > 0; })
+      .map(function (i) {
+        var d = ageDays(i.ts, i.dueDate);
+        return { bucket: bucketOf(d), days: d, party: i.customer, number: i.number, due: i.dueDate, total: Number(i.total || 0), balance: invBal(i) };
+      });
+    var payItems = state.purchases
+      .filter(function (p) { return p.status !== 'cancelled' && Number(p.balance || 0) > 0; })
+      .map(function (p) {
+        var d = ageDays(p.ts, p.dueDate);
+        return { bucket: bucketOf(d), days: d, party: p.supplier, number: p.number, due: p.dueDate, total: Number(p.total || 0), balance: Math.max(Number(p.balance || 0), 0) };
+      });
+
+    var total = function (arr) { return arr.reduce(function (a, x) { return a + x.balance; }, 0); };
+    if ($('#recvTotal')) $('#recvTotal').textContent = money(total(recvItems));
+    if ($('#payTotal')) $('#payTotal').textContent = money(total(payItems));
+
+    var strip = function (el, items) {
+      if (!el) return;
+      var buckets = { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 };
+      items.forEach(function (x) { buckets[x.bucket] = (buckets[x.bucket] || 0) + x.balance; });
+      el.innerHTML = ['0-30', '31-60', '61-90', '90+'].map(function (b) {
+        var v = buckets[b] || 0;
+        return '<div class="age-chip' + (b === '90+' && v > 0 ? ' danger' : '') + '"><span>' + b + ' days</span><b>' + money(v) + '</b></div>';
+      }).join('');
+    };
+    strip($('#recvBuckets'), recvItems);
+    strip($('#payBuckets'), payItems);
+
+    var rows = function (tbody, items) {
+      if (!tbody) return;
+      tbody.innerHTML = items.length
+        ? items.slice().sort(function (a, b) { return b.days - a.days; }).map(function (x) {
+            var due = x.due ? esc(String(x.due).slice(0, 10)) : '—';
+            return '<tr><td data-label="Party">' + esc(x.party) + '</td><td data-label="Document"><span class="sku-tag">' + esc(x.number) + '</span></td><td data-label="Due">' + due + '</td><td data-label="Total">' + money(x.total) + '</td><td data-label="Balance"><b>' + money(x.balance) + '</b></td></tr>';
+          }).join('')
+        : '<tr><td colspan="5" class="empty-cell">Nothing outstanding — all settled.</td></tr>';
+    };
+    rows($('#recvAgingTable'), recvItems);
+    rows($('#payAgingTable'), payItems);
+  }
+
+  /* ============ settings ============ */
+  var settingsLocked = false;
+  function renderSettings() {
+    if (!state.businessId) return;
+    var biz = state.businessProfile || {};
+    var isOwner = state.role === 'owner';
+    var hint = $('#settingsHint');
+    if (hint) hint.textContent = isOwner ? 'Business profile is updated here. Only the owner can change these details.' : 'Business profile is managed by the workspace owner.';
+    var roleEl = $('#settingsRole');
+    if (roleEl) { roleEl.textContent = 'Role · ' + (state.role || 'owner'); roleEl.hidden = false; }
+    var editable = !isOwner;
+    ['setName', 'setPhone', 'setAddress', 'setCurrency', 'setPrefix'].forEach(function (id) {
+      var el = $(id); if (el) el.disabled = editable;
+    });
+    var f = $('#settingsForm');
+    if (f && !settingsLocked) {
+      f._filled = true;
+      if ($('#setName')) $('#setName').value = biz.name || state.businessName || '';
+      if ($('#setPhone')) $('#setPhone').value = biz.phone || '';
+      if ($('#setAddress')) $('#setAddress').value = biz.address || '';
+      if ($('#setCurrency')) $('#setCurrency').value = state.currency || biz.currency || 'INR';
+      if ($('#setPrefix')) $('#setPrefix').value = biz.invoice_prefix || '';
+    }
+    if ($('#setBusinessId')) $('#setBusinessId').textContent = state.businessId;
+    if ($('#setSlug')) $('#setSlug').textContent = biz.slug || '—';
+    if ($('#setRole')) $('#setRole').textContent = state.role || '—';
+    var plan = $('#setPlan');
+    if (plan) plan.textContent = billingState && billingState.plan ? billingState.plan : 'Active subscription';
+  }
+  function bindSettings() {
+    var form = $('#settingsForm');
+    if (!form) return;
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (!state.businessId) { toast('Open your cloud workspace first'); return; }
+      if (state.role !== 'owner') { toast('Only the business owner can save settings'); return; }
+      var patch = {
+        name: $('#setName').value.trim(),
+        phone: $('#setPhone').value.trim() || null,
+        address: $('#setAddress').value.trim() || null,
+        currency: $('#setCurrency').value,
+        invoice_prefix: $('#setPrefix').value.trim()
+      };
+      if (!patch.name) { toast('Business name is required'); return; }
+      try {
+        settingsLocked = true;
+        var updated = await cloud.businesses.update(state.businessId, patch);
+        settingsLocked = false;
+        state.businessProfile = updated || state.businessProfile;
+        state.businessName = updated.name || state.businessName;
+        state.currency = updated.currency || state.currency;
+        var bn = $('#businessName'); if (bn) bn.textContent = state.businessName;
+        var sn = $('#storeName'); if (sn) sn.textContent = state.businessName;
+        var meta = $('#storeMeta'); if (meta) meta.textContent = 'Business · cloud · ' + state.currency;
+        var ini = initials(state.businessName);
+        var sa = $('#storeAvatar'); if (sa) sa.textContent = ini;
+        var pb = $('#profileBadge'); if (pb) pb.textContent = ini;
+        renderSettings();
+        toast('Settings saved');
+      } catch (err) { settingsLocked = false; toast(friendly(err)); }
+    });
   }
 
   /* ============ export ============ */
@@ -1119,12 +1628,112 @@ var pid = paymentTarget.id;
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 500);
       toast('Business data exported');
     });
-    if ($('#rangeSel')) $('#rangeSel').addEventListener('change', renderDashboard);
+  }
+
+  function downloadCSV(filename, headers, rows) {
+    var csvCell = function (v) {
+      var s = v === null || v === undefined ? '' : String(v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    var lines = [headers.map(csvCell).join(',')].concat(rows.map(function (r) { return r.map(csvCell).join(','); }));
+    var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 500);
+    toast('Report exported');
+  }
+  function reportCSV(kind) {
+    var now = new Date().toISOString().slice(0, 10);
+    if (kind === 'sales') {
+      downloadCSV('salesventory-transactions-' + now + '.csv',
+        ['Transaction', 'Customer', 'Phone', 'Item', 'Qty', 'Rate', 'Subtotal', 'Discount', 'Total', 'Paid', 'Balance', 'Status', 'Due', 'Method', 'Date'],
+        (state.invoices || []).map(function (i) {
+          return [i.id, i.customer, i.phone, i.product, i.qty, i.rate, i.subtotal, i.discount, i.total, i.paid, i.balance,
+            invoiceOverdue(i) ? 'overdue' : (i.paymentStatus || 'paid'), i.dueDate || '', i.paymentMethod || '', i.date];
+        }));
+      return;
+    }
+    if (kind === 'expenses') {
+      downloadCSV('salesventory-expenses-' + now + '.csv',
+        ['Date', 'Category', 'Amount', 'Note'],
+        (state.expenses || []).map(function (e) { return [e.date, e.category, e.amount, e.note]; }));
+      return;
+    }
+    if (kind === 'inventory') {
+      downloadCSV('salesventory-inventory-' + now + '.csv',
+        ['Name', 'SKU', 'Category', 'Unit', 'Cost', 'Selling price', 'Stock', 'Reorder', 'Stock value'],
+        (state.products || []).map(function (p) {
+          return [p.name, p.sku || '', p.category || '', p.unit || '', p.cost, p.price, p.stock, p.reorder, Number(p.stock || 0) * Number(p.cost || 0)];
+        }));
+      return;
+    }
+    if (kind === 'receivables') {
+      var open = (state.invoices || []).filter(function (i) { return Number(i.balance || 0) > 0; });
+      downloadCSV('salesventory-receivables-' + now + '.csv',
+        ['Customer', 'Invoice', 'Due date', 'Total', 'Paid', 'Balance', 'Age'],
+        open.map(function (i) {
+          return [i.customer, i.id, i.dueDate || '', i.total, i.paid, i.balance,
+            i.dueDate ? Math.max(0, Math.floor((Date.now() - new Date(i.dueDate).getTime()) / 864e5)) + ' days' : ''];
+        }));
+    }
+  }
+  function printReport() {
+    var w = window.open('', '_blank', 'width=1024,height=900');
+    if (!w) { toast('Pop-up blocked. Allow pop-ups to print reports.'); return; }
+    var open = (state.invoices || []).filter(function (i) { return Number(i.balance || 0) > 0; });
+    var invRows = (state.invoices || []).slice(0, 100).map(function (i) {
+      return '<tr><td>' + esc(i.id) + '</td><td>' + esc(i.customer) + '</td><td>' + esc(i.product) + ' × ' + i.qty + '</td>' +
+        '<td class="num">' + money(i.total) + '</td><td>' + (invoiceOverdue(i) ? 'overdue' : esc(i.paymentStatus || 'paid')) + '</td><td>' + esc(i.date) + '</td></tr>';
+    }).join('');
+    var expRows = (state.expenses || []).slice(0, 100).map(function (e) {
+      return '<tr><td>' + esc(e.date) + '</td><td>' + esc(e.category) + '</td><td>' + money(e.amount) + '</td><td>' + esc(e.note) + '</td></tr>';
+    }).join('');
+    var invValue = (state.products || []).reduce(function (a, p) { return a + Number(p.stock || 0) * Number(p.cost || 0); }, 0);
+    var trxTotal = (state.invoices || []).reduce(function (a, i) { return a + Number(i.total || 0); }, 0);
+    var expTotal = (state.expenses || []).reduce(function (a, e) { return a + Number(e.amount || 0); }, 0);
+    w.document.write(
+      '<!doctype html><html><head><meta charset="utf-8"><title>Salesventory report</title>' +
+      '<style>body{font-family:Helvetica,Arial,sans-serif;color:#111;margin:32px;font-size:12px}' +
+      'h1{font-size:20px;margin:0 0 2px}h2{font-size:13px;margin:22px 0 8px;text-transform:uppercase;letter-spacing:.05em}' +
+      '.muted{color:#666}.tl{overflow:hidden;margin:0 0 6px}.tl b{float:right}' +
+      'table{width:100%;border-collapse:collapse;margin:0 0 4px}' +
+      'th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;font-size:11px}' +
+      'th{background:#f4f4f4}.num{text-align:right}.tot{font-weight:bold;font-size:12px}' +
+      '.sum li{display:inline-block;margin-right:26px}.sum .k{color:#666;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em}' +
+      '</style></head><body>' +
+      '<h1>' + esc(state.businessName) + '</h1><div class="muted">Business performance report · Generated ' + new Date().toDateString() + '</div>' +
+      '<div class="sum"><ul style="list-style:none;padding:0">' +
+      '<li><span class="k">Total sales</span><b>' + money(trxTotal) + '</b></li>' +
+      '<li><span class="k">Total expenses</span><b>' + money(expTotal) + '</b></li>' +
+      '<li><span class="k">Inventory value</span><b>' + money(invValue) + '</b></li>' +
+      '<li><span class="k">Outstanding</span><b>' + money(open.reduce(function (a, i) { return a + Number(i.balance || 0); }, 0)) + '</b></li>' +
+      '</ul></div>' +
+      '<h2>Transactions</h2><table><thead><tr><th>ID</th><th>Customer</th><th>Item</th><th class="num">Total</th><th>Status</th><th>Date</th></tr></thead><tbody>' + (invRows || '<tr><td colspan="6">No transactions</td></tr>') + '</tbody></table>' +
+      '<h2>Expenses</h2><table><thead><tr><th>Date</th><th>Category</th><th class="num">Amount</th><th>Note</th></tr></thead><tbody>' + (expRows || '<tr><td colspan="4">No expenses</td></tr>') + '</tbody></table>' +
+      '<h2>Outstanding receivables</h2><table><thead><tr><th>Customer</th><th>Invoice</th><th class="num">Balance</th></tr></thead><tbody>' +
+      (open.map(function (i) { return '<tr><td>' + esc(i.customer) + '</td><td>' + esc(i.id) + '</td><td class="num">' + money(i.balance) + '</td></tr>'; }).join('') || '<tr><td colspan="3">All settled</td></tr>') +
+      '</tbody></table>' +
+      '<p class="muted">Exported from Salesventory. Business ID: ' + esc(state.businessId || '—') + '</p>' +
+      '</body></html>');
+    w.document.close();
+    w.focus();
+    w.print();
+  }
+  function bindReports() {
+    var map = { csvSalesBtn: 'sales', csvExpensesBtn: 'expenses', csvInventoryBtn: 'inventory', csvAgingBtn: 'receivables' };
+    Object.keys(map).forEach(function (id) {
+      var btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', function () { reportCSV(map[id]); });
+    });
+    var pb = $('#printReportBtn');
+    if (pb) pb.addEventListener('click', printReport);
   }
 
   /* ============ plans & billing ============ */
   var PLANS = { INR: { monthly: { amount: 399, label: '₹399' }, annual: { amount: 3990, label: '₹3,990' } }, USD: { monthly: { amount: 4.99, label: '$4.99' }, annual: { amount: 49.99, label: '$49.99' } } };
-  var billingState = { interval: 'monthly', currency: 'INR', config: null, ready: false, loading: false };
+  var billingState = { interval: 'monthly', currency: 'INR', config: null, ready: false, loading: false, lastAttempt: 0, failTries: 0, error: null };
   var razorpayPromise = null;
 
   async function authToken() {
@@ -1191,7 +1800,12 @@ var pid = paymentTarget.id;
       if (note) note.textContent = 'Sign in with a cloud workspace to manage or activate your plan.';
       return;
     }
-    if (!billingState.ready) { loadBillingStatus(); return; }
+    if (!billingState.ready) {
+      var pendingNote = $('#planCtaNote');
+      if (pendingNote && billingState.error) pendingNote.textContent = billingState.error;
+      if (!billingState.loading && billingState.failTries < 2 && Date.now() - billingState.lastAttempt > 8000) { loadBillingStatus(); return; }
+      return;
+    }
 
     var cardEl = $('#planStatusCard');
     var titleEl = $('#planStatusTitle'), metaEl = $('#planStatusMeta');
@@ -1233,15 +1847,18 @@ var pid = paymentTarget.id;
   async function loadBillingStatus() {
     if (billingState.loading) return;
     billingState.loading = true;
+    billingState.lastAttempt = Date.now();
     var cardEl = $('#planStatusCard');
     try {
       billingState.config = await billingStatus();
       billingState.ready = true;
+      billingState.error = null;
+      billingState.failTries = 0;
     } catch (err) {
       billingState.ready = false;
+      billingState.failTries = (billingState.failTries || 0) + 1;
+      billingState.error = billingState.failTries > 2 ? 'Billing status is temporarily unavailable. Refresh the page to retry.' : friendly(err);
       if (cardEl) cardEl.hidden = true;
-      var note = $('#planCtaNote');
-      if (note) note.textContent = friendly(err);
     } finally {
       billingState.loading = false;
     }
@@ -1415,10 +2032,15 @@ var pid = paymentTarget.id;
     });
   }
   /* ============ render all ============ */
+  var rendering = false;
   function renderAll() {
-    productOptions(); renderInventory(); renderCustomers(); renderSuppliers(); renderPurchases(); renderExpenses();
-    renderInvoices(); renderDashboard(); renderReports();
-    renderPlans(); updatePreview();
+    if (rendering) return;
+    rendering = true;
+    try {
+      productOptions(); renderInventory(); renderCustomers(); renderSuppliers(); renderPurchases(); renderExpenses();
+      renderInvoices(); renderDashboard(); renderReports();
+      renderPlans(); updatePreview(); renderSettings();
+    } finally { rendering = false; }
   }
 
 /* ============ mobile menu ============ */
@@ -1461,13 +2083,30 @@ var pid = paymentTarget.id;
     bindMenu();
     bindAuth();
     bindExport();
+    var dashRange = $('#dashRange');
+    if (dashRange) {
+      dashRange.addEventListener('change', function () {
+        var custom = dashRange.value === 'custom';
+        var f = $('#dashFrom'), t = $('#dashTo');
+        if (f) f.disabled = !custom;
+        if (t) t.disabled = !custom;
+        renderDashboard();
+      });
+      ['#dashFrom', '#dashTo'].forEach(function (sel) {
+        var el = $(sel);
+        if (el) el.addEventListener('change', renderDashboard);
+      });
+    }
     if (page === 'billing') bindSale();
     if (page === 'inventory') bindInventory();
     if (page === 'suppliers') bindSuppliers();
+    if (page === 'customers') bindCustomers();
     if (page === 'purchases') bindPurchases();
     if (page === 'expenses') bindExpenses();
-    if (page === 'history') bindInvoices();
+    if (page === 'history') { bindInvoices(); bindReceiptDialog(); }
+    if (page === 'reports') bindReports();
     if (page === 'plans') bindPlans();
+    if (page === 'settings') bindSettings();
     initAuth();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });

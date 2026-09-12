@@ -7,7 +7,8 @@
 <script>(function(){try{var t=localStorage.getItem('sv-theme');if(!t)t=(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
 <meta name="description" content="Salesventory — a calm, premium workspace for fashion retail: sales, inventory, customers, expenses and business analytics in one place.">
 <title>Overview — Salesventory</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236E6CFF'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='34' fill='%23fff' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="assets/logo.png">
+<link rel="apple-touch-icon" href="assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,7 +21,7 @@
 <div id="app" class="app">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <span class="brand-mark small">S</span>
+      <span class="brand-mark small logo-img"><img src="assets/logo.png" alt="Salesventory"></span>
       <div><b>Salesventory</b><small id="businessName">Business workspace</small></div>
     </div>
     <div class="store-card">
@@ -40,6 +41,7 @@
       <a class="nav" data-view="history" href="history.html"><i>08</i><span>Transactions</span></a>
       <a class="nav" data-view="reports" href="reports.html"><i>09</i><span>Analytics</span></a>
       <a class="nav" data-view="plans" href="plans.html"><i>10</i><span>Plans &amp; billing</span></a>
+      <a class="nav" data-view="settings" href="settings.html"><i>11</i><span>Settings</span></a>
     </nav>
     <div class="side-footer">
       <span id="modeBadge" class="mode-badge">Cloud workspace</span>
@@ -63,41 +65,77 @@
       </div>
     </header>
 
-    <!-- OVERVIEW -->
+<!-- OVERVIEW -->
     <section id="dashboard" class="view active-view">
       <div class="page-intro">
         <div><p class="kicker">AT A GLANCE</p><h3>Your business is moving <em>forward.</em></h3></div>
         <p>Everything that needs your attention, without the noise.</p>
       </div>
+      <div class="dash-filter" role="group" aria-label="Dashboard date range">
+        <label for="dashRange">Period</label>
+        <select id="dashRange" class="compact-select" aria-label="Dashboard date range">
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="7d" selected>Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+          <option value="month">This month</option>
+          <option value="lastmonth">Last month</option>
+          <option value="year">This year</option>
+          <option value="custom">Custom range</option>
+        </select>
+        <input type="date" id="dashFrom" aria-label="Start date" disabled>
+        <input type="date" id="dashTo" aria-label="End date" disabled>
+      </div>
       <div class="dashboard-strip">
-        <article class="primary-stat"><span>Net sales</span><strong id="revenue">₹0</strong><small>Across completed transactions</small></article>
-        <article><span>Net profit</span><strong id="profit">₹0</strong><small>After costs and expenses</small></article>
-        <article><span>Transactions</span><strong id="invoiceCount">0</strong><small>Recorded in workspace</small></article>
-        <article><span>Stock alerts</span><strong id="lowStock">0</strong><small>Below reorder level</small></article>
+        <article class="primary-stat"><span>Net sales · <b id="dashRangeLabel">Last 7 days</b></span><strong id="revenue">₹0</strong><small>Gross sales in period</small></article>
+        <article><span>Purchases</span><strong id="dashPurchases">₹0</strong><small>Bills recorded in period</small></article>
+        <article><span>Expenses</span><strong id="dashExpenses">₹0</strong><small>Operating costs in period</small></article>
+        <article><span>Net profit</span><strong id="profit">₹0</strong><small>After cost of goods &amp; expenses</small></article>
       </div>
       <div class="kpi-strip">
         <article><span>Today's sales</span><strong id="kpiToday">₹0</strong><small id="kpiTodayMeta">No sales recorded yet</small></article>
+        <article><span>Receivables</span><strong id="kpiReceivables">₹0</strong><small id="kpiReceivablesMeta">Customer balances</small></article>
+        <article><span>Payables</span><strong id="kpiPayables">₹0</strong><small id="kpiPayablesMeta">Supplier bills to pay</small></article>
+        <article class="tinted"><span>Stock value</span><strong id="kpiStockValue">₹0</strong><small id="kpiStockValueMeta">Valued at purchase cost</small></article>
+      </div>
+      <div class="kpi-strip">
         <article><span>Best seller</span><strong id="kpiBest">—</strong><small id="kpiBestMeta">No sales data yet</small></article>
+        <article><span>Top customer</span><strong id="kpiTopCustomer">—</strong><small id="kpiTopCustomerMeta">No customers yet</small></article>
         <article><span>Pending payments</span><strong id="kpiPending">₹0</strong><small id="kpiPendingMeta">Invoice receivables</small></article>
-        <article class="tinted"><span>Profit &amp; loss</span><strong id="kpiPnL">₹0</strong><small id="kpiPnLMeta">Current period</small></article>
+        <article class="tinted"><span>Profit &amp; loss</span><strong id="kpiPnL">₹0</strong><small id="kpiPnLMeta">Net in period</small></article>
       </div>
       <div class="dashboard-layout">
         <article class="panel">
           <div class="panel-head">
-            <div><p class="kicker">REVENUE FLOW</p><h3>Recent sales</h3></div>
-            <select id="rangeSel" class="compact-select" aria-label="Chart range">
-              <option value="7">Last 7 days</option>
-              <option value="30">This month</option>
-            </select>
+            <div><p class="kicker">REVENUE FLOW</p><h3>Sales trend</h3></div>
           </div>
           <div id="bars" class="bars"></div>
         </article>
+        <article class="panel">
+          <div class="panel-head">
+            <div><p class="kicker">COST FLOW</p><h3>Expense trend</h3></div>
+          </div>
+          <div id="barsExp" class="bars"></div>
+        </article>
+      </div>
+      <div class="dashboard-layout">
         <article class="attention-panel">
           <div class="panel-head">
             <div><p class="kicker light">NEEDS ATTENTION</p><h3>Stock health</h3></div>
             <button class="text-link light-link" data-go="inventory" type="button">Open inventory ↗</button>
           </div>
           <div id="alerts"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head">
+            <div><p class="kicker">SNAPSHOT</p><h3>Margins &amp; stock</h3></div>
+          </div>
+          <div class="mini-kpis">
+            <div><span>Gross profit</span><b id="dashGross">₹0</b></div>
+            <div><span>Margin %</span><b id="dashMargin">0%</b></div>
+            <div><span>Low stock</span><b id="lowStock">0</b></div>
+            <div><span>Out of stock</span><b id="oos">0</b></div>
+          </div>
         </article>
       </div>
       <article class="panel table-panel">

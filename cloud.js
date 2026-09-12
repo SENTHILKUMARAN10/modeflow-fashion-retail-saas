@@ -44,6 +44,12 @@
         return one(client.from('business_members')
           .select('role,businesses(id,name,slug,currency,phone,address)')
           .order('created_at', { ascending: true }));
+      },
+      get: function (businessId) {
+        return one(client.from('businesses').select('*').eq('id', businessId).maybeSingle());
+      },
+      update: function (businessId, patch) {
+        return one(client.from('businesses').update(patch).eq('id', businessId).select().single());
       }
     },
     products: {
@@ -52,12 +58,22 @@
           .select('*').eq('business_id', businessId).eq('is_active', true).order('name'));
       },
       create: function (businessId, p) {
-        var body = { business_id: businessId, name: p.name, cost_price: p.cost, selling_price: p.price, unit: p.service ? 'service' : 'pcs', track_stock: !p.service };
+        var body = {
+          business_id: businessId, name: p.name, cost_price: p.cost, selling_price: p.price,
+          unit: p.unit || (p.service ? 'service' : 'pcs'),
+          sku: p.sku || null, category: p.category || null, barcode: p.barcode || null,
+          track_stock: !p.service
+        };
         if (!p.service) { body.stock = p.stock; body.reorder_level = p.reorder; }
         return one(client.from('products').insert(body).select().single());
       },
       update: function (id, p) {
-        var body = { name: p.name, cost_price: p.cost, selling_price: p.price, track_stock: !p.service, unit: p.service ? 'service' : 'pcs' };
+        var body = {
+          name: p.name, cost_price: p.cost, selling_price: p.price,
+          unit: p.unit || (p.service ? 'service' : 'pcs'),
+          sku: p.sku || null, category: p.category || null, barcode: p.barcode || null,
+          track_stock: !p.service
+        };
         if (p.service) { body.stock = 999; body.reorder_level = 0; }
         else { body.stock = p.stock; body.reorder_level = p.reorder; }
         return one(client.from('products').update(body).eq('id', id).select().single());
@@ -73,10 +89,18 @@
     invoices: {
       list: function (businessId) {
         return one(client.from('invoices')
-          .select('*,invoice_items(*)').eq('business_id', businessId).order('created_at', { ascending: false }));
+          .select('*,invoice_items(*),invoice_payments(*)').eq('business_id', businessId).order('created_at', { ascending: false }));
       },
       checkout: function (payload) {
         return client.rpc('complete_sale', payload).then(function (r) { if (r.error) throw r.error; return r.data; });
+      },
+      checkoutMulti: function (payload) {
+        return client.rpc('complete_multi_item_sale', payload).then(function (r) { if (r.error) throw r.error; return r.data; });
+      },
+      updateStatus: function (id, status, method) {
+        var body = { payment_status: status };
+        if (method) body.payment_method = method;
+        return one(client.from('invoices').update(body).eq('id', id).select().single());
       },
       remove: function (id) {
         return client.rpc('delete_sale', { p_invoice_id: id }).then(function (r) { if (r.error) throw r.error; });
@@ -140,6 +164,16 @@
       create: function (purchaseId, amount, method, reference) {
         return client.rpc('record_purchase_payment', { p_purchase_id: purchaseId, p_amount: amount, p_payment_method: method || 'bank', p_reference: reference || null })
           .then(function (r) { if (r.error) throw r.error; return r.data; });
+      }
+    },
+    invoicePayments: {
+      create: function (businessId, invoiceId, amount, method, reference, userId) {
+        return one(client.from('invoice_payments')
+          .insert({
+            business_id: businessId, invoice_id: invoiceId, amount: amount,
+            payment_method: method || 'cash', reference: reference || null, created_by: userId
+          })
+          .select().single());
       }
     },
     realtime: {

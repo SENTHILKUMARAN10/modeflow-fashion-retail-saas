@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#070B14">
 <script>(function(){try{var t=localStorage.getItem('sv-theme');if(!t)t=(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
-<meta name="description" content="Salesventory — a calm, premium workspace for fashion retail: sales, inventory, customers, expenses and business analytics in one place.">
-<title>Plans &amp; billing — Salesventory</title>
+<meta name="description" content="Salesventory — business profile, GSTIN/PAN, address, invoice numbering and tax defaults in one place.">
+<title>Settings — Salesventory</title>
 <link rel="icon" href="assets/logo.png">
 <link rel="apple-touch-icon" href="assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,7 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css?v=20260912">
 </head>
-<body data-page="plans">
+<body data-page="settings">
 
 <div id="login" class="hidden"></div>
 
@@ -40,8 +40,8 @@
       <a class="nav" data-view="expenses" href="expenses.html"><i>07</i><span>Expenses</span></a>
       <a class="nav" data-view="history" href="history.html"><i>08</i><span>Transactions</span></a>
       <a class="nav" data-view="reports" href="reports.html"><i>09</i><span>Analytics</span></a>
-      <a class="nav active" data-view="plans" aria-current="page" href="plans.html"><i>10</i><span>Plans &amp; billing</span></a>
-      <a class="nav" data-view="settings" href="settings.html"><i>11</i><span>Settings</span></a>
+      <a class="nav" data-view="plans" href="plans.html"><i>10</i><span>Plans &amp; billing</span></a>
+      <a class="nav active" data-view="settings" aria-current="page" href="settings.html"><i>11</i><span>Settings</span></a>
     </nav>
     <div class="side-footer">
       <span id="modeBadge" class="mode-badge">Cloud workspace</span>
@@ -53,8 +53,8 @@
   <main>
     <header class="topbar">
       <div class="topbar-copy">
-        <p class="kicker" id="eyebrow">PLANS &amp; BILLING</p>
-        <h2 id="title">Manage your subscription</h2>
+        <p class="kicker" id="eyebrow">WORKSPACE SETTINGS</p>
+        <h2 id="title">Tune your business profile.</h2>
       </div>
       <div class="header-actions">
         <button id="menuToggle" class="icon-btn menu-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
@@ -65,54 +65,41 @@
       </div>
     </header>
 
-    <!-- PLANS & BILLING -->
-    <section id="plans" class="view active-view">
+    <section id="settings" class="view active-view">
       <div class="page-intro">
-        <div><p class="kicker">PLANS &amp; BILLING</p><h3>Simple pricing. <em>Serious tools.</em></h3></div>
-        <p>One plan for a complete business workspace. Pay monthly or yearly.</p>
+        <div><p class="kicker">BUSINESS PROFILE</p><h3>Identity, numbering <em>&amp; defaults.</em></h3></div>
+        <p id="settingsHint" class="micro" style="max-width:540px"></p>
       </div>
-      <article id="planStatusCard" class="plan-status-card" hidden>
-        <div><p class="kicker">CURRENT PLAN</p><h3 id="planStatusTitle">Loading…</h3></div>
-        <div class="plan-status-actions">
-          <button id="syncPlan" class="btn secondary" type="button">Sync with provider</button>
-          <button id="cancelPlan" class="btn ghost danger-ghost" type="button">Cancel subscription</button>
-        </div>
-        <p id="planStatusMeta" class="plan-status-meta"></p>
-      </article>
-      <div class="billing-toolbar">
-        <div class="interval-toggle" role="group" aria-label="Billing interval">
-          <button class="interval-btn active" data-interval="monthly" aria-pressed="true" type="button">Monthly</button>
-          <button class="interval-btn" data-interval="annual" aria-pressed="false" type="button">Annual</button>
-        </div>
-        <div class="currency-toggle" role="group" aria-label="Currency">
-          <button class="currency-btn active" data-currency="INR" aria-pressed="true" type="button">₹ INR</button>
-          <button class="currency-btn" data-currency="USD" aria-pressed="false" type="button">$ USD</button>
-        </div>
-      </div>
-      <div class="plan-grid">
-        <article class="plan-card featured">
-          <div class="plan-head"><p class="kicker">SALESVENTORY</p><h3>Business plan</h3></div>
-          <div class="plan-price"><strong id="planPrice">₹399</strong><span id="planPriceMeta">/ month</span></div>
-          <p class="plan-lede">Everything a growing retailer needs to run the business — no hidden tiers.</p>
-          <ul class="plan-features">
-            <li>Unlimited sales &amp; invoices</li>
-            <li>Product &amp; service catalogue</li>
-            <li>Customers with lifetime value</li>
-            <li>Expenses &amp; profit analytics</li>
-            <li>Receipts, print &amp; WhatsApp share</li>
-            <li>Secure cloud data + backups</li>
-          </ul>
-          <button id="upgradePlan" class="btn primary large full" type="button">Upgrade now</button>
-          <p id="planCtaNote" class="plan-note"></p>
+      <div class="dashboard-layout settings-layout">
+        <article class="panel">
+          <div class="panel-head"><h3>Business profile</h3><span id="settingsRole" class="role-badge" hidden></span></div>
+          <form id="settingsForm" class="settings-form" novalidate>
+            <label>Business name<input id="setName" type="text" required maxlength="120" autocomplete="organization"></label>
+            <label>Phone<input id="setPhone" type="tel" inputmode="tel" autocomplete="tel"></label>
+            <label>Address<textarea id="setAddress" rows="3" autocomplete="street-address"></textarea></label>
+            <div class="form-grid">
+              <label>Currency<select id="setCurrency" aria-label="Currency">
+                <option value="INR">INR — ₹ Indian Rupee</option>
+                <option value="USD">USD — $ US Dollar</option>
+              </select></label>
+              <label>Invoice prefix<input id="setPrefix" type="text" maxlength="10" pattern="[A-Za-z0-9-]{2,10}" placeholder="Example: SD or FASHION"><small>2–10 letters/numbers/dashes, shown on every invoice number.</small></label>
+            </div>
+            <div class="dialog-actions" style="justify-content:flex-start">
+              <button class="btn primary" type="submit">Save settings</button>
+            </div>
+          </form>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><h3>Workspace details</h3></div>
+          <dl class="settings-details">
+            <div><dt>Business ID</dt><dd id="setBusinessId">—</dd></div>
+            <div><dt>Slug</dt><dd id="setSlug">—</dd></div>
+            <div><dt>Role</dt><dd id="setRole">—</dd></div>
+            <div><dt>Plan</dt><dd id="setPlan">—</dd></div>
+          </dl>
+          <p class="micro" style="color:var(--ink-3);line-height:1.7">GSTIN, PAN, tax defaults and invoice templates arrive with the GST module. Your tax invoice currently uses this business name and invoice prefix.</p>
         </article>
       </div>
-      <article class="panel plan-help">
-        <div><p class="kicker">NEED HELP?</p><h3>Payments &amp; support</h3><p>UPI fallback, invoices and support contact are handled from here.</p></div>
-        <div class="plan-help-actions">
-          <button id="manualUpiButton" class="btn secondary" type="button">Pay by UPI (fallback)</button>
-          <a id="supportLink" class="text-link" target="_blank" rel="noopener">Contact support ↗</a>
-        </div>
-      </article>
     </section>
   </main>
 </div>
@@ -130,7 +117,6 @@
 
 <div id="toast" class="toast" role="status"></div>
 <div id="menuBackdrop" class="menu-backdrop"></div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase/config.js"></script>
 <script src="cloud.js"></script>
