@@ -67,10 +67,14 @@
     const id=t.dataset.view||t.dataset.go||(t.classList.contains('goto-billing')?'billing':null);if(!valid(id))return;
     setTimeout(()=>{remember(id);route(id,'push');applyBrand()},0);
   },true);
+  document.addEventListener('input',()=>setTimeout(applyBrand,0),true);
+  document.addEventListener('change',()=>setTimeout(applyBrand,0),true);
   addEventListener('popstate',()=>{const id=hashView();if(id)activate(id,'none')});
   addEventListener('hashchange',()=>{const id=hashView();if(id)activate(id,'none')});
   document.addEventListener('click',e=>{if(e.target?.closest?.('#logout')){try{sessionStorage.removeItem(routeKey)}catch{}}},true);
   addEventListener('modeflow:workspace',()=>{setTimeout(()=>{applyBrand();restore()},30)});
+  addEventListener('salesdesk:data-refreshed',()=>setTimeout(applyBrand,0));
+  addEventListener('salesdesk:operations-updated',()=>setTimeout(applyBrand,0));
 
   function boot(){
     applyBrand();
