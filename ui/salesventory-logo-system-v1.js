@@ -1,11 +1,9 @@
-// Salesventory logo placement system — uses the official full lockup in public brand areas
-// and keeps the icon mark for app/sidebar/invoice/favicons. Login intentionally has no footer.
+// Salesventory logo placement system — finite-pass version for stable rendering.
 (function(){
   'use strict';
   if(window.SalesventoryLogoSystem)return;
 
   const FULL='/assets/salesventory-full-logo.webp';
-  let applying=false,queued=false;
 
   function ensureStyles(){
     if(document.getElementById('salesventoryLogoSystemStyles'))return;
@@ -50,40 +48,25 @@
 
   function removeLoginFooter(){
     const login=document.getElementById('login');
-    if(!login)return;
-    login.querySelectorAll('.velora-site-footer').forEach(f=>f.remove());
+    if(login)login.querySelectorAll('.velora-site-footer').forEach(f=>f.remove());
   }
 
   function apply(){
-    if(applying)return;
-    applying=true;
-    try{
-      ensureStyles();
-      setFullLogo(document.querySelector('#veloraLanding .ve-logo'));
-      setFullLogo(document.querySelector('#login .login-brand'),'Salesventory');
-      document.querySelectorAll('.velora-site-footer__logo').forEach(el=>setFullLogo(el,'Salesventory home'));
-      document.querySelectorAll('.top .brand').forEach(el=>setFullLogo(el,'Salesventory home'));
-      removeLoginFooter();
-    }finally{applying=false}
+    ensureStyles();
+    setFullLogo(document.querySelector('#veloraLanding .ve-logo'));
+    setFullLogo(document.querySelector('#login .login-brand'),'Salesventory');
+    document.querySelectorAll('.velora-site-footer__logo').forEach(el=>setFullLogo(el,'Salesventory home'));
+    document.querySelectorAll('.top .brand').forEach(el=>setFullLogo(el,'Salesventory home'));
+    removeLoginFooter();
   }
 
-  function queue(){
-    if(queued)return;queued=true;
-    requestAnimationFrame(()=>{queued=false;apply()});
-  }
-
-  const observer=new MutationObserver(records=>{
-    if(applying)return;
-    for(const r of records){if(r.addedNodes?.length||r.removedNodes?.length){queue();break}}
-  });
-
-  const boot=()=>{
+  function boot(){
     apply();
-    observer.observe(document.body||document.documentElement,{childList:true,subtree:true});
-    [80,250,700,1500,3200].forEach(ms=>setTimeout(apply,ms));
+    [120,350,800,1600,3000].forEach(ms=>setTimeout(apply,ms));
     addEventListener('load',apply,{once:true});
-    addEventListener('modeflow:workspace',()=>setTimeout(apply,0));
-  };
+    addEventListener('modeflow:workspace',()=>setTimeout(apply,20));
+    document.addEventListener('click',e=>{if(e.target.closest?.('.nav,[data-view],[data-go],[data-ve-login]'))setTimeout(apply,30)},true);
+  }
 
   window.SalesventoryLogoSystem={apply,removeLoginFooter,fullLogo:FULL};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
