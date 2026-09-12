@@ -75,7 +75,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 48 | Audit log | PARTIAL | DB triggers exist; add admin/UI view |
 | 49 | Security | DONE | auth, RLS, storage rules, server validation; add 2FA option later |
 | 50 | Backup | DONE | scripts + docs; automate scheduling |
-| 51 | Import | PLAN | CSV import products/customers/suppliers/opening stock with preview |
+| 51 | Import | PARTIAL | CSV import on Products/Customers/Suppliers (header mapping, preview+confirm, per-row error skip, permission-gated); add opening-stock import |
 | 52 | Export | PARTIAL | JSON backup + CSV per module (sales/expenses/inventory/receivables, statement) + Print/PDF; add Excel/Tally export |
 | 53 | Tally export | PLAN | sales/purchases/ledgers export formats, modular |
 | 55 | Financial year | PLAN | FY selection, closing, carry-forward |

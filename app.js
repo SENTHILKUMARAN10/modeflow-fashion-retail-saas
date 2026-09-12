@@ -588,6 +588,8 @@
     }).join('') || '<tr><td colspan="8" class="empty-cell">No matching products.</td></tr>';
     var addBtn = $('#addProduct');
     if (addBtn) addBtn.hidden = !canManage;
+    var impBtn = $('#importCsvBtn');
+    if (impBtn) impBtn.hidden = !canManage;
   }
   function openProductDialog(id) {
     if (!id) {
@@ -624,6 +626,7 @@
     else { $('#pStock').value = 1; $('#pReorder').value = 5; }
   });
   function bindInventory() {
+    bindCsvImport('product');
     if ($('#productSearch')) $('#productSearch').addEventListener('input', renderInventory);
     $$('.filter-chip').forEach(function (c) {
       c.addEventListener('click', function () {
@@ -632,7 +635,7 @@
         renderInventory();
       });
     });
-    $('#addProduct').addEventListener('click', function () { openProductDialog(null); });
+    if ($('#addProduct')) $('#addProduct').addEventListener('click', function () { openProductDialog(null); });
     $('#cancelProduct').addEventListener('click', function () { $('#productDialog').close(); });
     $('#productForm').addEventListener('submit', async function (e) {
       e.preventDefault();
@@ -746,6 +749,8 @@
     var q = ($('#customerSearch').value || '').toLowerCase();
     var list = customers().filter(function (c) { return (c.name + ' ' + (c.phone || '') + ' ' + (c.company || '') + ' ' + (c.tags || []).join(' ')).toLowerCase().indexOf(q) !== -1; });
     var canManage = caps().manageCustomers;
+    var cImp = $('#importCsvBtn');
+    if (cImp) cImp.hidden = !canManage;
     rows.innerHTML = list.map(function (c) {
       var key = customerKey(c);
       var actions = '<button class="action-btn" data-cust="' + esc(key) + '" type="button">Statement</button>';
@@ -921,6 +926,7 @@
     else toast('Allow pop-ups to print');
   }
   function bindCustomers() {
+    bindCsvImport('customer');
     var search = $('#customerSearch');
     if (search) search.addEventListener('input', function () { selectedCustomerKey = null; renderCustomers(); });
     var rows = $('#customerRows');
@@ -1064,6 +1070,8 @@
     var rows = $('#supplierRows'); if (!rows) return;
     var q = ($('#supplierSearch').value || '').toLowerCase();
     var canManage = caps().managePurchases;
+    var sImp = $('#importCsvBtn');
+    if (sImp) sImp.hidden = !canManage;
     rows.innerHTML = state.suppliers.filter(function (s) {
       return (s.name + ' ' + (s.phone || '') + ' ' + (s.gst || '')).toLowerCase().indexOf(q) !== -1;
     }).map(function (s) {
@@ -1235,6 +1243,7 @@
     $('#supplierDialog').showModal();
   }
   function bindSuppliers() {
+    bindCsvImport('supplier');
     $('#addSupplier').addEventListener('click', function () { openSupplierDialog(null); });
     $('#supplierCancel').addEventListener('click', function () { $('#supplierDialog').close(); });
     $('#supplierForm').addEventListener('submit', async function (e) {
@@ -2358,6 +2367,84 @@ var pid = paymentTarget.id;
     });
   }
 
+  function parseCsv(text) {
+    text = String(text || '').replace(/^\uFEFF/, '');
+    var rows = [], row = [], cur = '', q = false;
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (q) {
+        if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+        else cur += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === ',') { row.push(cur); cur = ''; }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        row.push(cur); cur = '';
+        if (row.some(function (c) { return c.trim() !== ''; })) rows.push(row);
+        row = [];
+      } else cur += ch;
+    }
+    row.push(cur);
+    if (row.some(function (c) { return c.trim() !== ''; })) rows.push(row);
+    return rows;
+  }
+  function mapImportRow(kind, arr) {
+    if (!arr || !arr.length) return null;
+    var heads = arr.map(function (h) { return String(h || '').trim().toLowerCase(); });
+    var val = function (re, fallback) { for (var i = 0; i < heads.length; i++) if (re.test(heads[i])) return String(arr[i] || '').trim(); return fallback; };
+    var num = function (re) { var v = val(re); var n = parseFloat(String(v).replace(/[^0-9.]/g, '')); return isNaN(n) ? 0 : n; };
+    var name = val(/name/);
+    if (!name) return null;
+    if (kind === 'product') {
+      var service = /yes|true|service|1/i.test(val(/service|track/i) || '');
+      return {
+        name: name, cost: num(/cost/), price: num(/price|selling|rate/),
+        stock: service ? 0 : num(/^stock|qty|quantity/), reorder: service ? 0 : num(/reorder/),
+        category: val(/category|cat$/), sku: val(/sku|\bcode$/), barcode: val(/barcode|ean|upc/),
+        unit: val(/unit|uom/) || (service ? 'service' : 'pcs'), service: service
+      };
+    }
+    if (kind === 'customer') {
+      var customerTags = val(/tags?/);
+      return {
+        name: name, phone: val(/phone|mobile/), email: val(/e-?mail/), company: val(/company|firm|business/),
+        address: val(/address/), tags: customerTags ? customerTags.split(',').map(function (t) { return t.trim(); }).filter(Boolean) : [], notes: val(/notes?/)
+      };
+    }
+    return {
+      name: name, phone: val(/phone|mobile/), email: val(/e-?mail/), gst: val(/gst|gstin|tax/),
+      address: val(/address/), contact: val(/contact|person|representative/), terms: Math.round(num(/terms|days/)), notes: val(/notes?/)
+    };
+  }
+  function bindCsvImport(kind) {
+    var btn = $('#importCsvBtn'), inp = $('#importCsvInput');
+    if (!btn || !inp) return;
+    btn.addEventListener('click', function () { inp.click(); });
+    inp.addEventListener('change', async function () {
+      var file = inp.files && inp.files[0];
+      inp.value = '';
+      if (!file) return;
+      var text = await file.text();
+      var rows = parseCsv(text);
+      if (!rows.length) { toast('Empty CSV or missing header row'); return; }
+      var mapped = rows.slice(1).map(function (r) { return mapImportRow(kind, r); }).filter(Boolean);
+      if (!mapped.length) { toast('No valid rows — check that a “name” column exists'); return; }
+      var preview = mapped.slice(0, 3).map(function (r) { return r.name; }).join(', ');
+      var ok = await confirmDialog('Import ' + mapped.length + ' ' + kind + '(s)?', 'Preview: ' + preview + (mapped.length > 3 ? ' + ' + (mapped.length - 3) + ' more' : '') + '. Duplicates and invalid rows are skipped.');
+      if (!ok) return;
+      var done = 0, errs = 0;
+      for (var i = 0; i < mapped.length; i++) {
+        try {
+          if (kind === 'product') await cloud.products.create(state.businessId, mapped[i]);
+          else if (kind === 'customer') await cloud.customers.create(state.businessId, mapped[i]);
+          else await cloud.suppliers.create(state.businessId, state.user && state.user.id, mapped[i]);
+          done++;
+        } catch (e) { errs++; }
+      }
+      toast('Imported ' + done + ' ' + kind + '(s)' + (errs ? ' · ' + errs + ' failed' : ''));
+      await refreshCloudData();
+    });
+  }
   function downloadCSV(filename, headers, rows) {
     var csvCell = function (v) {
       var s = v === null || v === undefined ? '' : String(v);
