@@ -43,7 +43,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 42 | WhatsApp | PARTIAL | invoice share + overdue reminders (Transactions) + receipt Share + customer statement Share; extend to catalogue |
 | 45 | Multi-user | PLAN | invite members (schema: team_invitations), roles, acceptance flow |
 | 46 | Permissions | PARTIAL | client capability map; align with server `salesdesk_can` matrix |
-| 56 | Notifications | PARTIAL | alerts centre on dashboard (low stock/OOS + overdue recv/payables with amounts) + Cash focus strip (due today & overdue recv/payables); add expiry/subscription expiry + push/email delivery |
+| 56 | Notifications | PARTIAL | alerts centre on dashboard (low stock/OOS + overdue recv/payables with amounts, Restock/Collect/Pay jump via named hash intents incl. #open=lowstock) + Cash focus strip (due today & overdue recv/payables); add expiry/subscription expiry + push/email delivery |
 | 60 | Quick create + search | PARTIAL | global ＋ New menu (sale/product/customer/supplier/purchase/expense, deep-links & auto-opens dialogs) + global search |
 
 ## Phase 3 — Advanced

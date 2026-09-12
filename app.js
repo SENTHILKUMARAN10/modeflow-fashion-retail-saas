@@ -2132,7 +2132,7 @@ var pid = paymentTarget.id;
         .map(function (p) {
           var low = p.stock <= p.reorder;
           return '<div class="alert"><div><b>' + esc(p.name) + '</b><div class="muted">' + p.stock + ' units available · reorder at ' + p.reorder + '</div></div>' +
-            '<span class="status' + (low ? ' low' : '') + '">' + (low ? 'Restock' : 'Healthy') + '</span></div>';
+            '<a class="status' + (low ? ' low' : '') + '" href="products.html#open=lowstock" data-go="inventory" style="text-decoration:none">' + (low ? 'Restock' : 'Healthy') + '</a></div>';
         }).join('');
       $('#alerts').innerHTML = (extra + alerts) || '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">No alerts. Everything looks healthy.</p>';
     }
@@ -3304,6 +3304,14 @@ var pid = paymentTarget.id;
         setTimeout(function () { el.classList.remove('hit'); }, 2600);
         if (kind === 'customer' && el.click) el.click();
       }
+      return;
+    }
+    if (kind === 'lowstock') {
+      var pSearch = $('#productSearch');
+      if (pSearch) pSearch.value = '';
+      stockFilter = 'low';
+      $$('.filter-chip').forEach(function (x) { var on = String(x.dataset.filter || '') === 'low'; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); });
+      renderInventory();
       return;
     }
     if (kind === 'new') {
