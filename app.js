@@ -36,6 +36,14 @@
     { id: 1, category: 'Digital Marketing', amount: 3200, note: 'September campaign', date: fmtDay(dayTs(2, 9)), ts: dayTs(2, 9) },
     { id: 2, category: 'Store & Display', amount: 1450, note: 'New mannequin props', date: fmtDay(dayTs(1, 9)), ts: dayTs(1, 9) }
   ];
+  var seedSuppliers = [
+    { id: 1, name: 'Kanchipuram Weaver Co-op', phone: '9876500001', email: 'orders@kanchiweave.in', gst: '33AABCT1234F1Z5', address: 'Kanchipuram, Tamil Nadu', contact: 'Lakshmi A', terms: 0, notes: '', cloud: false },
+    { id: 2, name: 'House of Chanderi', phone: '9876500002', email: 'billing@chanderi.in', gst: '23AABCS5678F1Z2', address: 'Chanderi, Madhya Pradesh', contact: 'Meera B', terms: 15, notes: 'Net monthly statement', cloud: false }
+  ];
+  var seedPurchases = [
+    { id: 1, number: 'PO-20260911-001', supplierId: 1, supplier: 'Kanchipuram Weaver Co-op', status: 'received', paymentStatus: 'paid', subtotal: 93600, total: 93600, paid: 93600, balance: 0, date: fmtDay(dayTs(6, 10)), items: [{ name: 'Kanchipuram Silk Saree', qty: 26, cost: 3600, lineTotal: 93600 }], payments: [{ amount: 93600, method: 'bank', ref: 'NEFT-8812' }], cloud: false },
+    { id: 2, number: 'PO-20260912-002', supplierId: 2, supplier: 'House of Chanderi', status: 'draft', paymentStatus: 'unpaid', subtotal: 16900, total: 16900, paid: 0, balance: 16900, date: fmtDay(dayTs(1, 9)), items: [{ name: 'Embroidered Kurta Set', qty: 13, cost: 1300, lineTotal: 16900 }], payments: [], cloud: false }
+  ];
 
   var readStored = function (key, fallback) {
     try { var v = JSON.parse(localStorage.getItem(key) || 'null'); return v || fallback; } catch (e) { return fallback; }
@@ -44,6 +52,8 @@
     localStorage.setItem('sv_products', JSON.stringify(state.products));
     localStorage.setItem('sv_invoices', JSON.stringify(state.invoices));
     localStorage.setItem('sv_expenses', JSON.stringify(state.expenses));
+    localStorage.setItem('sv_suppliers', JSON.stringify(state.suppliers));
+    localStorage.setItem('sv_purchases', JSON.stringify(state.purchases));
   };
 
   var state = {
@@ -58,6 +68,8 @@
     products: readStored('sv_products', seedProducts),
     invoices: readStored('sv_invoices', seedInvoices),
     expenses: readStored('sv_expenses', seedExpenses),
+    suppliers: readStored('sv_suppliers', seedSuppliers),
+    purchases: readStored('sv_purchases', seedPurchases),
     billing: null
   };
 
@@ -78,9 +90,10 @@
 
   /* ============ role capabilities ============ */
   var capabilities = function (role) {
-    if (role === 'owner') return { manageProducts: true, deleteSales: true, deleteExpenses: true };
-    if (role === 'manager') return { manageProducts: true, deleteSales: false, deleteExpenses: false };
-    return { manageProducts: false, deleteSales: false, deleteExpenses: false };
+    if (role === 'owner') return { manageProducts: true, managePurchases: true, finance: true, deleteSales: true, deleteExpenses: true };
+    if (role === 'manager') return { manageProducts: true, managePurchases: true, finance: false, deleteSales: false, deleteExpenses: false };
+    if (role === 'admin' || role === 'accountant') return { manageProducts: false, managePurchases: false, finance: true, deleteSales: false, deleteExpenses: false };
+    return { manageProducts: false, deleteSales: false, deleteExpenses: false, managePurchases: false, finance: false };
   };
   var caps = function () { return capabilities(state.role); };
 
@@ -119,6 +132,8 @@
     billing: ['SALES', 'Create a new sale'],
     inventory: ['CATALOGUE', 'Products & inventory'],
     customers: ['CUSTOMERS', 'Customer relationships'],
+    suppliers: ['SUPPLIERS', 'Supplier relationships'],
+    purchases: ['PURCHASES', 'Purchase bills & payables'],
     expenses: ['OPERATIONS', 'Business expenses'],
     history: ['TRANSACTIONS', 'Sales history'],
     reports: ['BUSINESS INTELLIGENCE', 'Performance analytics'],
@@ -246,13 +261,17 @@
     if (statusEl) statusEl.textContent = 'Syncing cloud data…';
     try {
       var results = await Promise.all([
-        cloud.products.list(state.businessId),
-        cloud.invoices.list(state.businessId),
-        cloud.expenses.list(state.businessId)
+        cloud.products.list(state.businessId).catch(function () { return []; }),
+        cloud.invoices.list(state.businessId).catch(function () { return []; }),
+        cloud.expenses.list(state.businessId).catch(function () { return []; }),
+        cloud.suppliers.list(state.businessId).catch(function () { return []; }),
+        cloud.purchases.list(state.businessId).catch(function () { return []; })
       ]);
       state.products = results[0].map(productFromCloud);
       state.invoices = results[1].map(invoiceFromCloud);
       state.expenses = results[2].map(expenseFromCloud);
+      state.suppliers = results[3].map(supplierFromCloud);
+      state.purchases = results[4].map(purchaseFromCloud);
       var el = $('#cloudStatus');
       if (el && !$('#app').classList.contains('hidden')) el.textContent = '';
       renderAll();
@@ -260,6 +279,33 @@
       var err = $('#cloudStatus');
       if (err) err.textContent = 'Cloud sync failed. Refresh to retry.';
     }
+  }
+
+  function supplierFromCloud(r) {
+    return {
+      id: r.id, cloud: true, name: r.name, phone: r.phone || '', email: r.email || '',
+      gst: r.tax_id || '', address: r.address || '', contact: r.contact_person || '',
+      terms: Number(r.payment_terms_days || 0), notes: r.notes || ''
+    };
+  }
+  function purchaseFromCloud(r) {
+    var payments = (r.purchase_payments || []).map(function (p) {
+      return { id: p.id, amount: Number(p.amount || 0), method: p.payment_method, ref: p.reference || '', at: p.paid_at };
+    });
+    var paid = payments.reduce(function (a, p) { return a + p.amount; }, 0);
+    return {
+      id: r.id, cloud: true, number: r.purchase_number,
+      supplierId: r.supplier_id,
+      supplier: (r.suppliers && r.suppliers.name) || 'Unknown supplier',
+      status: r.status, paymentStatus: r.payment_status,
+      subtotal: Number(r.subtotal || 0), total: Number(r.total || 0),
+      paid: paid, balance: Number(r.total || 0) - paid,
+      date: r.purchase_date, dueDate: r.due_date, ts: new Date(r.created_at).getTime(),
+      items: (r.purchase_items || []).map(function (it) {
+        return { id: it.id, productId: it.product_id, name: it.product_name, qty: Number(it.quantity), cost: Number(it.cost_price), lineTotal: Number(it.line_total) };
+      }),
+      payments: payments
+    };
   }
 
   /* ============ auth ============ */
@@ -623,6 +669,361 @@
     });
   }
 
+  /* ============ suppliers ============ */
+  function supplierOutstanding(s) {
+    return state.purchases
+      .filter(function (p) { return String(p.supplierId) === String(s.id) && p.status !== 'cancelled'; })
+      .reduce(function (a, p) { return a + Math.max(p.balance || 0, 0); }, 0);
+  }
+  function supplierPurchaseCount(s) {
+    return state.purchases.filter(function (p) { return String(p.supplierId) === String(s.id); }).length;
+  }
+  function renderSuppliers() {
+    var rows = $('#supplierRows'); if (!rows) return;
+    var q = ($('#supplierSearch').value || '').toLowerCase();
+    var canManage = caps().managePurchases;
+    rows.innerHTML = state.suppliers.filter(function (s) {
+      return (s.name + ' ' + (s.phone || '') + ' ' + (s.gst || '')).toLowerCase().indexOf(q) !== -1;
+    }).map(function (s) {
+      var bal = supplierOutstanding(s);
+      var actions = canManage
+        ? '<button class="action-btn" data-act="edit-supplier" data-id="' + esc(s.id) + '">Edit</button><button class="action-btn danger" data-act="delete-supplier" data-id="' + esc(s.id) + '">Delete</button>'
+        : '';
+      return '<tr>' +
+        '<td data-label="Supplier"><div class="cell-person"><span class="store-avatar">' + esc(initials(s.name)) + '</span><div class="cell-main"><b>' + esc(s.name) + '</b>' + (s.contact ? '<small>' + esc(s.contact) + '</small>' : '') + '</div></div></td>' +
+        '<td data-label="GSTIN">' + esc(s.gst || '—') + '</td>' +
+        '<td data-label="Phone">' + esc(s.phone || '—') + '</td>' +
+        '<td data-label="Purchases">' + supplierPurchaseCount(s) + '</td>' +
+        '<td data-label="Balance"><b>' + money(bal) + '</b></td>' +
+        '<td data-label="Actions">' + actions + '</td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="6" class="empty-cell">No suppliers yet. Click “Add supplier” to get started.</td></tr>';
+  }
+  var supplierEditId = null;
+  function openSupplierDialog(s) {
+    supplierEditId = s ? s.id : null;
+    $('#supplierDialogTitle').textContent = s ? 'Edit supplier' : 'Add supplier';
+    var el = { name: $('#sName'), gst: $('#sGst'), phone: $('#sPhone'), email: $('#sEmail'), contact: $('#sContact'), terms: $('#sTerms'), address: $('#sAddress'), notes: $('#sNotes') };
+    el.name.value = s ? s.name : '';
+    el.gst.value = s ? s.gst : '';
+    el.phone.value = s ? s.phone : '';
+    el.email.value = s ? s.email : '';
+    el.contact.value = s ? s.contact : '';
+    el.terms.value = s ? s.terms : '0';
+    el.address.value = s ? s.address : '';
+    el.notes.value = s ? s.notes : '';
+    $('#supplierDialog').showModal();
+  }
+  function bindSuppliers() {
+    $('#addSupplier').addEventListener('click', function () { openSupplierDialog(null); });
+    $('#supplierCancel').addEventListener('click', function () { $('#supplierDialog').close(); });
+    $('#supplierForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var data = {
+        name: $('#sName').value.trim(),
+        gst: $('#sGst').value.trim().toUpperCase(),
+        phone: $('#sPhone').value.trim(),
+        email: $('#sEmail').value.trim(),
+        contact: $('#sContact').value.trim(),
+        terms: Number($('#sTerms').value) || 0,
+        address: $('#sAddress').value.trim(),
+        notes: $('#sNotes').value.trim()
+      };
+      if (!data.name) { toast('Enter a supplier name'); return; }
+      if (!state.demo) {
+        try {
+          if (supplierEditId) await cloud.suppliers.update(supplierEditId, data);
+          else await cloud.suppliers.create(state.businessId, state.user ? state.user.id : null, data);
+          await refreshCloudData();
+          $('#supplierDialog').close(); toast(supplierEditId ? 'Supplier updated' : 'Supplier added');
+        } catch (err) { toast(friendly(err)); }
+        return;
+      }
+      if (supplierEditId) {
+        var found = state.suppliers.find(function (x) { return String(x.id) === String(supplierEditId); });
+        if (found) Object.assign(found, data);
+        toast('Supplier updated');
+      } else {
+        state.suppliers.push(Object.assign({ id: Date.now(), cloud: false }, data));
+        toast('Supplier added');
+      }
+      saveLocal();
+      $('#supplierDialog').close();
+      renderAll();
+    });
+    if ($('#supplierSearch')) $('#supplierSearch').addEventListener('input', renderSuppliers);
+    $('#supplierRows').addEventListener('click', async function (e) {
+      var btn = e.target.closest('[data-act="edit-supplier"], [data-act="delete-supplier"]');
+      if (!btn) return;
+      var id = btn.dataset.id;
+      if (btn.dataset.act === 'edit-supplier') {
+        var found = state.suppliers.find(function (x) { return String(x.id) === String(id); });
+        if (found) openSupplierDialog(found);
+        return;
+      }
+      var ok = await confirmDialog('Delete supplier?', 'The supplier is hidden from your workspace. Existing purchase records stay untouched.');
+      if (!ok) return;
+      if (state.demo) {
+        state.suppliers = state.suppliers.filter(function (x) { return String(x.id) !== String(id); });
+        saveLocal(); renderAll(); toast('Supplier removed');
+      } else {
+        try { await cloud.suppliers.remove(id); await refreshCloudData(); toast('Supplier removed'); }
+        catch (err) { toast(friendly(err)); }
+      }
+    });
+  }
+
+  /* ============ purchases ============ */
+  function supplierOptions(selectedId) {
+    var opts = state.suppliers.map(function (s) {
+      return '<option value="' + esc(s.id) + '"' + (String(selectedId) === String(s.id) ? ' selected' : '') + '>' + esc(s.name) + '</option>';
+    });
+    return opts.join('') || '<option value="">Add a supplier first</option>';
+  }
+  function purchaseProductOptions(productId) {
+    var opts = state.products.filter(function (p) { return !p.service; }).map(function (p) {
+      return '<option value="' + esc(p.id) + '"' + (String(productId) === String(p.id) ? ' selected' : '') + '>' + esc(p.name) + '</option>';
+    });
+    return opts.join('') || '<option value="">Products will appear here</option>';
+  }
+  function purchaseItemRow(p) {
+    var row = document.createElement('div');
+    row.className = 'purchase-item';
+    row.innerHTML =
+      '<select class="po-product" aria-label="Product">' + purchaseProductOptions(p ? p.productId : null) + '</select>' +
+      '<input class="po-qty" inputmode="decimal" value="' + (p ? p.qty : '1') + '" aria-label="Quantity">' +
+      '<input class="po-cost" inputmode="decimal" value="' + (p ? p.cost : '') + '" placeholder="Cost" aria-label="Cost price">' +
+      '<b class="po-total">' + money(p ? p.qty * p.cost : 0) + '</b>' +
+      '<button type="button" class="action-btn danger po-remove" aria-label="Remove line item">×</button>';
+    return row;
+  }
+  function recomputePurchaseTotal() {
+    var box = $('#purchaseItems'); if (!box) return;
+    var total = 0;
+    box.querySelectorAll('.purchase-item').forEach(function (row) {
+      var qty = parseFloat(row.querySelector('.po-qty').value) || 0;
+      var cost = parseFloat(row.querySelector('.po-cost').value) || 0;
+      row.querySelector('.po-total').textContent = money(qty * cost);
+      total += qty * cost;
+    });
+    if ($('#purchaseTotalVal')) $('#purchaseTotalVal').textContent = money(total);
+  }
+  function purchaseRowsFromDom() {
+    var items = [];
+    $('#purchaseItems').querySelectorAll('.purchase-item').forEach(function (row) {
+      var pid = row.querySelector('.po-product').value;
+      var qty = parseFloat(row.querySelector('.po-qty').value);
+      var cost = parseFloat(row.querySelector('.po-cost').value);
+      if (!pid || !(qty > 0) || !(cost >= 0)) return;
+      items.push({ product_id: pid, quantity: qty, cost_price: cost });
+    });
+    return items;
+  }
+  function openPurchaseDialog() {
+    $('#purchaseForm').reset();
+    var box = $('#purchaseItems');
+    box.innerHTML = '';
+    box.appendChild(purchaseItemRow(null));
+    $('#poSupplier').innerHTML = supplierOptions();
+    recomputePurchaseTotal();
+    $('#purchaseDialog').showModal();
+  }
+  function demoPurchaseNumber() {
+    var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return 'PO-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + String(Math.floor(Math.random() * 90000) + 10000);
+  }
+  function purchaseItemsLabel(p) {
+    var first = p.items.slice(0, 2).map(function (it) { return it.name + ' × ' + it.qty; }).join(', ');
+    return p.items.length > 2 ? first + ' +' + (p.items.length - 2) + ' more' : first;
+  }
+  function purchasePaymentPill(p) {
+    if (p.status === 'cancelled') return '<span class="status low">cancelled</span>';
+    var c = p.paymentStatus === 'unpaid' ? ' low' : (p.paymentStatus === 'partial' ? ' warn' : '');
+    return '<span class="status' + c + '">' + esc(p.paymentStatus || 'unpaid') + '</span>';
+  }
+  function renderPurchases() {
+    var rows = $('#purchaseRows'); if (!rows) return;
+    var q = ($('#purchaseSearch').value || '').toLowerCase();
+    var payables = state.purchases.filter(function (p) { return p.status !== 'cancelled'; })
+      .reduce(function (a, p) { return a + Math.max(p.balance || 0, 0); }, 0);
+    if ($('#payablesTotal')) $('#payablesTotal').textContent = money(payables);
+    var capsHere = caps();
+    rows.innerHTML = state.purchases.filter(function (p) {
+      return (p.number + ' ' + p.supplier + ' ' + p.items.map(function (it) { return it.name; }).join(' ')).toLowerCase().indexOf(q) !== -1;
+    }).map(function (p) {
+      var actions = '';
+      if (p.status === 'draft' || p.status === 'ordered' || p.status === 'received') {
+        if (capsHere.managePurchases && p.status !== 'received') {
+          actions += '<button class="action-btn" data-act="receive-purchase" data-id="' + esc(p.id) + '">Receive</button>';
+        }
+        if (capsHere.managePurchases && (p.status === 'draft')) {
+          actions += '<button class="action-btn danger" data-act="cancel-purchase" data-id="' + esc(p.id) + '">Cancel</button>';
+        }
+      }
+      if (p.status !== 'cancelled' && capsHere.finance && (p.balance || 0) > 0) {
+        actions += '<button class="action-btn primary-lite" data-act="pay-purchase" data-id="' + esc(p.id) + '">Pay</button>';
+      }
+      return '<tr>' +
+        '<td data-label="Purchase"><b>' + esc(p.number) + '</b></td>' +
+        '<td data-label="Supplier">' + esc(p.supplier) + '</td>' +
+        '<td data-label="Items">' + esc(purchaseItemsLabel(p)) + '</td>' +
+        '<td data-label="Amount"><b>' + money(p.total) + '</b></td>' +
+        '<td data-label="Balance"><b>' + money(p.balance) + '</b></td>' +
+        '<td data-label="Stock"><span class="status' + (p.status === 'received' ? '' : ' neutral') + '">' + esc(p.status) + '</span></td>' +
+        '<td data-label="Payment">' + purchasePaymentPill(p) + '</td>' +
+        '<td data-label="Date">' + esc(p.date) + '</td>' +
+        '<td data-label="Actions">' + actions + '</td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="9" class="empty-cell">No purchase bills yet. Click “New purchase” to record one.</td></tr>';
+  }
+  var paymentTarget = null;
+  function openPaymentDialog(p) {
+    paymentTarget = p;
+    $('#paymentForm').reset();
+    $('#paymentAmount').value = Math.max(p.balance || 0, 0) || '';
+    $('#paymentMethod2').value = 'bank';
+    $('#paymentRef').value = '';
+    $('#paymentBalance').textContent = 'Outstanding for ' + p.number + ': ' + money(p.balance);
+    $('#paymentDialog').showModal();
+  }
+  function createPurchaseDemo(data, notes) {
+    var sup = state.suppliers.find(function (s) { return String(s.id) === String(data.supplierId); });
+    var items = data.items.map(function (it) {
+      var cost = Number(it.cost_price) || 0;
+      var qty = Number(it.quantity) || 1;
+      var prod = state.products.find(function (x) { return String(x.id) === String(it.product_id); });
+      return { productId: it.product_id, name: prod ? prod.name : 'Product', qty: qty, cost: cost, lineTotal: Math.round(qty * cost * 100) / 100 };
+    });
+    var total = items.reduce(function (a, it) { return a + it.lineTotal; }, 0);
+    state.purchases.unshift({
+      id: Date.now(), cloud: false, number: demoPurchaseNumber(),
+      supplierId: data.supplierId, supplier: sup ? sup.name : 'Unknown supplier',
+      status: 'draft', paymentStatus: 'unpaid',
+      subtotal: total, total: total, paid: 0, balance: total,
+      date: fmtDay(Date.now()), items: items, payments: []
+    });
+    saveLocal();
+  }
+  function receivePurchaseDemo(p) {
+    p.status = 'received';
+    (p.items || []).forEach(function (it) {
+      var prod = state.products.find(function (x) { return String(x.id) === String(it.productId); });
+      if (prod) { prod.stock = (prod.stock || 0) + it.qty; prod.cost = it.cost; }
+    });
+    saveLocal();
+  }
+  function payPurchaseDemo(p, amount, method, ref) {
+    var amt = Math.min(Math.max(Number(amount) || 0, 0), Math.max(p.balance || 0, 0));
+    if (amt <= 0) { toast('Nothing outstanding to pay'); return; }
+    p.paid = (p.paid || 0) + amt;
+    p.balance = Math.max(p.total - p.paid, 0);
+    p.payments = p.payments || [];
+    p.payments.push({ amount: amt, method: method, ref: ref || '' });
+    p.paymentStatus = p.balance <= 0 ? 'paid' : 'partial';
+    saveLocal();
+  }
+  function bindPurchases() {
+    $('#addPurchase').addEventListener('click', function () {
+      if (!state.suppliers.length) { toast('Add a supplier before recording purchases'); gotoView('suppliers'); return; }
+      openPurchaseDialog();
+    });
+    $('#purchaseCancel').addEventListener('click', function () { $('#purchaseDialog').close(); });
+    $('#paymentCancel').addEventListener('click', function () { $('#paymentDialog').close(); });
+    $('#addPurchaseItem').addEventListener('click', function () {
+      var box = $('#purchaseItems');
+      box.appendChild(purchaseItemRow(null));
+      box.lastChild.querySelector('.po-product').value = '';
+      recomputePurchaseTotal();
+    });
+    $('#purchaseItems').addEventListener('input', recomputePurchaseTotal);
+    $('#purchaseItems').addEventListener('change', recomputePurchaseTotal);
+    $('#purchaseItems').addEventListener('click', function (e) {
+      var btn = e.target.closest('.po-remove');
+      if (!btn) return;
+      var box = $('#purchaseItems');
+      if (box.children.length <= 1) { toast('A purchase needs at least one line item'); return; }
+      box.removeChild(btn.closest('.purchase-item'));
+      recomputePurchaseTotal();
+    });
+    $('#purchaseForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var supplierId = $('#poSupplier').value;
+      if (!supplierId) { toast('Choose a supplier'); return; }
+      var items = purchaseRowsFromDom();
+      if (!items.length) { toast('Add at least one product line'); return; }
+      var notes = '';
+      if (state.demo) {
+        createPurchaseDemo({ supplierId: supplierId, items: items }, notes);
+        $('#purchaseDialog').close();
+        renderAll();
+        toast('Purchase bill recorded');
+        gotoView('purchases');
+      } else {
+        try {
+          await cloud.purchases.create({
+            p_business_id: state.businessId,
+            p_supplier_id: supplierId,
+            p_items: items,
+            p_notes: notes || null
+          });
+          await refreshCloudData();
+          $('#purchaseDialog').close();
+          toast('Purchase bill recorded');
+        } catch (err) { toast(friendly(err)); }
+      }
+    });
+    $('#purchaseRows').addEventListener('click', async function (e) {
+      var btn = e.target.closest('[data-act="receive-purchase"], [data-act="cancel-purchase"], [data-act="pay-purchase"]');
+      if (!btn) return;
+      var act = btn.dataset.act, id = btn.dataset.id;
+      var found = state.purchases.find(function (x) { return String(x.id) === String(id); });
+      if (act === 'receive-purchase') {
+        var ok = await confirmDialog('Receive stock?', 'Stock levels are updated with the purchased quantities and product costs are refreshed.');
+        if (!ok) return;
+        if (state.demo) { receivePurchaseDemo(found); renderAll(); toast('Stock received'); }
+        else {
+          try { await cloud.purchases.receive(id); await refreshCloudData(); toast('Stock received'); }
+          catch (err) { toast(friendly(err)); }
+        }
+        return;
+      }
+      if (act === 'cancel-purchase') {
+        ok = await confirmDialog('Cancel this purchase?', 'The bill is marked cancelled. Stock is never changed.');
+        if (!ok) return;
+        if (state.demo) { found.status = 'cancelled'; saveLocal(); renderAll(); toast('Purchase cancelled'); }
+        else {
+          try { await cloud.purchases.cancel(id); await refreshCloudData(); toast('Purchase cancelled'); }
+          catch (err) { toast(friendly(err)); }
+        }
+        return;
+      }
+      openPaymentDialog(found);
+    });
+    if ($('#purchaseSearch')) $('#purchaseSearch').addEventListener('input', renderPurchases);
+    $('#paymentForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (!paymentTarget) return;
+      var amount = parseFloat($('#paymentAmount').value);
+      var method = $('#paymentMethod2').value;
+      var ref = $('#paymentRef').value.trim();
+      if (!(amount > 0)) { toast('Enter a payment amount'); return; }
+      var pid = paymentTarget.id;
+      if (state.demo) {
+        payPurchaseDemo(paymentTarget, amount, method, ref);
+        $('#paymentDialog').close();
+        renderAll();
+        toast('Payment recorded');
+      } else {
+        try {
+          await cloud.purchasePayments.create(pid, amount, method, ref);
+          await refreshCloudData();
+          $('#paymentDialog').close();
+          toast('Payment recorded');
+        } catch (err) { toast(friendly(err)); }
+      }
+    });
+  }
+
   /* ============ invoices / history ============ */
   function invoicePayment(i) {
     var c = i.paymentStatus === 'unpaid' ? ' low' : (i.paymentStatus === 'partial' ? ' warn' : '');
@@ -824,7 +1225,8 @@
       var blob = new Blob([JSON.stringify({
         product: 'Salesventory', exportedAt: new Date().toISOString(),
         mode: state.mode, businessId: state.businessId, role: state.role,
-        products: state.products, invoices: state.invoices, expenses: state.expenses
+        products: state.products, invoices: state.invoices, expenses: state.expenses,
+        suppliers: state.suppliers, purchases: state.purchases
       }, null, 2)], { type: 'application/json' });
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -1130,7 +1532,7 @@
   }
   /* ============ render all ============ */
   function renderAll() {
-    productOptions(); renderInventory(); renderCustomers(); renderExpenses();
+    productOptions(); renderInventory(); renderCustomers(); renderSuppliers(); renderPurchases(); renderExpenses();
     renderInvoices(); renderDashboard(); renderReports();
     renderPlans(); updatePreview();
   }
@@ -1168,7 +1570,7 @@
     $$('[data-go]').forEach(function (b) { b.addEventListener('click', function () { gotoView(b.dataset.go); }); });
     bindTheme();
     bindMenu();
-    bindAuth(); bindSale(); bindInventory(); bindExpenses(); bindInvoices(); bindExport(); bindPlans();
+    bindAuth(); bindSale(); bindInventory(); bindSuppliers(); bindPurchases(); bindExpenses(); bindInvoices(); bindExport(); bindPlans();
     initAuth();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });

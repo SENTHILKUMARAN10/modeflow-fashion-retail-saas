@@ -95,6 +95,53 @@
       },
       remove: function (id) { return one(client.from('expenses').delete().eq('id', id)); }
     },
+    suppliers: {
+      list: function (businessId) {
+        return one(client.from('suppliers')
+          .select('*').eq('business_id', businessId).eq('is_active', true).order('name'));
+      },
+      create: function (businessId, userId, s) {
+        return one(client.from('suppliers')
+          .insert({
+            business_id: businessId, name: s.name, phone: s.phone || null, email: s.email || null,
+            tax_id: s.gst || null, address: s.address || null, contact_person: s.contact || null,
+            payment_terms_days: Number(s.terms) || 0, notes: s.notes || null, created_by: userId
+          })
+          .select().single());
+      },
+      update: function (id, s) {
+        return one(client.from('suppliers')
+          .update({
+            name: s.name, phone: s.phone || null, email: s.email || null, tax_id: s.gst || null,
+            address: s.address || null, contact_person: s.contact || null,
+            payment_terms_days: Number(s.terms) || 0, notes: s.notes || null
+          })
+          .eq('id', id).select().single());
+      },
+      remove: function (id) { return one(client.from('suppliers').update({ is_active: false }).eq('id', id)); }
+    },
+    purchases: {
+      list: function (businessId) {
+        return one(client.from('purchases')
+          .select('*,purchase_items(*),purchase_payments(*),suppliers(name,phone)')
+          .eq('business_id', businessId).order('created_at', { ascending: false }));
+      },
+      create: function (payload) {
+        return client.rpc('create_purchase', payload).then(function (r) { if (r.error) throw r.error; return r.data; });
+      },
+      receive: function (id) {
+        return client.rpc('receive_purchase', { p_purchase_id: id }).then(function (r) { if (r.error) throw r.error; return r.data; });
+      },
+      cancel: function (id) {
+        return one(client.from('purchases').update({ status: 'cancelled' }).eq('id', id));
+      }
+    },
+    purchasePayments: {
+      create: function (purchaseId, amount, method, reference) {
+        return client.rpc('record_purchase_payment', { p_purchase_id: purchaseId, p_amount: amount, p_payment_method: method || 'bank', p_reference: reference || null })
+          .then(function (r) { if (r.error) throw r.error; return r.data; });
+      }
+    },
     realtime: {
       subscribe: function (businessId, onChange, onStatus) {
         return client.channel('salesventory-' + businessId, { config: { broadcast: { self: false } } })
@@ -102,6 +149,9 @@
           .on('postgres_changes', { event: '*', schema: 'public', table: 'customers', filter: 'business_id=eq.' + businessId }, onChange)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices', filter: 'business_id=eq.' + businessId }, onChange)
           .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: 'business_id=eq.' + businessId }, onChange)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'suppliers', filter: 'business_id=eq.' + businessId }, onChange)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'purchases', filter: 'business_id=eq.' + businessId }, onChange)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_payments', filter: 'business_id=eq.' + businessId }, onChange)
           .subscribe(function (status) { if (onStatus) onStatus(status); });
       },
       unsubscribe: function (channel) { if (channel) client.removeChannel(channel); }
