@@ -11,7 +11,7 @@
     s.id='salesventoryLogoSystemStyles';
     s.textContent=`
       .sv-full-lockup{display:inline-flex!important;align-items:center!important;text-decoration:none!important;background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible!important}
-      .sv-full-lockup>img{display:block!important;width:100%!important;height:auto!important;object-fit:contain!important;object-position:left center!important}
+      .sv-full-lockup>img{display:block!important;width:100%!important;height:auto!important;object-fit:contain!important;object-position:left center!important;background:transparent!important;mix-blend-mode:multiply!important}
       #veloraLanding .ve-logo.sv-full-lockup{width:230px!important;max-width:34vw!important;height:58px!important}
       #veloraLanding .ve-logo.sv-full-lockup>img{max-height:58px!important}
       body.ve-login #login .login-brand.sv-full-lockup{width:245px!important;max-width:58vw!important;height:58px!important}
