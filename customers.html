@@ -82,13 +82,16 @@
 <div class="page-intro">
         <div><p class="kicker">CUSTOMERS</p><h3>Know the people behind <em>the numbers.</em></h3></div>
         <div class="utility-row">
-          <input id="customerSearch" class="search-input" placeholder="Search customers" aria-label="Search customers">
           <button id="newCustomerBtn" class="btn primary" type="button">New customer</button>
         <button id="importCsvBtn" class="btn ghost" type="button">Import CSV</button>
         <input id="importCsvInput" type="file" accept=".csv,text/csv" hidden>
         </div>
       </div>
-<article class="panel table-panel">
+<div class="utility-row">
+        <input id="customerSearch" class="search-input" placeholder="Search customers" aria-label="Search customers">
+        <div id="custTagChips" class="filter-strip"></div>
+      </div>
+      <article class="panel table-panel">
         <div class="table-wrap"><table>
           <thead><tr><th>CUSTOMER</th><th>PHONE</th><th>TRANSACTIONS</th><th>LIFETIME VALUE</th><th>LAST PURCHASE</th><th>OUTSTANDING</th><th>ACTIONS</th></tr></thead>
           <tbody id="customerRows"></tbody>

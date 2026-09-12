@@ -842,6 +842,7 @@
   }
   var selectedCustomerKey = null;
   var customerDraftId = null;
+  var customerTagFilter = 'all';
   function rawCustomerByKey(key) {
     return state.customers.find(function (c) { return customerKey(c) === key; }) || null;
   }
@@ -877,6 +878,28 @@
     else if (hasProfile) hasProfile.hidden = true;
     var q = ($('#customerSearch').value || '').toLowerCase();
     var list = customers().filter(function (c) { return (c.name + ' ' + (c.phone || '') + ' ' + (c.company || '') + ' ' + (c.tags || []).join(' ')).toLowerCase().indexOf(q) !== -1; });
+    if (customerTagFilter !== 'all') {
+      list = list.filter(function (c) {
+        return customerTagFilter === 'active' ? c.status !== 'inactive' :
+          customerTagFilter === 'archived' ? c.status === 'inactive' : (c.tags || []).indexOf(customerTagFilter) !== -1;
+      });
+    }
+    var chips = $('#custTagChips');
+    if (chips) {
+      var tagCount = {};
+      customers().forEach(function (c) { (c.tags || []).forEach(function (t) { tagCount[t] = (tagCount[t] || 0) + 1; }); });
+      var tagKeys = Object.keys(tagCount).sort().slice(0, 12);
+      var segs = [
+        { key: 'all', label: 'All', n: customers().length },
+        { key: 'active', label: 'Active', n: customers().filter(function (c) { return c.status !== 'inactive'; }).length },
+        { key: 'archived', label: 'Archived', n: customers().filter(function (c) { return c.status === 'inactive'; }).length }
+      ];
+      chips.innerHTML = segs.map(function (s) {
+        return '<button class="filter-chip' + (customerTagFilter === s.key ? ' active' : '') + '" data-custtag="' + s.key + '" type="button">' + s.label + ' · ' + s.n + '</button>';
+      }).join('') + tagKeys.filter(function (t) { return t; }).map(function (t) {
+        return '<button class="filter-chip' + (customerTagFilter === t ? ' active' : '') + '" data-custtag="' + esc(t) + '" type="button"><span>' + esc(t) + ' · ' + tagCount[t] + '</span></button>';
+      }).join('');
+    }
     var canManage = caps().manageCustomers;
     var cImp = $('#importCsvBtn');
     if (cImp) cImp.hidden = !canManage;
@@ -1056,6 +1079,14 @@
   }
   function bindCustomers() {
     bindCsvImport('customer');
+    var tagChips = $('#custTagChips');
+    if (tagChips) tagChips.addEventListener('click', function (e) {
+      var chip = e.target.closest('[data-custtag]');
+      if (!chip) return;
+      customerTagFilter = chip.dataset.custtag;
+      selectedCustomerKey = null;
+      renderCustomers();
+    });
     var search = $('#customerSearch');
     if (search) search.addEventListener('input', function () { selectedCustomerKey = null; renderCustomers(); });
     var rows = $('#customerRows');
