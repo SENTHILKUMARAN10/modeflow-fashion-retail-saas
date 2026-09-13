@@ -119,9 +119,12 @@
           .insert({
             business_id: businessId, customer_id: f.customerId, title: f.title,
             note: f.note || null, due_at: f.dueAt || null, priority: f.priority || 'normal',
-            status: 'open', created_by: userId
+            status: 'open', created_by: userId, assigned_to: f.assignedTo || null
           })
           .select().single());
+      },
+      updateAssigned: function (id, userId) {
+        return one(client.from('customer_followups').update({ assigned_to: userId || null }).eq('id', id).select().single());
       },
       complete: function (id, outcome) {
         return one(client.from('customer_followups')

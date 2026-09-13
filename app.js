@@ -351,7 +351,7 @@
     return {
       id: r.id, customerId: r.customer_id, title: r.title, note: r.note || '',
       dueAt: r.due_at || null, priority: r.priority || 'normal', status: r.status || 'open',
-      outcome: r.outcome || '', createdBy: r.created_by, createdAt: r.created_at
+      outcome: r.outcome || '', createdBy: r.created_by, assignedTo: r.assigned_to || null, createdAt: r.created_at
     };
   }
   function supplierFromCloud(r) {
@@ -1426,6 +1426,14 @@
     }
     var closing = win.reduce(function (a, i) { return a + (Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0)); }, 0);
     if ($('#stmtClosing')) $('#stmtClosing').textContent = 'Closing: ' + money(closing);
+    var me = state.user ? state.user.id : null;
+    var aSel = $('#cfAssign');
+    if (aSel && aSel.options.length <= 1) {
+      var members = (typeof teamState !== 'undefined' && teamState.members) || [];
+      aSel.innerHTML = '<option value="">Assign to…</option>' + members.map(function (m) {
+        return '<option value="' + esc(m.user_id) + '"' + (String(m.user_id) === String(me) ? '' : '') + '>' + esc(m.name || 'Team member') + '</option>';
+      }).join('');
+    }
     renderFollowups();
     if ($('#customerProfile')) $('#customerProfile').scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
@@ -1438,15 +1446,26 @@
     var rows = $('#cfRows');
     if (!rows) return;
     var list = customerFollowups();
-    if (!list.length) { rows.innerHTML = '<tr><td colspan="5" class="empty-cell">No follow-ups yet.</td></tr>'; return; }
+    if (!list.length) { rows.innerHTML = '<tr><td colspan="6" class="empty-cell">No follow-ups yet.</td></tr>'; return; }
+    var me = state.user ? state.user.id : null;
+    var members = (typeof teamState !== 'undefined' && teamState.members) || [];
     rows.innerHTML = list.map(function (f) {
       var overdue = f.status === 'open' && f.dueAt && new Date(f.dueAt).getTime() <= Date.now();
       var due = f.dueAt ? (overdue ? '<b class="danger-text">' + esc(fmtDue(f.dueAt)) + '</b>' : esc(fmtDue(f.dueAt))) : '—';
       var cls = f.priority === 'urgent' ? ' low' : f.priority === 'high' ? ' warn' : '';
+      var assignee = f.status === 'open'
+        ? '<select class="compact-select" data-cfassign="' + f.id + '" aria-label="Assign to">' +
+          '<option value="">Unassigned</option>' +
+          members.map(function (m) {
+            return '<option value="' + esc(m.user_id) + '"' + (String(m.user_id) === String(f.assignedTo || '') ? ' selected' : '') + '>' + esc(m.name || 'Team member') + '</option>';
+          }).join('') +
+          '</select>'
+        : (f.assignedTo ? esc(teamMemberName(f.assignedTo)) : '—');
       return '<tr>' +
         '<td data-label="Title"><b>' + esc(f.title) + '</b>' + (f.note ? '<small>' + esc(f.note) + '</small>' : '') + '</td>' +
         '<td data-label="Due">' + due + '</td>' +
         '<td data-label="Priority"><span class="status' + cls + '">' + esc(f.priority) + '</span></td>' +
+        '<td data-label="Assignee">' + assignee + '</td>' +
         '<td data-label="Status"><span class="status' + (f.status === 'done' ? '' : ' warn') + '">' + esc(f.status) + (f.status === 'done' && f.outcome ? ' · ' + esc(f.outcome) : '') + '</span></td>' +
         '<td data-label="Actions">' +
         (f.status === 'open'
@@ -1455,6 +1474,16 @@
           : '<button class="btn ghost mini" data-cfremove="' + f.id + '" type="button">Delete</button>') +
         '</td></tr>';
     }).join('');
+  }
+  function teamMemberName(id) {
+    if (!id) return '';
+    var me = state.user ? state.user.id : null;
+    if (String(id) === String(me)) return 'You';
+    var members = (typeof teamState !== 'undefined' && teamState.members) || [];
+    var m = members.filter(function (x) { return String(x.user_id) === String(id); })[0];
+    var name = m ? m.name : '';
+    if (name) return name;
+    return (state.followups || []).filter(function (f) { return String(f.createdBy) === String(id); })[0] ? 'Team' : String(id).slice(0, 8);
   }
   function fmtDue(iso) {
     try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); }
@@ -1470,9 +1499,10 @@
     try {
       await cloud.followups.create(state.businessId, state.user.id, {
         customerId: c.id, title: title, note: ($('#cfNote').value || '').trim() || null,
-        dueAt: due, priority: $('#cfPriority').value || 'normal'
+        dueAt: due, priority: $('#cfPriority').value || 'normal', assignedTo: $('#cfAssign') ? $('#cfAssign').value || null : null
       });
       $('#cfTitle').value = ''; $('#cfDue').value = ''; $('#cfNote').value = ''; $('#cfPriority').value = 'normal';
+      var aSel = $('#cfAssign'); if (aSel) aSel.value = '';
       await refreshCloudData();
       toast('Follow-up added for ' + c.name);
     } catch (err) { toast(friendly(err)); }
@@ -1646,6 +1676,14 @@
             cloud.followups.remove(rm.dataset.cfremove).then(function () { return refreshCloudData(); }).then(function () { toast('Follow-up deleted'); }).catch(function (err) { toast(friendly(err)); });
           });
         }
+      });
+      $('#cfRows').addEventListener('change', function (ev) {
+        var as = ev.target.closest('[data-cfassign]');
+        if (!as) return;
+        cloud.followups.updateAssigned(as.dataset.cfassign, as.value || null)
+          .then(function () { return refreshCloudData(); })
+          .then(function () { toast('Follow-up re-assigned'); })
+          .catch(function (err) { toast(friendly(err)); });
       });
       var byId = function (id) { return $(id); };
       var close = byId('#cpClose');

@@ -140,12 +140,15 @@
           <select id="cfPriority" class="compact-select" aria-label="Priority">
             <option value="normal" selected>Normal</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option>
           </select>
+          <select id="cfAssign" class="compact-select" aria-label="Assign to team member">
+            <option value="">Assign to…</option>
+          </select>
           <input id="cfNote" class="search-input" style="max-width:200px" placeholder="Note (optional)" aria-label="Follow-up note">
           <button id="cfAdd" class="btn primary" type="button">Add</button>
         </div>
         <div class="table-wrap"><table>
-          <thead><tr><th>TITLE</th><th>DUE</th><th>PRIORITY</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
-          <tbody id="cfRows"><tr><td colspan="5" class="empty-cell">No follow-ups yet.</td></tr></tbody>
+          <thead><tr><th>TITLE</th><th>DUE</th><th>PRIORITY</th><th>ASSIGNEE</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <tbody id="cfRows"><tr><td colspan="6" class="empty-cell">No follow-ups yet.</td></tr></tbody>
         </table></div>
       </article>
     </section>
