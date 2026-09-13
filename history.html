@@ -126,6 +126,19 @@
   </form>
 </dialog>
 
+<dialog id="invMetaDialog">
+  <form id="invMetaForm" class="dialog-card confirm-card" novalidate>
+    <div><p class="kicker">SALE DETAILS</p><h3>Edit invoice</h3></div>
+    <label>Due date<input id="invMetaDue" type="date"></label>
+    <label>Notes<input id="invMetaNotes" maxlength="500"></label>
+    <p id="invMetaHint" class="micro" style="text-align:left;margin:0 0 18px"></p>
+    <div class="dialog-actions">
+      <button type="button" id="invMetaCancel" class="btn ghost">Cancel</button>
+      <button class="btn primary" type="submit">Save changes</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="confirmDialog">
   <div class="dialog-card confirm-card">
     <div><p class="kicker danger-kicker">PLEASE CONFIRM</p><h3 id="confirmTitle">Are you sure?</h3></div>

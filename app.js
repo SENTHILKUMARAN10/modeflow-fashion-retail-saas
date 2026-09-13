@@ -204,7 +204,7 @@
       discount: Number(r.discount || 0), subtotal: Number(r.subtotal || 0),
       total: total, paid: paid, balance: Math.max(0, total - paid),
       paymentMethod: r.payment_method || 'upi', paymentStatus: r.payment_status || 'paid',
-      dueDate: r.due_date || null,
+      dueDate: r.due_date || null, notes: r.notes || '',
       date: fmtDay(new Date(r.created_at)), ts: new Date(r.created_at).getTime(),
       items: (r.invoice_items || []).map(function (x) {
         return { productId: x.product_id, name: x.product_name || 'Item', qty: Number(x.quantity || 0), rate: Number(x.rate || 0), cost: Number(x.cost_price || 0), lineTotal: Number(x.line_total || (x.quantity * x.rate) || 0) };
@@ -1909,6 +1909,7 @@ var pid = paymentTarget.id;
     var receive = receivable ? '<button class="action-btn" data-act="receive-payment" data-id="' + esc(i.id) + '">Receive</button>' : '';
     var remind = (invoiceOverdue(i) || dueSoon(i)) ? '<button class="action-btn" data-act="remind-invoice" data-id="' + esc(i.id) + '">Remind</button>' : '';
     var del = canDelete ? '<button class="action-btn danger" data-act="delete-invoice" data-id="' + esc(i.id) + '">Delete</button>' : '';
+    var edit = caps().manageCustomers ? '<button class="action-btn" data-act="edit-invoice" data-id="' + esc(i.id) + '" title="Set due date / notes">Edit</button>' : '';
     return '<tr data-row-id="i-' + esc(i.id) + '">' +
       '<td data-label="Transaction"><b>' + esc(i.id) + '</b></td>' +
       '<td data-label="Customer">' + esc(i.customer) + '</td>' +
@@ -1917,7 +1918,7 @@ var pid = paymentTarget.id;
       due +
       '<td data-label="Payment">' + invoicePayment(i) + '</td>' +
       '<td data-label="Date">' + esc(i.date) + '</td>' +
-      '<td data-label="Actions">' + receive + '<a class="action-btn" href="sales.html#open=repick:' + encodeURIComponent(i.id) + '" title="Quick re-sell — copy items into Billing">Re-sell</a><button class="action-btn" data-act="print-invoice" data-id="' + esc(i.id) + '">Print</button><button class="action-btn" data-act="print-invoice-thermal" data-id="' + esc(i.id) + '" title="58mm thermal receipt">58mm</button><button class="action-btn" data-act="share-invoice" data-id="' + esc(i.id) + '">WhatsApp</button>' + remind + del + '</td>' +
+      '<td data-label="Actions">' + receive + (edit || '') + '<a class="action-btn" href="sales.html#open=repick:' + encodeURIComponent(i.id) + '" title="Quick re-sell — copy items into Billing">Re-sell</a><button class="action-btn" data-act="print-invoice" data-id="' + esc(i.id) + '">Print</button><button class="action-btn" data-act="print-invoice-thermal" data-id="' + esc(i.id) + '" title="58mm thermal receipt">58mm</button><button class="action-btn" data-act="share-invoice" data-id="' + esc(i.id) + '">WhatsApp</button>' + remind + del + '</td>' +
       '</tr>';
   }
   function renderInvoices() {
@@ -1928,6 +1929,27 @@ var pid = paymentTarget.id;
     if ($('#recent')) $('#recent').innerHTML = state.invoices.slice(0, 5).map(function (i) { return invoiceRow(i, true); }).join('') || '<tr><td colspan="7" class="empty-cell">No transactions yet.</td></tr>';
   }
   function findInvoice(id) { return state.invoices.find(function (x) { return x.id === id; }); }
+  var invoiceEditId = null;
+  function openInvoiceMeta(i) {
+    if (!caps().manageCustomers) { toast('Only the owner or a manager can edit invoices'); return; }
+    if (!i.cloudId) { toast('This invoice is not saved to the cloud'); return; }
+    invoiceEditId = i.id;
+    $('#invMetaDue').value = i.dueDate ? String(i.dueDate).slice(0, 10) : '';
+    $('#invMetaNotes').value = i.notes || '';
+    $('#invMetaHint').textContent = 'Editing ' + (i.id || '') + ' — due date drives overdue status and reminders.';
+    $('#invMetaDialog').showModal();
+  }
+  async function saveInvoiceMeta() {
+    var i = findInvoice(invoiceEditId || '');
+    if (!i) { toast('Invoice not found'); return; }
+    var due = $('#invMetaDue').value || null;
+    try {
+      await cloud.invoices.updateMeta(i.cloudId, { dueDate: due, notes: $('#invMetaNotes').value.trim() || null });
+      await refreshCloudData();
+      $('#invMetaDialog').close();
+      toast('Invoice updated');
+    } catch (err) { toast(friendly(err)); }
+  }
   function allReceipts() {
     var out = [];
     state.invoices.forEach(function (i) {
@@ -1985,6 +2007,11 @@ var pid = paymentTarget.id;
     var filter = $('#invoiceFilter');
     if (filter) filter.addEventListener('change', function () { invoiceFilter = filter.value; renderInvoices(); });
     $('#historyRows').addEventListener('click', onInvoiceAction);
+    var md = $('#invMetaDialog');
+    if (md && $('#invMetaForm')) {
+      $('#invMetaCancel').addEventListener('click', function () { md.close(); });
+      $('#invMetaForm').addEventListener('submit', function (e) { e.preventDefault(); saveInvoiceMeta(); });
+    }
     var rr = $('#receiptRows');
     if (rr) rr.addEventListener('click', function (e) {
       var btn = e.target.closest('[data-act="print-receipt"], [data-act="share-receipt"]');
@@ -2038,6 +2065,7 @@ var pid = paymentTarget.id;
     if (btn.dataset.act === 'print-invoice') { printInvoice(i); return; }
     if (btn.dataset.act === 'print-invoice-thermal') { printInvoiceThermal(i); return; }
     if (btn.dataset.act === 'share-invoice') { shareInvoice(i); return; }
+    if (btn.dataset.act === 'edit-invoice') { openInvoiceMeta(i); return; }
     if (btn.dataset.act === 'remind-invoice') { remindCustomer(i); return; }
     if (btn.dataset.act === 'receive-payment') { openReceiptDialog(i); return; }
     if (btn.dataset.act === 'delete-invoice') {
@@ -2082,6 +2110,7 @@ var pid = paymentTarget.id;
       '<div class="row"><span>Balance due</span><b>' + sym + bal.toLocaleString('en-IN') + '</b></div>' +
       '</div>' +
       '<p>Payment: ' + String(i.paymentMethod || 'upi').toUpperCase() + ' · <b>' + status + '</b></p>' +
+      (i.notes ? '<p>Notes: ' + esc(i.notes) + '</p>' : '') +
       '<p class="muted">Thank you for your business.</p>' +
       '<script>print()<\/script></body></html>');
     w.document.close();

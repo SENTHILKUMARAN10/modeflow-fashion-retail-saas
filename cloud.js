@@ -146,6 +146,12 @@
         if (method) body.payment_method = method;
         return one(client.from('invoices').update(body).eq('id', id).select().single());
       },
+      updateMeta: function (id, meta) {
+        var body = {};
+        if (meta.dueDate !== undefined) body.due_date = meta.dueDate ? meta.dueDate.slice(0, 10) : null;
+        if (meta.notes !== undefined) body.notes = meta.notes ? String(meta.notes) : null;
+        return one(client.from('invoices').update(body).eq('id', id).select().single());
+      },
       remove: function (id) {
         return client.rpc('delete_sale', { p_invoice_id: id }).then(function (r) { if (r.error) throw r.error; });
       }
