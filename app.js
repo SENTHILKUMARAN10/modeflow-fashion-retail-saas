@@ -2162,6 +2162,7 @@ var pid = paymentTarget.id;
     var remind = (invoiceOverdue(i) || dueSoon(i)) ? '<button class="action-btn" data-act="remind-invoice" data-id="' + esc(i.id) + '">Remind</button>' : '';
     var del = canDelete ? '<button class="action-btn danger" data-act="delete-invoice" data-id="' + esc(i.id) + '">Delete</button>' : '';
     var edit = caps().manageCustomers ? '<button class="action-btn" data-act="edit-invoice" data-id="' + esc(i.id) + '" title="Set due date / notes">Edit</button>' : '';
+    var retn = (i.cloud && i.items && i.items.length && caps().manageCustomers) ? '<button class="action-btn" data-act="return-invoice" data-id="' + esc(i.id) + '" title="Customer return — restock + refund">Return</button>' : '';
     return '<tr data-row-id="i-' + esc(i.id) + '">' +
       '<td data-label="Transaction"><b>' + esc(i.id) + '</b></td>' +
       '<td data-label="Customer">' + esc(i.customer) + '</td>' +
@@ -2170,7 +2171,7 @@ var pid = paymentTarget.id;
       due +
       '<td data-label="Payment">' + invoicePayment(i) + '</td>' +
       '<td data-label="Date">' + esc(i.date) + '</td>' +
-      '<td data-label="Actions">' + receive + (edit || '') + '<a class="action-btn" href="sales.html#open=repick:' + encodeURIComponent(i.id) + '" title="Quick re-sell — copy items into Billing">Re-sell</a><button class="action-btn" data-act="print-invoice" data-id="' + esc(i.id) + '">Print</button><button class="action-btn" data-act="print-invoice-thermal" data-id="' + esc(i.id) + '" title="58mm thermal receipt">58mm</button><button class="action-btn" data-act="share-invoice" data-id="' + esc(i.id) + '">WhatsApp</button>' + remind + del + '</td>' +
+      '<td data-label="Actions">' + receive + (edit || '') + retn + '<a class="action-btn" href="sales.html#open=repick:' + encodeURIComponent(i.id) + '" title="Quick re-sell — copy items into Billing">Re-sell</a><button class="action-btn" data-act="print-invoice" data-id="' + esc(i.id) + '">Print</button><button class="action-btn" data-act="print-invoice-thermal" data-id="' + esc(i.id) + '" title="58mm thermal receipt">58mm</button><button class="action-btn" data-act="share-invoice" data-id="' + esc(i.id) + '">WhatsApp</button>' + remind + del + '</td>' +
       '</tr>';
   }
   function renderInvoices() {
@@ -2285,6 +2286,62 @@ var pid = paymentTarget.id;
     $('#receiptRef').value = '';
     $('#receiptDialog').showModal();
   }
+  var returnTarget = null;
+  function openReturnDialog(i) {
+    if (!i.cloud || !i.items || !i.items.length) { toast('Nothing to return on this transaction'); return; }
+    returnTarget = i;
+    var pick = $('#returnProductPick');
+    pick.innerHTML = i.items.map(function (x) {
+      return '<option value="' + esc(x.productId) + '" data-rate="' + (Number(x.rate) || 0) + '" data-qty="' + (Number(x.qty) || 0) + '">' + esc(x.name) + ' — max ' + (Number(x.qty) || 0) + '</option>';
+    }).join('');
+    $('#returnTitle').textContent = 'Return item · ' + i.id;
+    $('#returnQty').value = 1;
+    $('#returnQty').max = 1;
+    $('#returnMethod').value = 'credit';
+    $('#returnReason').value = '';
+    $('#returnRestock').checked = true;
+    updateReturnTotal();
+    $('#returnDialog').showModal();
+  }
+  function updateReturnTotal() {
+    var pick = $('#returnProductPick');
+    var opt = pick && pick.selectedIndex >= 0 ? pick.options[pick.selectedIndex] : null;
+    if (!opt || !opt.dataset.rate) { if ($('#returnTotal')) $('#returnTotal').textContent = ''; return; }
+    var max = Number(opt.dataset.qty || 1);
+    var q = Math.max(1, Number($('#returnQty').value) || 1);
+    $('#returnQty').max = max;
+    if (q > max) { $('#returnQty').value = max; q = max; }
+    var amt = q * Number(opt.dataset.rate || 0);
+    $('#returnTotal').textContent = 'Refund value: ' + money(amt) + ' · restock ' + ($('#returnRestock').checked ? 'on' : 'off');
+  }
+  function bindReturnDialog() {
+    if (!$('#returnDialog')) return;
+    $('#returnCancel').addEventListener('click', function () { $('#returnDialog').close(); });
+    $('#returnProductPick').addEventListener('change', updateReturnTotal);
+    $('#returnQty').addEventListener('input', updateReturnTotal);
+    $('#returnRestock').addEventListener('change', updateReturnTotal);
+    $('#returnForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (!returnTarget) { toast('Return context is missing — try again'); return; }
+      var i = returnTarget;
+      var pick = $('#returnProductPick');
+      var productId = pick.value;
+      var label = pick.selectedIndex >= 0 ? pick.options[pick.selectedIndex].text : 'item';
+      var qty = Number($('#returnQty').value);
+      if (!productId || !(qty > 0)) { toast('Pick an item and a quantity'); return; }
+      var method = $('#returnMethod').value;
+      var reason = $('#returnReason').value.trim();
+      var restock = $('#returnRestock').checked;
+      var ok = await confirmDialog('Record return?', 'Returning ' + qty + ' × ' + esc(label) + ' from ' + esc(i.id) + ' · refund: ' + String(method).toUpperCase() + '. ' + (restock ? 'Stock will be added back.' : 'Stock stays unchanged.'));
+      if (!ok) return;
+      try {
+        await cloud.returns.create(i.cloudId, productId, qty, { method: method, reason: reason || null, restock: restock });
+        await refreshCloudData();
+        $('#returnDialog').close();
+        toast('Return recorded');
+      } catch (err) { toast(friendly(err)); }
+    });
+  }
   function bindReceiptDialog() {
     if (!$('#receiptDialog')) return;
     $('#receiptCancel').addEventListener('click', function () { $('#receiptDialog').close(); });
@@ -2318,6 +2375,7 @@ var pid = paymentTarget.id;
     if (btn.dataset.act === 'print-invoice-thermal') { printInvoiceThermal(i); return; }
     if (btn.dataset.act === 'share-invoice') { shareInvoice(i); return; }
     if (btn.dataset.act === 'edit-invoice') { openInvoiceMeta(i); return; }
+    if (btn.dataset.act === 'return-invoice') { openReturnDialog(i); return; }
     if (btn.dataset.act === 'remind-invoice') { remindCustomer(i); return; }
     if (btn.dataset.act === 'receive-payment') { openReceiptDialog(i); return; }
     if (btn.dataset.act === 'delete-invoice') {
@@ -4203,7 +4261,7 @@ var pid = paymentTarget.id;
     if (page === 'customers') bindCustomers();
     if (page === 'purchases') bindPurchases();
     if (page === 'expenses') bindExpenses();
-    if (page === 'history') { bindInvoices(); bindReceiptDialog(); }
+    if (page === 'history') { bindInvoices(); bindReceiptDialog(); bindReturnDialog(); }
     if (page === 'estimates') bindEstimates();
     if (page === 'reports') bindReports();
     if (page === 'plans') bindPlans();

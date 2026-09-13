@@ -141,6 +141,24 @@
   </form>
 </dialog>
 
+<dialog id="returnDialog">
+  <form id="returnForm" class="dialog-card confirm-card" novalidate>
+    <div><p class="kicker">SALES RETURN</p><h3 id="returnTitle">Return item</h3></div>
+    <label>Item<select id="returnProductPick" aria-label="Item to return"></select></label>
+    <label>Quantity<input id="returnQty" type="number" min="1" step="any" required></label>
+    <label>Refund method<select id="returnMethod" aria-label="Refund method">
+      <option value="credit">Credit note</option><option value="cash">Cash</option><option value="upi">UPI</option><option value="card">Card</option><option value="bank">Bank</option><option value="other">Custom</option>
+    </select></label>
+    <label>Reason<input id="returnReason" maxlength="300" placeholder="Damaged / wrong item / customer returned…"></label>
+    <label class="check-line" style="display:flex;gap:8px;align-items:center"><input id="returnRestock" type="checkbox" checked style="width:auto">Restock returned units</label>
+    <p id="returnTotal" class="micro" style="text-align:left;margin:0 0 18px"></p>
+    <div class="dialog-actions">
+      <button type="button" id="returnCancel" class="btn ghost">Cancel</button>
+      <button class="btn primary" type="submit">Record return</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="confirmDialog">
   <div class="dialog-card confirm-card">
     <div><p class="kicker danger-kicker">PLEASE CONFIRM</p><h3 id="confirmTitle">Are you sure?</h3></div>

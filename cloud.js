@@ -180,6 +180,18 @@
         return one(client.from('sales_documents').update({ status: status }).eq('id', id).select().single());
       }
     },
+    returns: {
+      list: function (businessId) {
+        return one(client.from('sales_returns')
+          .select('*,sales_return_items(*)').eq('business_id', businessId).order('created_at', { ascending: false }));
+      },
+      create: function (invoiceId, productId, qty, r) {
+        return client.rpc('create_sales_return', {
+          p_invoice_id: invoiceId, p_product_id: productId, p_quantity: qty,
+          p_refund_method: r.method || 'credit', p_reason: r.reason || null, p_restock: r.restock !== false
+        }).then(function (res) { if (res.error) throw res.error; return res.data; });
+      }
+    },
     expenses: {
       list: function (businessId) {
         return one(client.from('expenses')
