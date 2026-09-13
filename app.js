@@ -314,7 +314,8 @@
         cloud.followups.list(state.businessId).catch(function () { return []; }),
         cloud.warehouses.list(state.businessId).catch(function () { return []; }),
         cloud.warehouses.stock(state.businessId).catch(function () { return []; }),
-        cloud.warehouses.transfers(state.businessId).catch(function () { return []; })
+        cloud.warehouses.transfers(state.businessId).catch(function () { return []; }),
+        cloud.returns.list(state.businessId).catch(function () { return []; })
       ]);
       state.products = results[0].map(productFromCloud);
       state.invoices = results[1].map(invoiceFromCloud);
@@ -326,6 +327,7 @@
       state.warehouses = results[7] || [];
       state.warehouseStock = results[8] || [];
       state.transfers = results[9] || [];
+      state.returns = results[10] || [];
       var el = $('#cloudStatus');
       var appEl = $('#app');
       if (el && appEl && !appEl.classList.contains('hidden')) el.textContent = '';
@@ -2298,6 +2300,23 @@ var pid = paymentTarget.id;
     var filtered = state.invoices.filter(function (i) { return (i.id + ' ' + i.customer + ' ' + i.phone).toLowerCase().indexOf(q) !== -1 && invoiceFilterMatch(i); });
     if ($('#historyRows')) $('#historyRows').innerHTML = filtered.map(function (i) { return invoiceRow(i, false); }).join('') || '<tr><td colspan="8" class="empty-cell">No matching transactions.</td></tr>';
     if ($('#recent')) $('#recent').innerHTML = state.invoices.slice(0, 5).map(function (i) { return invoiceRow(i, true); }).join('') || '<tr><td colspan="7" class="empty-cell">No transactions yet.</td></tr>';
+    renderReturns();
+  }
+  function renderReturns() {
+    var tb = $('#returnRows'); if (!tb) return;
+    var rows = state.returns || [];
+    var total = rows.reduce(function (a, r) { return a + Number(r.refund_amount || 0); }, 0);
+    if ($('#returnsTotal')) $('#returnsTotal').textContent = money(total);
+    tb.innerHTML = rows.map(function (r) {
+      var invN = (state.invoices || []).find(function (i) { return String(i.cloudId) === String(r.invoice_id); });
+      var item = (r.sales_return_items || []).map(function (it) { return esc(it.product_name) + ' × ' + (Number(it.quantity) || 0); }).join(', ') || '—';
+      var qty = (r.sales_return_items || []).reduce(function (a, it) { return a + Number(it.quantity || 0); }, 0);
+      var restock = (r.sales_return_items || [])[0];
+      return '<tr><td><span class="sku-tag">' + esc(r.return_number) + '</span></td><td>' + esc(invN ? invN.id : String(r.invoice_id).slice(0, 8)) + '</td><td>' + item + '</td>' +
+        '<td class="num">' + qty + '</td><td class="num"><b>' + money(r.refund_amount) + '</b></td><td>' + esc(String(r.refund_method || '—').toUpperCase()) + '</td>' +
+        '<td>' + (restock ? (restock.restock ? '<span class="status">restocked</span>' : '<span class="status neutral">no</span>') : '—') + '</td>' +
+        '<td>' + esc(fmtDay(new Date(r.created_at))) + '</td></tr>';
+    }).join('') || '<tr><td colspan="8" class="empty-cell">No returns recorded yet.</td></tr>';
   }
   function findInvoice(id) { return state.invoices.find(function (x) { return x.id === id; }); }
   var invoiceEditId = null;
