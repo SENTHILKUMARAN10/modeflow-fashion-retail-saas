@@ -316,7 +316,8 @@
         cloud.warehouses.stock(state.businessId).catch(function () { return []; }),
         cloud.warehouses.transfers(state.businessId).catch(function () { return []; }),
         cloud.returns.list(state.businessId).catch(function () { return []; }),
-        cloud.branches.list(state.businessId).catch(function () { return []; })
+        cloud.branches.list(state.businessId).catch(function () { return []; }),
+        cloud.movements.list(state.businessId, 100).catch(function () { return []; })
       ]);
       state.products = results[0].map(productFromCloud);
       state.invoices = results[1].map(invoiceFromCloud);
@@ -330,6 +331,13 @@
       state.transfers = results[9] || [];
       state.returns = results[10] || [];
       state.branches = results[11] || [];
+      state.movements = (results[12] || []).map(function (m) {
+        return {
+          id: m.id, productId: m.product_id, warehouseId: m.warehouse_id || null,
+          type: m.movement_type, qty: Number(m.quantity || 0),
+          referenceId: m.reference_id || null, note: m.note || '', ts: new Date(m.created_at).getTime()
+        };
+      });
       var el = $('#cloudStatus');
       var appEl = $('#app');
       if (el && appEl && !appEl.classList.contains('hidden')) el.textContent = '';
@@ -1175,6 +1183,33 @@
           '<td class="num">' + (t.inventory_transfer_items || []).length + '</td><td>' + esc(fmtDay(new Date(t.created_at))) + '</td><td><span class="' + statusPill(t.status) + '">' + esc(t.status) + '</span></td></tr>';
       }).join('') || '<tr><td colspan="6" class="empty-cell">No transfers yet.</td></tr>';
     }
+  }
+  function movementTypeLabel(t) {
+    var map = { purchase: 'purchase', sale: 'sale', adjustment: 'adjustment', return: 'return', transfer_out: 'transfer out', transfer_in: 'transfer in' };
+    return map[t] || String(t || 'movement');
+  }
+  function renderStockMovements() {
+    var tb = $('#stockMovRows'); if (!tb) return;
+    var movs = (state.movements || []).slice(0, 100);
+    var wh = (state.warehouses || []);
+    if ($('#movCount')) $('#movCount').textContent = movs.length ? 'Last ' + movs.length + ' entries' : '';
+    tb.innerHTML = movs.length
+      ? movs.map(function (m) {
+          var p = state.products.find(function (x) { return String(x.id) === String(m.productId); });
+          var name = p ? p.name : 'Item';
+          var w = wh.find(function (x) { return String(x.id) === String(m.warehouseId); });
+          var isIn = m.type === 'purchase' || m.type === 'transfer_in' || (m.type === 'return' && m.qty > 0);
+          var typeCls = m.type === 'sale' || m.type === 'transfer_out' ? ' low' : m.type === 'adjustment' ? ' warn' : '';
+          return '<tr>' +
+            '<td>' + esc(fmtDay(m.ts)) + '</td>' +
+            '<td><b>' + esc(name) + '</b></td>' +
+            '<td class="num">' + (isIn ? '<b>+' : '<span class="danger-text">-') + Number(Math.abs(m.qty) || 0) + (isIn ? '</b>' : '</span>') + '</td>' +
+            '<td><span class="status' + typeCls + '">' + esc(movementTypeLabel(m.type)) + '</span></td>' +
+            '<td>' + esc((w && (w.name || w.code)) || '—') + '</td>' +
+            '<td><span class="sku-tag">' + esc(String(m.referenceId || '—').slice(0, 13)) + '</span></td>' +
+            '<td>' + esc(m.note || '—') + '</td></tr>';
+        }).join('')
+      : '<tr><td colspan="7" class="empty-cell">No stock movements yet.</td></tr>';
   }
   function openTransferDialog() {
     if (!(caps().manageProducts)) { toast('Manager access required for transfers'); return; }
@@ -4279,7 +4314,7 @@ var pid = paymentTarget.id;
     rendering = true;
     try {
       productOptions(); renderInventory(); renderCustomers(); renderSuppliers(); renderPurchases(); renderExpenses();
-      renderInvoices(); renderReceipts(); renderDashboard(); renderReports(); renderWarehouses();
+      renderInvoices(); renderReceipts(); renderDashboard(); renderReports(); renderWarehouses(); renderStockMovements();
       renderPlans(); updatePreview(); renderSettings();
       handleOpenIntent();
     } finally { rendering = false; }

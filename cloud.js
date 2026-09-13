@@ -214,6 +214,13 @@
           .eq('business_id', businessId).eq('is_active', true).order('name'));
       }
     },
+    movements: {
+      list: function (businessId, limit) {
+        var q = client.from('stock_movements').select('*').eq('business_id', businessId).order('created_at', { ascending: false });
+        if (limit) q = q.limit(limit);
+        return one(q);
+      }
+    },
     warehouses: {
       list: function (businessId) {
         return one(client.from('warehouses').select('id,name,code,is_default,is_active')

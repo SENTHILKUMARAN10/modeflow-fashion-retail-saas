@@ -122,12 +122,22 @@
           </table></div>
           <div id="whStock"></div>
         </div>
-        <div id="trView" hidden>
+<div id="trView" hidden>
           <div class="table-wrap"><table>
             <thead><tr><th>TRANSFER</th><th>FROM</th><th>TO</th><th class="num">ITEMS</th><th>DATE</th><th>STATUS</th></tr></thead>
             <tbody id="transferRows"></tbody>
           </table></div>
         </div>
+      </article>
+      <article class="panel table-panel" style="margin-top:18px">
+        <div class="panel-head">
+          <div><p class="kicker">LEDGER</p><h3>Stock movements</h3></div>
+          <span class="muted" id="movCount"></span>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>DATE</th><th>ITEM</th><th class="num">QTY</th><th>TYPE</th><th>WAREHOUSE</th><th>REFERENCE</th><th>NOTE</th></tr></thead>
+          <tbody id="stockMovRows"><tr><td colspan="7" class="empty-cell">No stock movements yet.</td></tr></tbody>
+        </table></div>
       </article>
     </section>
   </main>
