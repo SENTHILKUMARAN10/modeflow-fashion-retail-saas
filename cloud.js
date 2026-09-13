@@ -90,7 +90,8 @@
           .insert({
             business_id: businessId, name: c.name, phone: c.phone || null, email: c.email || null,
             company_name: c.company || null, address: c.address || null,
-            tags: (c.tags || []).length ? c.tags : null, notes: c.notes || null
+            tags: (c.tags || []).length ? c.tags : null, notes: c.notes || null,
+            status: c.status || 'active'
           })
           .select().single());
       },
@@ -99,13 +100,35 @@
           .update({
             name: c.name, phone: c.phone || null, email: c.email || null,
             company_name: c.company || null, address: c.address || null,
-            tags: (c.tags || []).length ? c.tags : null, notes: c.notes || null
+            tags: (c.tags || []).length ? c.tags : null, notes: c.notes || null,
+            status: c.status || 'active'
           })
           .eq('id', id).select().single());
       },
       archive: function (id) {
         return one(client.from('customers').update({ status: 'inactive' }).eq('id', id).select().single());
       }
+    },
+    followups: {
+      list: function (businessId) {
+        return one(client.from('customer_followups')
+          .select('*').eq('business_id', businessId).order('created_at', { ascending: false }));
+      },
+      create: function (businessId, userId, f) {
+        return one(client.from('customer_followups')
+          .insert({
+            business_id: businessId, customer_id: f.customerId, title: f.title,
+            note: f.note || null, due_at: f.dueAt || null, priority: f.priority || 'normal',
+            status: 'open', created_by: userId
+          })
+          .select().single());
+      },
+      complete: function (id, outcome) {
+        return one(client.from('customer_followups')
+          .update({ status: 'done', completed_at: new Date().toISOString(), outcome: outcome || null })
+          .eq('id', id).eq('status', 'open'));
+      },
+      remove: function (id) { return one(client.from('customer_followups').delete().eq('id', id)); }
     },
     invoices: {
       list: function (businessId) {

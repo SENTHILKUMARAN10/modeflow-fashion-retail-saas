@@ -39,7 +39,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 28 | GST | PLAN | CGST/SGST/IGST/cess, HSN/SAC, inclusive/exclusive, place of supply, reverse charge |
 | 29 | GST reports | PLAN | GSTR-1/3B summaries, HSN summary, input/output tax |
 | 35 | Warehouses | PLAN | creation, warehouse stock, transfers, reports (schema: warehouses, inventory_transfers) |
-| 39 | CRM | PLAN | leads, follow-ups (schema: customer_followups), tasks, customer value |
+| 39 | CRM | PARTIAL | leads: mark customer as lead in customer dialog (status field, Lead chip in all/active/leads/archived segments + LEAD badge in profile); per-customer follow-ups on customer profile (task title, due date, priority, note; mark done with outcome, delete), full member RLS on customer_followups; add team-assign + global follow-ups inbox
 | 42 | WhatsApp | PARTIAL | invoice share + overdue reminders (Transactions) + receipt Share + customer statement Share + catalogue share (copy-to-clipboard formatted catalogue, Products); extend to purchase orders & quotes |
 | 45 | Multi-user | PARTIAL | team manage on Settings: invite by email + role (+link copy), live member list with inline role changes, pending invitations with revoke, remove member (owner/admin via server APIs: team/invite, team/list, team/update, remove, revoke-invite) + invite-link acceptance flow (sign in → auto-accept → join workspace); add branch assignment UI |
 | 46 | Permissions | PARTIAL | client capability map; align with server `salesdesk_can` matrix |

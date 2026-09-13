@@ -309,7 +309,8 @@
         cloud.expenses.list(state.businessId).catch(function () { return []; }),
         cloud.suppliers.list(state.businessId).catch(function () { return []; }),
         cloud.purchases.list(state.businessId).catch(function () { return []; }),
-        cloud.customers.list(state.businessId).catch(function () { return []; })
+        cloud.customers.list(state.businessId).catch(function () { return []; }),
+        cloud.followups.list(state.businessId).catch(function () { return []; })
       ]);
       state.products = results[0].map(productFromCloud);
       state.invoices = results[1].map(invoiceFromCloud);
@@ -317,6 +318,7 @@
       state.suppliers = results[3].map(supplierFromCloud);
       state.purchases = results[4].map(purchaseFromCloud);
       state.customers = results[5].map(customerFromCloud);
+      state.followups = results[6].map(followupFromCloud);
       var el = $('#cloudStatus');
       var appEl = $('#app');
       if (el && appEl && !appEl.classList.contains('hidden')) el.textContent = '';
@@ -332,6 +334,13 @@
       id: r.id, cloud: true, name: r.name, phone: r.phone || '',
       email: r.email || '', company: r.company_name || '', address: r.address || '',
       tags: r.tags || [], notes: r.notes || '', status: r.status || 'active'
+    };
+  }
+  function followupFromCloud(r) {
+    return {
+      id: r.id, customerId: r.customer_id, title: r.title, note: r.note || '',
+      dueAt: r.due_at || null, priority: r.priority || 'normal', status: r.status || 'open',
+      outcome: r.outcome || '', createdBy: r.created_by, createdAt: r.created_at
     };
   }
   function supplierFromCloud(r) {
@@ -918,6 +927,9 @@
     $('#custAddress').value = c ? (c.address || '') : '';
     $('#custTags').value = c ? (c.tags || []).join(', ') : '';
     $('#custNotes').value = c ? (c.notes || '') : '';
+    var leadFlag = c ? c.status === 'lead' : false;
+    var leadEl = $('#custLead');
+    if (leadEl) leadEl.checked = leadFlag;
     $('#customerDialog').showModal();
     setTimeout(function () { $('#custName').focus(); }, 30);
   }
@@ -940,6 +952,7 @@
     if (customerTagFilter !== 'all') {
       list = list.filter(function (c) {
         return customerTagFilter === 'active' ? c.status !== 'inactive' :
+          customerTagFilter === 'leads' ? c.status === 'lead' :
           customerTagFilter === 'archived' ? c.status === 'inactive' : (c.tags || []).indexOf(customerTagFilter) !== -1;
       });
     }
@@ -951,6 +964,7 @@
       var segs = [
         { key: 'all', label: 'All', n: customers().length },
         { key: 'active', label: 'Active', n: customers().filter(function (c) { return c.status !== 'inactive'; }).length },
+        { key: 'leads', label: 'Leads', n: customers().filter(function (c) { return c.status === 'lead'; }).length },
         { key: 'archived', label: 'Archived', n: customers().filter(function (c) { return c.status === 'inactive'; }).length }
       ];
       chips.innerHTML = segs.map(function (s) {
@@ -1004,6 +1018,8 @@
     if (!c) { closeCustomerProfile(); return; }
     if ($('#cpAvatar')) $('#cpAvatar').textContent = initials(c.name);
     if ($('#cpName')) $('#cpName').textContent = c.name;
+    var leadPill = $('#cpLeadPill');
+    if (leadPill) { leadPill.hidden = c.status !== 'lead'; }
     if ($('#cpPhone')) {
       var bits = [];
       if (c.phone) bits.push('Phone · ' + c.phone);
@@ -1040,7 +1056,62 @@
     }
     var closing = win.reduce(function (a, i) { return a + (Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0)); }, 0);
     if ($('#stmtClosing')) $('#stmtClosing').textContent = 'Closing: ' + money(closing);
+    renderFollowups();
     if ($('#customerProfile')) $('#customerProfile').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  function customerFollowups() {
+    var c = customers().filter(function (x) { return customerKey(x) === selectedCustomerKey; })[0];
+    if (!c || !state.followups) return [];
+    return state.followups.filter(function (f) { return f.customerId === c.id; }).sort(function (a, b) { return String(a.status).localeCompare(b.status) || String(a.dueAt || '').localeCompare(String(b.dueAt || '')); });
+  }
+  function renderFollowups() {
+    var rows = $('#cfRows');
+    if (!rows) return;
+    var list = customerFollowups();
+    if (!list.length) { rows.innerHTML = '<tr><td colspan="5" class="empty-cell">No follow-ups yet.</td></tr>'; return; }
+    rows.innerHTML = list.map(function (f) {
+      var overdue = f.status === 'open' && f.dueAt && new Date(f.dueAt).getTime() <= Date.now();
+      var due = f.dueAt ? (overdue ? '<b class="danger-text">' + esc(fmtDue(f.dueAt)) + '</b>' : esc(fmtDue(f.dueAt))) : '—';
+      var cls = f.priority === 'urgent' ? ' low' : f.priority === 'high' ? ' warn' : '';
+      return '<tr>' +
+        '<td data-label="Title"><b>' + esc(f.title) + '</b>' + (f.note ? '<small>' + esc(f.note) + '</small>' : '') + '</td>' +
+        '<td data-label="Due">' + due + '</td>' +
+        '<td data-label="Priority"><span class="status' + cls + '">' + esc(f.priority) + '</span></td>' +
+        '<td data-label="Status"><span class="status' + (f.status === 'done' ? '' : ' warn') + '">' + esc(f.status) + (f.status === 'done' && f.outcome ? ' · ' + esc(f.outcome) : '') + '</span></td>' +
+        '<td data-label="Actions">' +
+        (f.status === 'open'
+          ? '<button class="btn ghost mini" data-cfcomplete="' + f.id + '" type="button">Mark done</button> ' +
+            '<button class="btn ghost mini" data-cfremove="' + f.id + '" type="button">Delete</button>'
+          : '<button class="btn ghost mini" data-cfremove="' + f.id + '" type="button">Delete</button>') +
+        '</td></tr>';
+    }).join('');
+  }
+  function fmtDue(iso) {
+    try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); }
+    catch (e) { return iso; }
+  }
+  async function addFollowup() {
+    if (!state.businessId) { toast('Open your cloud workspace first'); return; }
+    var title = ($('#cfTitle').value || '').trim();
+    if (!title) { toast('Give the follow-up a short title'); return; }
+    var c = customers().filter(function (x) { return customerKey(x) === selectedCustomerKey; })[0];
+    if (!c) { toast('Select a customer first'); return; }
+    var due = $('#cfDue').value ? new Date($('#cfDue').value + 'T12:00:00').toISOString() : null;
+    try {
+      await cloud.followups.create(state.businessId, state.user.id, {
+        customerId: c.id, title: title, note: ($('#cfNote').value || '').trim() || null,
+        dueAt: due, priority: $('#cfPriority').value || 'normal'
+      });
+      $('#cfTitle').value = ''; $('#cfDue').value = ''; $('#cfNote').value = ''; $('#cfPriority').value = 'normal';
+      await refreshCloudData();
+      toast('Follow-up added for ' + c.name);
+    } catch (err) { toast(friendly(err)); }
+  }
+  async function completeFollowup(id) {
+    var outcome = window.prompt('Outcome (optional, e.g. "Sent price list"):', '');
+    if (outcome === null) return;
+    try { await cloud.followups.complete(id, outcome.trim() || null); await refreshCloudData(); toast('Follow-up marked done'); }
+    catch (err) { toast(friendly(err)); }
   }
   function openCustomerProfile(key) {
     selectedCustomerKey = key;
@@ -1178,7 +1249,8 @@
           email: $('#custEmail').value.trim() || null, company: $('#custCompany').value.trim() || null,
           address: $('#custAddress').value.trim() || null,
           tags: $('#custTags').value.split(',').map(function (t) { return t.trim(); }).filter(Boolean),
-          notes: $('#custNotes').value.trim() || null
+          notes: $('#custNotes').value.trim() || null,
+          status: $('#custLead') && $('#custLead').checked ? 'lead' : 'active'
         };
         try {
           if (customerDraftId) await cloud.customers.update(customerDraftId, data);
@@ -1192,6 +1264,19 @@
     }
     var pf = $('#customerProfile');
     if (pf) {
+      var cfAdd = $('#cfAdd');
+      if (cfAdd) cfAdd.addEventListener('click', addFollowup);
+      $('#cfRows').addEventListener('click', function (ev) {
+        var done = ev.target.closest('[data-cfcomplete]');
+        if (done) { completeFollowup(done.dataset.cfcomplete); return; }
+        var rm = ev.target.closest('[data-cfremove]');
+        if (rm) {
+          confirmDialog('Delete follow-up?', 'This removes the task permanently.').then(function (ok) {
+            if (!ok) return;
+            cloud.followups.remove(rm.dataset.cfremove).then(function () { return refreshCloudData(); }).then(function () { toast('Follow-up deleted'); }).catch(function (err) { toast(friendly(err)); });
+          });
+        }
+      });
       var byId = function (id) { return $(id); };
       var close = byId('#cpClose');
       if (close) close.addEventListener('click', closeCustomerProfile);

@@ -102,6 +102,7 @@
           <div class="cell-person">
             <span class="store-avatar" id="cpAvatar">—</span>
             <div class="cell-main"><b id="cpName">Customer</b><small id="cpPhone">—</small></div>
+          <span id="cpLeadPill" class="status low" style="align-self:center" hidden>LEAD</span>
           </div>
           <div class="profile-actions">
             <a id="cpWhatsApp" class="btn ghost" href="#" target="_blank" rel="noopener">WhatsApp ↗</a>
@@ -124,9 +125,25 @@
           <input type="date" id="stmtTo" aria-label="Statement end date">
           <span class="summary-chip" id="stmtClosing">Closing: ₹0</span>
         </div>
-        <div class="table-wrap"><table class="age-table">
+<div class="table-wrap"><table class="age-table">
           <thead><tr><th>DATE</th><th>INVOICE</th><th>ITEM</th><th>TOTAL</th><th>PAID</th><th>BALANCE</th><th>STATUS</th></tr></thead>
           <tbody id="statementTable"></tbody>
+        </table></div>
+        <div class="panel-head" style="margin-top:22px">
+          <div><p class="kicker">CRM</p><h3>Follow-ups</h3></div>
+        </div>
+        <div class="utility-row" style="justify-content:flex-start">
+          <input id="cfTitle" class="search-input" style="max-width:180px" placeholder="e.g. Send catalogue" aria-label="Follow-up title">
+          <input id="cfDue" type="date" class="search-input" style="max-width:150px" aria-label="Follow-up due date">
+          <select id="cfPriority" class="compact-select" aria-label="Priority">
+            <option value="normal" selected>Normal</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option>
+          </select>
+          <input id="cfNote" class="search-input" style="max-width:200px" placeholder="Note (optional)" aria-label="Follow-up note">
+          <button id="cfAdd" class="btn primary" type="button">Add</button>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>TITLE</th><th>DUE</th><th>PRIORITY</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <tbody id="cfRows"><tr><td colspan="5" class="empty-cell">No follow-ups yet.</td></tr></tbody>
         </table></div>
       </article>
     </section>
@@ -143,6 +160,7 @@
     <label>Address<input id="custAddress" maxlength="200"></label>
     <label>Tags<input id="custTags" placeholder="VIP, wholesale, credit … (comma separated)"></label>
     <label>Notes<input id="custNotes" maxlength="500"></label>
+    <label class="check-row" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="custLead" style="width:18px;height:18px"> Mark as a <b>lead</b> (prospect — no purchases yet)</label>
     <div class="dialog-actions">
       <button type="button" id="customerCancel" class="btn ghost">Cancel</button>
       <button class="btn primary" type="submit">Save customer</button>
