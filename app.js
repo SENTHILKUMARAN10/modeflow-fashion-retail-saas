@@ -2345,6 +2345,24 @@ var pid = paymentTarget.id;
         ? bvals.map(function (v) { return '<div class="bar-wrap"><div class="bar exp" style="height:' + Math.max(12, (v[1].expenses / maxExp) * 150) + 'px" title="' + money(v[1].expenses) + '"></div><span>' + esc(v[0].slice(5).replace('-', '/')) + '</span></div>'; }).join('')
         : '<p class="muted" style="padding:28px 22px">Expense chart appears once expenses are recorded.</p>';
     }
+    renderFollowupsInbox();
+  }
+  function renderFollowupsInbox() {
+    var tb = $('#followupRows'); if (!tb) return;
+    var open = (state.followups || []).filter(function (f) { return f.status === 'open'; })
+      .sort(function (a, b) { return String(a.dueAt || '9999').localeCompare(String(b.dueAt || '9999')); });
+    if (!open.length) { tb.innerHTML = '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">No open follow-ups.</p>'; return; }
+    var dueTodayS = new Date().toISOString().slice(0, 10);
+    tb.innerHTML = open.slice(0, 8).map(function (f) {
+      var c = state.customers.find(function (x) { return x.id === f.customerId; });
+      var name = c ? c.name : 'Customer';
+      var key = encodeURIComponent(c ? customerKey(c) : '');
+      var day = f.dueAt ? String(f.dueAt).slice(0, 10) : '';
+      var tag = day && day < dueTodayS ? ' <span class="status low">Overdue</span>' : day === dueTodayS ? ' <span class="status warn">Today</span>' : '';
+      var when = day || 'no due date';
+      return '<div class="alert"><div><b>' + esc(f.title) + '</b>' + tag + '<div class="muted">' + esc(name) + ' · ' + esc(String(f.priority || 'normal').toUpperCase()) + ' · due ' + esc(when) + '</div></div>' +
+        '<a class="status low" href="customers.html#open=customer:' + key + '" data-go="customers" style="text-decoration:none">Open</a></div>';
+    }).join('') + (open.length > 8 ? '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">+' + (open.length - 8) + ' more…</p>' : '');
   }
 
   /* ============ sales performance suite ============ */
