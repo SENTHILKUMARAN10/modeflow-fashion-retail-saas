@@ -1218,6 +1218,23 @@
     var map = { purchase: 'purchase', sale: 'sale', adjustment: 'adjustment', return: 'return', transfer_out: 'transfer out', transfer_in: 'transfer in' };
     return map[t] || String(t || 'movement');
   }
+  function exportStockMovementsCsv() {
+    if (!(state.movements || []).length) { toast('No stock movements to export'); return; }
+    var rows = (state.movements || []).map(function (m) {
+      var p = state.products.find(function (x) { return String(x.id) === String(m.productId); });
+      var w = (state.warehouses || []).find(function (x) { return String(x.id) === String(m.warehouseId); });
+      return [fmtDay(m.ts), (p && p.name) || 'Item', m.qty, movementTypeLabel(m.type), (w && (w.name || w.code)) || '', String(m.referenceId || '').slice(0, 13), m.note];
+    });
+    downloadCSV('salesventory-stock-movements-' + new Date().toISOString().slice(0, 10) + '.csv', ['Date', 'Product', 'Qty', 'Type', 'Warehouse', 'Reference', 'Note'], rows);
+  }
+  function exportTransfersCsv() {
+    if (!(state.transfers || []).length) { toast('No transfers to export'); return; }
+    var rows = (state.transfers || []).map(function (t) {
+      return [t.transfer_number, warehouseName(t.from_warehouse_id), warehouseName(t.to_warehouse_id),
+        (t.inventory_transfer_items || []).length, fmtDay(new Date(t.created_at)), t.status || '', t.notes || ''];
+    });
+    downloadCSV('salesventory-transfers-' + new Date().toISOString().slice(0, 10) + '.csv', ['Transfer #', 'From', 'To', 'Lines', 'Date', 'Status', 'Notes'], rows);
+  }
   function renderStockMovements() {
     var tb = $('#stockMovRows'); if (!tb) return;
     var movs = (state.movements || []).slice(0, 100);
@@ -1269,6 +1286,10 @@
     var tb = $('#transferBtn');
     if (!tb) return;
     tb.addEventListener('click', openTransferDialog);
+    var em = $('#exportMovBtn');
+    if (em) em.addEventListener('click', exportStockMovementsCsv);
+    var et = $('#exportTransBtn');
+    if (et) et.addEventListener('click', exportTransfersCsv);
     ['.chip[data-tab="wh"]', '.chip[data-tab="tr"]'].forEach(function (sel) {
       var b = document.querySelector(sel);
       if (b) b.addEventListener('click', function () {

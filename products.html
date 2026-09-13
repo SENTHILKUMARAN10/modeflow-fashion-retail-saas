@@ -109,7 +109,10 @@
       <article class="panel table-panel" style="margin-top:18px">
         <div class="panel-head">
           <div><p class="kicker">WAREHOUSES</p><h3>Stock across locations</h3></div>
-          <button id="transferBtn" class="btn ghost" type="button">Start transfer</button>
+          <div style="display:flex;gap:8px">
+            <button id="exportMovBtn" class="btn ghost" type="button">Export movements</button>
+            <button id="transferBtn" class="btn ghost" type="button">Start transfer</button>
+          </div>
         </div>
         <div class="chip-row">
           <button class="chip" data-tab="wh" aria-pressed="true" type="button">By warehouse</button>
@@ -132,7 +135,10 @@
       <article class="panel table-panel" style="margin-top:18px">
         <div class="panel-head">
           <div><p class="kicker">LEDGER</p><h3>Stock movements</h3></div>
-          <span class="muted" id="movCount"></span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span class="muted" id="movCount"></span>
+            <button id="exportTransBtn" class="btn ghost" type="button">Export transfers</button>
+          </div>
         </div>
         <div class="table-wrap"><table>
           <thead><tr><th>DATE</th><th>ITEM</th><th class="num">QTY</th><th>TYPE</th><th>WAREHOUSE</th><th>REFERENCE</th><th>NOTE</th></tr></thead>
