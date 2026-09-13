@@ -2928,8 +2928,12 @@ var pid = paymentTarget.id;
       var tag = day && day < dueTodayS ? ' <span class="status low">Overdue</span>' : day === dueTodayS ? ' <span class="status warn">Today</span>' : '';
       var when = day || 'no due date';
       var ass = f.assignedTo ? ' · ' + esc(teamMemberName(f.assignedTo)) + (String(f.assignedTo) === String(me) ? ' (you)' : '') : ' · unassigned';
+      var claim = !f.assignedTo || String(f.assignedTo) !== String(me)
+        ? '<a class="status" href="#" data-cfclaim="' + f.id + '" data-action="claim" style="text-decoration:none">Claim</a>'
+        : '<span class="status">Mine</span>';
       return '<div class="alert"><div><b>' + esc(f.title) + '</b>' + tag + '<div class="muted">' + esc(name) + ' · ' + esc(String(f.priority || 'normal').toUpperCase()) + ' · due ' + esc(when) + ass + '</div></div>' +
-        '<a class="status low" href="customers.html#open=customer:' + key + '" data-go="customers" style="text-decoration:none">Open</a></div>';
+        '<div style="display:flex;gap:8px;align-items:center">' + claim +
+        '<a class="status low" href="customers.html#open=customer:' + key + '" data-go="customers" style="text-decoration:none">Open</a></div></div>';
     }).join('') + (open.length > 8 ? '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">+' + (open.length - 8) + ' more…</p>' : '');
   }
 
@@ -4541,6 +4545,17 @@ var pid = paymentTarget.id;
     if (eodBtn) eodBtn.addEventListener('click', printEndOfDay);
     var ff = $('#followupFilter');
     if (ff) ff.addEventListener('change', renderFollowupsInbox);
+    document.addEventListener('click', function (ev) {
+      if (ev.target && ev.target.dataset && ev.target.dataset.cfclaim) {
+        ev.preventDefault();
+        var claimEl = ev.target;
+        if (!state.user || !state.user.id) { toast('Sign in to claim follow-ups'); return; }
+        cloud.followups.updateAssigned(claimEl.dataset.cfclaim, state.user.id)
+          .then(function () { return refreshCloudData(); })
+          .then(function () { toast('Follow-up assigned to you'); })
+          .catch(function (err) { toast(friendly(err)); });
+      }
+    });
     if (page === 'billing') bindSale();
     var plb = $('#printLastBtn');
     if (plb) plb.addEventListener('click', function () {
