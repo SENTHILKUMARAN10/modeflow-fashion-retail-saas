@@ -850,6 +850,8 @@
     bindCsvImport('product');
     var reorder = $('#reorderListBtn');
     if (reorder) reorder.addEventListener('click', printRestockList);
+    var lbl = $('#labelPrintBtn');
+    if (lbl) lbl.addEventListener('click', printLabels);
     var catalogue = $('#catalogueShareBtn');
     if (catalogue) catalogue.addEventListener('click', shareCatalogue);
     if ($('#productSearch')) $('#productSearch').addEventListener('input', renderInventory);
@@ -3651,6 +3653,39 @@ var pid = paymentTarget.id;
       '</style></head><body>' +
       '<h1>Restock list</h1><p class="muted">' + esc(biz.name || state.businessName || 'Store') + ' · ' + low.length + ' items below reorder level · ' + new Date().toDateString() + '</p>' +
       '<table><thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Reorder level</th><th>Suggested order</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<script>print()<\/script></body></html>');
+    w.document.close();
+  }
+  function printLabels() {
+    var items = state.products.filter(function (p) { return p.is_active !== false && !isService(p); })
+      .sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
+    if (!items.length) { toast('No products to label'); return; }
+    var biz = state.businessProfile || {};
+    var sym = symbol();
+    var cards = items.map(function (p) {
+      var code = p.barcode || p.sku || '';
+      return '<div class="card">' +
+        '<div class="name">' + esc(p.name) + '</div>' +
+        (p.category ? '<div class="cat">' + esc(p.category) + '</div>' : '') +
+        (code ? '<div class="code">' + esc(code) + '</div>' : '<div class="code">·</div>') +
+        '<div class="price">' + sym + Number(p.price || 0).toLocaleString('en-IN') + '</div>' +
+        (p.sku ? '<div class="sku">SKU ' + esc(p.sku) + '</div>' : '') +
+        '</div>';
+    }).join('');
+    var w = window.open('', '_blank', 'width=820,height=980');
+    if (!w) { toast('Pop-up blocked. Allow pop-ups to print.'); return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Price labels</title><style>' +
+      '@page{size:A4;margin:8mm}' +
+      'body{font-family:system-ui,sans-serif;color:#111}' +
+      'h1{font-size:18px;margin:0 0 2px}p.muted{color:#555;margin:0 0 12px;font-size:12px}' +
+      '.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7mm}' +
+      '.card{border:1px solid #bbb;border-radius:6px;padding:8px;min-height:52px;page-break-inside:avoid;text-align:center}' +
+      '.name{font-size:11px;font-weight:700;line-height:1.2}.cat{font-size:8px;color:#666;text-transform:uppercase;letter-spacing:.05em}' +
+      '.code{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:1px;margin:4px 0}' +
+      '.price{font-size:16px;font-weight:800}.sku{font-size:8px;color:#888}' +
+      '</style></head><body>' +
+      '<h1>Price labels</h1><p class="muted">' + esc(biz.name || state.businessName || 'Store') + ' · ' + items.length + ' products · ' + new Date().toDateString() + '</p>' +
+      '<div class="grid">' + cards + '</div>' +
       '<script>print()<\/script></body></html>');
     w.document.close();
   }
