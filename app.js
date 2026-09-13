@@ -995,6 +995,7 @@
       }
       if (d.status !== 'fulfilled') act += '<button class="action-btn" data-act="doc-print" data-id="' + esc(d.id) + '">Print</button>';
       if (d.phone && d.status !== 'cancelled' && d.status !== 'rejected') act += '<button class="action-btn" data-act="doc-share" data-id="' + esc(d.id) + '">WhatsApp</button>';
+      if (d.status !== 'cancelled' && d.status !== 'rejected') act += '<button class="action-btn" data-act="doc-dup" data-id="' + esc(d.id) + '">Duplicate</button>';
       return '<tr data-row-id="d-' + esc(d.id) + '">' +
         '<td data-label="Number"><span class="sku-tag">' + esc(d.number) + '</span></td>' +
         '<td data-label="Customer"><b>' + esc(d.customer) + '</b>' + (d.phone ? '<small>' + esc(d.phone) + '</small>' : '') + '</td>' +
@@ -1090,6 +1091,24 @@
       $('#docInvStatus').value = 'unpaid';
       $('#docInvHint').textContent = 'Convert ' + d.number + ' into a live invoice — stock will be deducted and the document marked fulfilled.';
       $('#docInvDialog').showModal();
+      return;
+    }
+    if (btn.dataset.act === 'doc-dup') {
+      var lines = (d.items || []).map(function (x) {
+        return { product_id: x.productId || x.product_id, quantity: Number(x.qty || x.quantity) || 1, rate: Number(x.rate) || 0 };
+      }).filter(function (l) { return !!l.product_id; });
+      if (!lines.length) { toast('Cannot duplicate — no product lines on this document'); return; }
+      var newType = d.type === 'quote' ? 'quote' : 'sales_order';
+      try {
+        await cloud.salesDocs.create(state.businessId, newType, {
+          customerName: d.customer, customerPhone: d.phone || '',
+          items: lines,
+          expiryDate: d.expiry ? String(d.expiry).slice(0, 10) : null,
+          notes: 'Copy of ' + d.number + (d.notes ? ' · ' + d.notes : '')
+        });
+        await loadDocs();
+        toast(d.number + ' duplicated as ' + (newType === 'quote' ? 'quote' : 'order'));
+      } catch (err) { toast(friendly(err)); }
       return;
     }
     if (btn.dataset.act === 'doc-cancel') {
