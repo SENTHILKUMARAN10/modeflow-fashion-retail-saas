@@ -2395,10 +2395,11 @@ var pid = paymentTarget.id;
         byCategory[cat].revenue += ln;
         byCategory[cat].cost += cst;
       });
-      if (!byCustomer[i.customer]) byCustomer[i.customer] = { orders: 0, qty: 0, revenue: 0, outstanding: 0, last: null };
+      if (!byCustomer[i.customer]) byCustomer[i.customer] = { orders: 0, qty: 0, revenue: 0, cost: 0, outstanding: 0, last: null };
       byCustomer[i.customer].orders += 1;
       byCustomer[i.customer].qty += items.reduce(function (a, it) { return a + Number(it.qty || 0); }, 0);
       byCustomer[i.customer].revenue += Number(i.total || 0);
+      byCustomer[i.customer].cost += items.reduce(function (a, it) { return a + (Number(it.cost || 0) * Number(it.qty || 0)); }, 0);
       byCustomer[i.customer].outstanding = Math.max(Number(byCustomer[i.customer].outstanding || 0), Number(i.balance || 0));
       byCustomer[i.customer].last = Math.max(byCustomer[i.customer].last || 0, i.ts || 0);
     });
@@ -2457,11 +2458,13 @@ var pid = paymentTarget.id;
       var custEntries = Object.keys(sp.byCustomer).map(function (k) { return { name: k, v: sp.byCustomer[k] }; }).sort(function (a, b) { return b.v.revenue - a.v.revenue; });
       custTable.innerHTML = custEntries.slice(0, 20).length
         ? custEntries.slice(0, 20).map(function (e) {
+            var profit = Number(e.v.revenue || 0) - Number(e.v.cost || 0);
             return '<tr><td data-label="Customer"><b>' + esc(e.name) + '</b></td><td data-label="Orders">' + e.v.orders + '</td>' +
               '<td data-label="Qty">' + Number(e.v.qty || 0) + '</td><td data-label="Revenue"><b>' + money(e.v.revenue) + '</b></td>' +
-              '<td data-label="Outstanding">' + (e.v.outstanding > 0 ? money(e.v.outstanding) : '—') + '</td></tr>';
+              '<td data-label="Profit">' + (profit < 0 ? '<span class="status low">' : '') + money(profit) + (profit < 0 ? '</span>' : '') + '</td>' +
+              '<td data-label="Outstanding">' + ((e.v.outstanding || 0) > 0 ? money(e.v.outstanding) : '—') + '</td></tr>';
           }).join('')
-        : '<tr><td colspan="5" class="empty-cell">No customer sales in this period.</td></tr>';
+        : '<tr><td colspan="6" class="empty-cell">No customer sales in this period.</td></tr>';
     }
   }
 
