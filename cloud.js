@@ -205,6 +205,12 @@
       },
       remove: function (id) { return one(client.from('expenses').delete().eq('id', id)); }
     },
+    branches: {
+      list: function (businessId) {
+        return one(client.from('branches').select('id,name,code,is_active')
+          .eq('business_id', businessId).eq('is_active', true).order('name'));
+      }
+    },
     warehouses: {
       list: function (businessId) {
         return one(client.from('warehouses').select('id,name,code,is_default,is_active')

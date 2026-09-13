@@ -130,11 +130,12 @@
         </div>
         <div class="utility-row" style="justify-content:flex-start">
           <input id="inviteEmail" type="email" class="search-input" style="max-width:220px" placeholder="teammate@company.com" aria-label="Team member email">
-          <select id="inviteRole" class="compact-select" aria-label="Invite role">
+<select id="inviteRole" class="compact-select" aria-label="Invite role">
             <option value="manager" selected>Manager</option><option value="admin">Admin</option>
             <option value="accountant">Accountant</option><option value="cashier">Cashier</option>
             <option value="sales">Sales</option><option value="staff">Staff</option>
           </select>
+          <select id="inviteBranch" class="compact-select" multiple size="1" aria-label="Branches" title="Assign branches (Ctrl/Cmd to pick many)"></select>
           <button id="inviteBtn" class="btn primary" type="button">Invite</button>
         </div>
         <p id="inviteLink" class="micro" style="color:var(--ink-3);line-height:1.7" hidden></p>

@@ -315,7 +315,8 @@
         cloud.warehouses.list(state.businessId).catch(function () { return []; }),
         cloud.warehouses.stock(state.businessId).catch(function () { return []; }),
         cloud.warehouses.transfers(state.businessId).catch(function () { return []; }),
-        cloud.returns.list(state.businessId).catch(function () { return []; })
+        cloud.returns.list(state.businessId).catch(function () { return []; }),
+        cloud.branches.list(state.businessId).catch(function () { return []; })
       ]);
       state.products = results[0].map(productFromCloud);
       state.invoices = results[1].map(invoiceFromCloud);
@@ -328,6 +329,7 @@
       state.warehouseStock = results[8] || [];
       state.transfers = results[9] || [];
       state.returns = results[10] || [];
+      state.branches = results[11] || [];
       var el = $('#cloudStatus');
       var appEl = $('#app');
       if (el && appEl && !appEl.classList.contains('hidden')) el.textContent = '';
@@ -3742,6 +3744,12 @@ var pid = paymentTarget.id;
     if (r) r.addEventListener('click', function () { loadTeam(true); });
     var inviteBtn = $('#inviteBtn');
     if (inviteBtn) inviteBtn.addEventListener('click', inviteMember);
+    var brSel = $('#inviteBranch');
+    if (brSel) {
+      var brs = state.branches || [];
+      brSel.innerHTML = brs.map(function (b) { return '<option value="' + esc(b.id) + '">' + esc(b.name) + '</option>'; }).join('');
+      brSel.hidden = brs.length < 2;
+    }
     var email = $('#inviteEmail');
     if (email) email.addEventListener('keydown', function (e) { if (e.key === 'Enter') inviteMember(); });
     var memRows = $('#teamRows');
@@ -3839,8 +3847,11 @@ var pid = paymentTarget.id;
     var to = email.value.trim().toLowerCase();
     if (!to || to.indexOf('@') === -1) { toast('Enter a valid team email'); return; }
     var role = roleEl ? roleEl.value : 'staff';
+    var branchIds = [];
+    var brSel = $('#inviteBranch');
+    if (brSel) branchIds = Array.prototype.slice.call(brSel.selectedOptions || []).map(function (o) { return o.value; });
     try {
-      var res = await apiPost('/api/team/invite', { businessId: state.businessId, email: to, role: role });
+      var res = await apiPost('/api/team/invite', { businessId: state.businessId, email: to, role: role, branchIds: branchIds });
       var link = $('#inviteLink');
       if (link && res.inviteUrl) {
         link.hidden = false;
