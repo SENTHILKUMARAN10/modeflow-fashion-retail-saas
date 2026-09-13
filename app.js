@@ -1449,6 +1449,20 @@
     try { await cloud.customers.archive(c.id); await refreshCloudData(); toast('Customer archived'); }
     catch (err) { toast(friendly(err)); }
   }
+  async function duplicateCustomer(key) {
+    if (!caps().manageCustomers) { toast('Only the owner or a manager can manage customers'); return; }
+    var c = rawCustomerByKey(key);
+    if (!c) return;
+    try {
+      await cloud.customers.create(state.businessId, {
+        name: c.name, phone: c.phone || '', email: c.email || '', company: c.company || '',
+        address: c.address || '', tags: (c.tags || []).slice(), notes: c.notes || '',
+        status: c.status === 'inactive' ? 'active' : (c.status || 'active')
+      });
+      await refreshCloudData();
+      toast('Customer duplicated');
+    } catch (err) { toast(friendly(err)); }
+  }
   function renderCustomers() {
     var rows = $('#customerRows'); if (!rows) return;
     var hasProfile = $('#customerProfile');
@@ -1488,6 +1502,7 @@
       var actions = '<button class="action-btn" data-cust="' + esc(key) + '" type="button">Statement</button>';
       if (canManage) {
         actions += '<button class="action-btn" data-act="edit-customer" data-key="' + esc(key) + '" type="button">Edit</button>';
+        actions += '<button class="action-btn" data-act="dup-customer" data-key="' + esc(key) + '" type="button">Duplicate</button>';
         if (c.status !== 'inactive') actions += '<button class="action-btn danger" data-act="archive-customer" data-key="' + esc(key) + '" type="button">Archive</button>';
       }
       var phone = String(c.phone || '').replace(/\D/g, '');
@@ -1758,10 +1773,11 @@
     if (search) search.addEventListener('input', function () { selectedCustomerKey = null; renderCustomers(); });
     var rows = $('#customerRows');
     if (rows) rows.addEventListener('click', function (e) {
-      var actBtn = e.target.closest('[data-act="edit-customer"], [data-act="archive-customer"]');
+      var actBtn = e.target.closest('[data-act="edit-customer"], [data-act="archive-customer"], [data-act="dup-customer"]');
       if (actBtn) {
         e.preventDefault();
         if (actBtn.dataset.act === 'edit-customer') { openCustomerDialog(actBtn.dataset.key); return; }
+        if (actBtn.dataset.act === 'dup-customer') { duplicateCustomer(actBtn.dataset.key); return; }
         archiveCustomer(actBtn.dataset.key);
         return;
       }
@@ -1926,7 +1942,7 @@
     }).map(function (s) {
       var bal = supplierOutstanding(s);
       var actions = '<button class="action-btn" data-act="statement-supplier" data-id="' + esc(s.id) + '">Statement</button>';
-      if (canManage) actions += '<button class="action-btn" data-act="edit-supplier" data-id="' + esc(s.id) + '">Edit</button><button class="action-btn danger" data-act="delete-supplier" data-id="' + esc(s.id) + '">Delete</button>';
+      if (canManage) actions += '<button class="action-btn" data-act="edit-supplier" data-id="' + esc(s.id) + '">Edit</button><button class="action-btn" data-act="dup-supplier" data-id="' + esc(s.id) + '">Duplicate</button><button class="action-btn danger" data-act="delete-supplier" data-id="' + esc(s.id) + '">Delete</button>';
       return '<tr data-sup="' + esc(s.id) + '" class="sup-row">' +
         '<td data-label="Supplier"><div class="cell-person"><span class="store-avatar">' + esc(initials(s.name)) + '</span><div class="cell-main"><b>' + esc(s.name) + '</b>' + (s.contact ? '<small>' + esc(s.contact) + '</small>' : '') + '</div></div></td>' +
         '<td data-label="GSTIN">' + esc(s.gst || '—') + '</td>' +
@@ -2128,6 +2144,19 @@
       if (btn.dataset.act === 'edit-supplier') {
         var found = state.suppliers.find(function (x) { return String(x.id) === String(id); });
         if (found) openSupplierDialog(found);
+        return;
+      }
+      if (btn.dataset.act === 'dup-supplier') {
+        var src = state.suppliers.find(function (x) { return String(x.id) === String(id); });
+        if (!src) return;
+        try {
+          await cloud.suppliers.create(state.businessId, state.user ? state.user.id : null, {
+            name: src.name, gst: src.gst || '', phone: src.phone || '', email: src.email || '',
+            contact: src.contact || '', terms: Number(src.terms || 0), address: src.address || '', notes: src.notes || ''
+          });
+          await refreshCloudData();
+          toast('Supplier duplicated');
+        } catch (err) { toast(friendly(err)); }
         return;
       }
       var ok = await confirmDialog('Delete supplier?', 'The supplier is hidden from your workspace. Existing purchase records stay untouched.');
