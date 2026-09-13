@@ -2097,6 +2097,15 @@
     var text = head + items + '\n\nTotal: ' + symbol() + Number(p.total).toLocaleString('en-IN') + '\nStatus: ' + String(p.status).toUpperCase() + (p.notes ? '\n\nNote: ' + p.notes : '') + '\n\nRegards,\n' + String(state.businessName);
     window.open('https://wa.me/' + target + '?text=' + encodeURIComponent(text), '_blank');
   }
+  function remindPurchasePayment(p) {
+    if (!p || !(Number(p.balance || 0) > 0)) { toast('Nothing due on this bill'); return; }
+    var sup = (state.suppliers || []).find(function (s) { return String(s.id) === String(p.supplierId); });
+    var phone = String(sup && sup.phone ? sup.phone : '').replace(/\D/g, '');
+    if (phone.length < 10) { toast('No supplier phone on file — add one to send reminders'); return; }
+    var target = phone.length === 10 ? '91' + phone : phone;
+    var text = 'Dear ' + p.supplier + ',\n\nThis is a reminder that payment of ' + symbol() + Number(p.balance || 0).toLocaleString('en-IN') + ' for ' + (purchaseDocLabel(p) === 'BILL' ? 'bill' : 'purchase order') + ' ' + p.number + ' (dated ' + p.date + (p.dueDate ? ', due ' + String(p.dueDate).slice(0, 10) : '') + ') is ' + (p.dueDate ? 'overdue' : 'outstanding') + '.\n\nKindly share the UPI/bank details so we can settle it promptly.\n\nThank you,\n' + String(state.businessName);
+    window.open('https://wa.me/' + target + '?text=' + encodeURIComponent(text), '_blank');
+  }
   function renderPurchases() {
     var rows = $('#purchaseRows'); if (!rows) return;
     var q = ($('#purchaseSearch').value || '').toLowerCase();
@@ -2118,6 +2127,9 @@
       }
       if (p.status !== 'cancelled' && capsHere.finance && (p.balance || 0) > 0) {
         actions += '<button class="action-btn primary-lite" data-act="pay-purchase" data-id="' + esc(p.id) + '">Pay</button>';
+      }
+      if (p.status !== 'cancelled' && (p.balance || 0) > 0 && purchaseOverdue(p)) {
+        actions += '<button class="action-btn" data-act="remind-purchase" data-id="' + esc(p.id) + '" title="WhatsApp payment reminder to supplier">Remind</button>';
       }
       if (p.status !== 'cancelled') {
         actions += '<button class="action-btn" data-act="print-purchase" data-id="' + esc(p.id) + '">Print</button>';
@@ -2192,12 +2204,13 @@
       } catch (err) { toast(friendly(err)); }
     });
     $('#purchaseRows').addEventListener('click', async function (e) {
-      var btn = e.target.closest('[data-act="receive-purchase"], [data-act="cancel-purchase"], [data-act="pay-purchase"], [data-act="print-purchase"], [data-act="share-purchase"]');
+      var btn = e.target.closest('[data-act="receive-purchase"], [data-act="cancel-purchase"], [data-act="pay-purchase"], [data-act="print-purchase"], [data-act="share-purchase"], [data-act="remind-purchase"]');
       if (!btn) return;
       var act = btn.dataset.act, id = btn.dataset.id;
       var found = state.purchases.find(function (x) { return String(x.id) === String(id); });
       if (act === 'print-purchase') { printPurchaseDocument(found); return; }
       if (act === 'share-purchase') { sharePurchase(found); return; }
+      if (act === 'remind-purchase') { remindPurchasePayment(found); return; }
       if (act === 'receive-purchase') {
         var ok = await confirmDialog('Receive stock?', 'Stock levels are updated with the purchased quantities and product costs are refreshed.');
         if (!ok) return;
