@@ -1885,7 +1885,7 @@
     if ($('#expenseTotal')) $('#expenseTotal').textContent = money(shownTotal);
     var canDelete = caps().deleteExpenses;
     list.innerHTML = shown.map(function (x) {
-      var del = canDelete ? '<button class="action-btn danger" data-act="delete-expense" data-id="' + x.id + '" aria-label="Delete expense">×</button>' : '';
+      var del = canDelete ? '<button class="action-btn" data-act="dup-expense" data-id="' + x.id + '" aria-label="Copy expense">copy</button><button class="action-btn danger" data-act="delete-expense" data-id="' + x.id + '" aria-label="Delete expense">×</button>' : '';
       return '<div class="expense-item"><div><b>' + esc(x.category) + '</b><small>' + esc(x.note || x.date) + '</small></div>' +
         '<div><b>' + money(x.amount) + '</b> ' + del + '</div></div>';
     }).join('') || '<p class="muted" style="padding:16px 4px">No expenses in this category.</p>';
@@ -1906,12 +1906,25 @@
     });
     $('#expenseList').addEventListener('click', async function (e) {
       var btn = e.target.closest('[data-act="delete-expense"]');
-      if (!btn) return;
-      var ok = await confirmDialog('Delete expense?', 'This expense record will be removed. This cannot be undone.');
-      if (!ok) return;
-      var id = btn.dataset.id;
-      try { await cloud.expenses.remove(id); await refreshCloudData(); toast('Expense deleted'); }
-      catch (err) { toast(friendly(err)); }
+      if (btn) {
+        var ok = await confirmDialog('Delete expense?', 'This expense record will be removed. This cannot be undone.');
+        if (!ok) return;
+        var id = btn.dataset.id;
+        try { await cloud.expenses.remove(id); await refreshCloudData(); toast('Expense deleted'); }
+        catch (err) { toast(friendly(err)); }
+        return;
+      }
+      var cp = e.target.closest('[data-act="dup-expense"]');
+      if (!cp) return;
+      var src = state.expenses.find(function (x) { return String(x.id) === String(cp.dataset.id); });
+      if (!src) return;
+      try {
+        await cloud.expenses.create(state.businessId, state.user ? state.user.id : null, {
+          category: src.category, amount: src.amount, note: src.note || ''
+        });
+        await refreshCloudData();
+        toast('Expense copied');
+      } catch (err) { toast(friendly(err)); }
     });
     var chips = $('#expenseCats');
     if (chips) chips.addEventListener('click', function (e) {
