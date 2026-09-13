@@ -633,6 +633,12 @@
     var q = function (s) { return $(s); };
     if (q('#itemSelect')) q('#itemSelect').addEventListener('change', syncRate);
     if (q('#addItemBtn')) q('#addItemBtn').addEventListener('click', addSaleItem);
+    $$('.qty-preset').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var cur = Math.max(0.5, Number(q('#itemQty').value) || 1);
+        q('#itemQty').value = Math.min(9999, Math.round(cur * Number(b.dataset.qmul) * 2) / 2);
+      });
+    });
     $('#saleItems').addEventListener('click', function (e) {
       var rm = e.target.closest('[data-remove]');
       if (rm) {

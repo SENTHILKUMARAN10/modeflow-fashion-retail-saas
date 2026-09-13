@@ -95,6 +95,11 @@
             <div class="add-item-row span2">
               <label>Product or service<select id="itemSelect" aria-label="Add product or service"></select></label>
               <label>Qty<input id="itemQty" type="number" min="0.5" step="0.5" value="1" inputmode="decimal"></label>
+              <div class="qty-presets" role="group" aria-label="Quick quantity">
+                <button type="button" class="qty-preset" data-qmul="0.5">×½</button>
+                <button type="button" class="qty-preset" data-qmul="2">×2</button>
+                <button type="button" class="qty-preset" data-qmul="5">×5</button>
+              </div>
               <label>Rate ₹<input id="itemRate" type="number" min="0" step="any"></label>
               <button type="button" id="addItemBtn" class="btn primary">Add item</button>
             </div>
