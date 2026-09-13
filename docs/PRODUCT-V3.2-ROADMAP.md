@@ -80,7 +80,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 53 | Tally export | PARTIAL | Settings → Export to Tally: sales vouchers, purchase vouchers, party ledgers (Sundry Debtors/Creditors + outstanding), Tally-ready CSV |
 | 55 | Financial year | PLAN | FY selection, closing, carry-forward |
 | 57 | Search | PARTIAL | per-page filters + global search (products/customers/suppliers/invoices/purchases → deep-link & highlight rows) |
-| 58 | Responsive UI | DONE | 320px→large, mobile card tables; continue polish |
+| 58 | Responsive UI | DONE | 320px→large, mobile card tables, installable PWA (manifest + theme color + mobile-web-app metas); continue polish |
 | 59 | UI/UX premium | DONE | dark/light, Jakarta Sans, KPI cards; keep improving |
 | 62 | Subscriptions | DONE | Razorpay + UPI fallback; add free trial, plan gating |
 | 63 | Admin panel | PARTIAL | payment verification + platform analytics on /admin-payments (active subscriptions, MRR, pending amount, latest plan per business); plan management pending |
