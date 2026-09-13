@@ -205,6 +205,21 @@
   </form>
 </dialog>
 
+<dialog id="transferDetailDialog">
+  <div class="dialog-card">
+    <div><p class="kicker">INVENTORY</p><h3 id="tdTitle">Transfer</h3></div>
+    <p id="tdMeta" class="micro" style="text-align:left;margin:0 0 14px"></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>PRODUCT</th><th class="num">QTY</th></tr></thead>
+      <tbody id="tdRows"></tbody>
+    </table></div>
+    <p id="tdNotes" class="micro" style="text-align:left;margin:14px 0 0"></p>
+    <div class="dialog-actions">
+      <button type="button" id="tdClose" class="btn ghost" data-close-dialog="#transferDetailDialog">Close</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="confirmDialog">
   <div class="dialog-card confirm-card">
     <div><p class="kicker danger-kicker">PLEASE CONFIRM</p><h3 id="confirmTitle">Are you sure?</h3></div>

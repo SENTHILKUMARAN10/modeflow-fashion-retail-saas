@@ -1186,10 +1186,33 @@
     if (tt) {
       var trs = state.transfers || [];
       tt.innerHTML = trs.map(function (t) {
-        return '<tr><td><span class="sku-tag">' + esc(t.transfer_number) + '</span></td><td>' + esc(warehouseName(t.from_warehouse_id)) + '</td><td>' + esc(warehouseName(t.to_warehouse_id)) + '</td>' +
+        return '<tr data-tdetail="' + esc(t.id) + '" style="cursor:pointer" title="View transfer details"><td><span class="sku-tag">' + esc(t.transfer_number) + '</span></td><td>' + esc(warehouseName(t.from_warehouse_id)) + '</td><td>' + esc(warehouseName(t.to_warehouse_id)) + '</td>' +
           '<td class="num">' + (t.inventory_transfer_items || []).length + '</td><td>' + esc(fmtDay(new Date(t.created_at))) + '</td><td><span class="' + statusPill(t.status) + '">' + esc(t.status) + '</span></td></tr>';
       }).join('') || '<tr><td colspan="6" class="empty-cell">No transfers yet.</td></tr>';
     }
+  }
+  function showTransferDetail(id) {
+    var t = (state.transfers || []).find(function (x) { return String(x.id) === String(id); });
+    if (!t) return;
+    if ($('#tdTitle')) $('#tdTitle').textContent = 'Transfer ' + (t.transfer_number || '');
+    if ($('#tdMeta')) $('#tdMeta').textContent = warehouseName(t.from_warehouse_id) + ' → ' + warehouseName(t.to_warehouse_id) + ' · ' + esc(fmtDay(new Date(t.created_at))) + ' · ' + String(t.status || '').toUpperCase();
+    var td = $('#tdRows');
+    if (td) {
+      var items = t.inventory_transfer_items || [];
+      td.innerHTML = items.length
+        ? items.map(function (it) {
+            var p = state.products.find(function (x) { return String(x.id) === String(it.product_id); });
+            return '<tr><td>' + esc((p && p.name) || esc(it.item_name || it.product_id || 'Item')) + '</td><td class="num">' + Number(it.quantity || 0) + '</td></tr>';
+          }).join('')
+        : '<tr><td colspan="2" class="empty-cell">No lines.</td></tr>';
+    }
+    var noteEl = $('#tdNotes');
+    if (noteEl) {
+      noteEl.hidden = !t.notes;
+      noteEl.innerHTML = t.notes ? '<b>Notes:</b> ' + esc(t.notes) : '';
+    }
+    var dlg = $('#transferDetailDialog');
+    if (dlg) dlg.showModal();
   }
   function movementTypeLabel(t) {
     var map = { purchase: 'purchase', sale: 'sale', adjustment: 'adjustment', return: 'return', transfer_out: 'transfer out', transfer_in: 'transfer in' };
@@ -1255,6 +1278,13 @@
       });
     });
     $('#trCancel').addEventListener('click', function () { $('#transferDialog').close(); });
+    var tdRows = $('#transferRows');
+    if (tdRows) tdRows.addEventListener('click', function (e) {
+      var row = e.target.closest('[data-tdetail]');
+      if (row) showTransferDetail(row.dataset.tdetail);
+    });
+    var tdc = $('#tdClose');
+    if (tdc) tdc.addEventListener('click', function () { $('#transferDetailDialog').close(); });
     $('#trAddLine').addEventListener('click', function () {
       var id = $('#trProduct').value;
       if (!id) { toast('Choose a product'); return; }
