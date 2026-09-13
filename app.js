@@ -798,6 +798,7 @@
     rows.innerHTML = list.map(function (p) {
       var actions = canManage
         ? '<button class="action-btn" data-act="edit-product" data-id="' + p.id + '">Edit</button>' +
+          '<button class="action-btn" data-act="dup-product" data-id="' + p.id + '">Duplicate</button>' +
           '<button class="action-btn danger" data-act="delete-product" data-id="' + p.id + '">Delete</button>'
         : '<span class="muted" style="font-size:12px">Read-only</span>';
       var low = !isService(p) && p.stock <= p.reorder;
@@ -903,6 +904,22 @@
     if (!btn) return;
     var id = btn.dataset.id;
     if (btn.dataset.act === 'edit-product') { openProductDialog(id); return; }
+    if (btn.dataset.act === 'dup-product') {
+      var src = state.products.find(function (x) { return String(x.id) === String(id); });
+      if (!src) return;
+      try {
+        await cloud.products.create(state.businessId, {
+          name: src.name, category: src.category, sku: src.sku ? src.sku + '-copy' : null,
+          barcode: src.barcode, unit: src.unit && src.unit !== 'service' ? src.unit : 'pcs',
+          cost: Number(src.cost || 0), price: Number(src.price || 0),
+          stock: isService(src) ? 999 : Number(src.stock || 0), reorder: isService(src) ? 0 : Number(src.reorder || 0),
+          service: isService(src)
+        });
+        await refreshCloudData();
+        toast('“' + src.name + '” duplicated');
+      } catch (err) { toast(friendly(err)); }
+      return;
+    }
     if (btn.dataset.act === 'delete-product') {
       if (state.products.length === 1) { toast('Keep at least one product'); return; }
       var p = state.products.find(function (x) { return String(x.id) === String(id); });
