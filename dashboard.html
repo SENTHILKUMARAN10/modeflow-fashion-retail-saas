@@ -156,6 +156,11 @@
         <article class="attention-panel">
           <div class="panel-head">
             <div><p class="kicker light">CRM</p><h3>Follow-ups</h3></div>
+            <select id="followupFilter" class="compact-select" aria-label="Filter follow-ups by assignee" style="width:auto">
+              <option value="all">All team</option>
+              <option value="mine">Mine</option>
+              <option value="unassigned">Unassigned</option>
+            </select>
             <button class="text-link light-link" data-go="customers" type="button">Customers ↗</button>
           </div>
           <div id="followupRows"></div>

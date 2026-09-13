@@ -2868,9 +2868,15 @@ var pid = paymentTarget.id;
   }
   function renderFollowupsInbox() {
     var tb = $('#followupRows'); if (!tb) return;
-    var open = (state.followups || []).filter(function (f) { return f.status === 'open'; })
-      .sort(function (a, b) { return String(a.dueAt || '9999').localeCompare(String(b.dueAt || '9999')); });
-    if (!open.length) { tb.innerHTML = '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">No open follow-ups.</p>'; return; }
+    var me = state.user ? state.user.id : null;
+    var filt = $('#followupFilter') ? $('#followupFilter').value : 'all';
+    var open = (state.followups || []).filter(function (f) {
+      if (f.status !== 'open') return false;
+      if (filt === 'mine') return String(f.assignedTo || '') === String(me || '');
+      if (filt === 'unassigned') return !f.assignedTo;
+      return true;
+    }).sort(function (a, b) { return String(a.dueAt || '9999').localeCompare(String(b.dueAt || '9999')); });
+    if (!open.length) { tb.innerHTML = '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">No open follow-ups' + (filt === 'mine' ? ' assigned to you.' : filt === 'unassigned' ? ' without an assignee.' : '.') + '</p>'; return; }
     var dueTodayS = new Date().toISOString().slice(0, 10);
     tb.innerHTML = open.slice(0, 8).map(function (f) {
       var c = state.customers.find(function (x) { return x.id === f.customerId; });
@@ -2879,7 +2885,8 @@ var pid = paymentTarget.id;
       var day = f.dueAt ? String(f.dueAt).slice(0, 10) : '';
       var tag = day && day < dueTodayS ? ' <span class="status low">Overdue</span>' : day === dueTodayS ? ' <span class="status warn">Today</span>' : '';
       var when = day || 'no due date';
-      return '<div class="alert"><div><b>' + esc(f.title) + '</b>' + tag + '<div class="muted">' + esc(name) + ' · ' + esc(String(f.priority || 'normal').toUpperCase()) + ' · due ' + esc(when) + '</div></div>' +
+      var ass = f.assignedTo ? ' · ' + esc(teamMemberName(f.assignedTo)) + (String(f.assignedTo) === String(me) ? ' (you)' : '') : ' · unassigned';
+      return '<div class="alert"><div><b>' + esc(f.title) + '</b>' + tag + '<div class="muted">' + esc(name) + ' · ' + esc(String(f.priority || 'normal').toUpperCase()) + ' · due ' + esc(when) + ass + '</div></div>' +
         '<a class="status low" href="customers.html#open=customer:' + key + '" data-go="customers" style="text-decoration:none">Open</a></div>';
     }).join('') + (open.length > 8 ? '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">+' + (open.length - 8) + ' more…</p>' : '');
   }
@@ -4489,6 +4496,8 @@ var pid = paymentTarget.id;
     }
     var eodBtn = $('#eodBtn');
     if (eodBtn) eodBtn.addEventListener('click', printEndOfDay);
+    var ff = $('#followupFilter');
+    if (ff) ff.addEventListener('change', renderFollowupsInbox);
     if (page === 'billing') bindSale();
     if (page === 'inventory') { bindInventory(); bindWarehouses(); }
     if (page === 'suppliers') bindSuppliers();
