@@ -877,6 +877,232 @@
     }
   }
 
+  /* ============ quotes & sales orders ============ */
+  function docCanManage() { return ['owner', 'admin', 'manager', 'sales'].indexOf(state.role) !== -1; }
+  function docFromCloud(r) {
+    var items = (r.sales_document_items || []).map(function (x) {
+      return { productId: x.product_id, name: x.item_name, qty: Number(x.quantity || 0), rate: Number(x.rate || 0), lineTotal: Number(x.line_total || (x.quantity * x.rate) || 0) };
+    });
+    return {
+      id: r.id, number: r.document_number, type: r.document_type || 'quote', customer: r.customer_name, phone: r.customer_phone || '',
+      expiry: r.expiry_date || null, notes: r.notes || '', status: r.status || 'open',
+      total: Number(r.total || r.subtotal || 0), items: items,
+      date: fmtDay(new Date(r.created_at)), ts: new Date(r.created_at).getTime(),
+      cloud: true
+    };
+  }
+  function bindEstimates() {
+    var nd = $('#newDocBtn');
+    if (nd) { nd.hidden = !docCanManage(); nd.addEventListener('click', openDocDialog); }
+    if ($('#docSearch')) $('#docSearch').addEventListener('input', renderDocs);
+    var df = $('#docTypeFilter');
+    if (df) df.addEventListener('change', renderDocs);
+    var dr = $('#docRows');
+    if (dr) dr.addEventListener('click', onDocAction);
+    var dl = $('#docLines');
+    if (dl) {
+      dl.addEventListener('click', function (e) {
+        var rm = e.target.closest('.dl-remove');
+        if (!rm) return;
+        docLines.splice(Number(rm.dataset.ix), 1);
+        renderDocLines();
+      });
+      dl.addEventListener('input', function (e) {
+        var t = e.target.closest('.dl-qty, .dl-rate');
+        if (!t) return;
+        var ix = Number(t.dataset.ix);
+        if (!docLines[ix]) return;
+        if (t.classList.contains('dl-qty')) docLines[ix].qty = Math.max(1, Number(t.value) || 1);
+        else docLines[ix].rate = Math.max(0, Number(t.value) || 0);
+        renderDocLines();
+      });
+    }
+    var dd = $('#docDialog');
+    if (dd) {
+      $('#docCancel').addEventListener('click', function () { dd.close(); });
+      $('#docAddLine').addEventListener('click', addDocLine);
+      $('#docForm').addEventListener('submit', function (e) { e.preventDefault(); saveDoc(); });
+    }
+    var inv = $('#docInvDialog');
+    if (inv) {
+      $('#docInvCancel').addEventListener('click', function () { inv.close(); });
+      $('#docInvOk').addEventListener('click', confirmDocToInvoice);
+    }
+    loadDocs();
+  }
+  async function loadDocs() {
+    if (!state.businessId) { state.saleDocs = []; return renderDocs(); }
+    try { state.saleDocs = (await cloud.salesDocs.list(state.businessId)).map(docFromCloud); }
+    catch (err) { state.saleDocs = []; toast(friendly(err)); }
+    renderDocs();
+  }
+  function filterDocs() {
+    var q = ($('#docSearch').value || '').toLowerCase();
+    var f = $('#docTypeFilter') ? $('#docTypeFilter').value : 'all';
+    var win = (state.saleDocs || []).filter(function (d) {
+      var okQ = !q || (d.number + ' ' + d.customer + ' ' + d.phone).toLowerCase().indexOf(q) !== -1;
+      var okF = f === 'all' ? true : f === 'open' ? (d.status === 'open' || d.status === 'accepted') :
+        f === 'done' ? d.status === 'fulfilled' : f === 'cancelled' ? (d.status === 'cancelled' || d.status === 'rejected') :
+        d.type === f;
+      return okQ && okF;
+    });
+    return win.slice().sort(function (a, b) { return b.ts - a.ts; });
+  }
+  function renderDocs() {
+    var tb = $('#docRows'); if (!tb) return;
+    var list = filterDocs();
+    if (!list.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-cell">No quotes or orders yet — create your first quote.</td></tr>'; return; }
+    tb.innerHTML = list.map(function (d) {
+      var can = docCanManage();
+      var expClass = d.expiry && d.status === 'open' && String(d.expiry).slice(0, 10) < new Date().toISOString().slice(0, 10) ? ' <span class="status low">expired</span>' : '';
+      var act = '';
+      if (can && d.status !== 'cancelled' && d.status !== 'rejected' && d.status !== 'fulfilled') {
+        if (d.type === 'quote' && d.status === 'open') act += '<button class="action-btn" data-act="doc-order" data-id="' + esc(d.id) + '">To order</button>';
+        act += '<button class="action-btn" data-act="doc-invoice" data-id="' + esc(d.id) + '">Invoice</button>';
+        act += '<button class="action-btn" data-act="doc-cancel" data-id="' + esc(d.id) + '">Cancel</button>';
+      }
+      if (d.status !== 'fulfilled') act += '<button class="action-btn" data-act="doc-print" data-id="' + esc(d.id) + '">Print</button>';
+      return '<tr data-row-id="d-' + esc(d.id) + '">' +
+        '<td data-label="Number"><span class="sku-tag">' + esc(d.number) + '</span></td>' +
+        '<td data-label="Customer"><b>' + esc(d.customer) + '</b>' + (d.phone ? '<small>' + esc(d.phone) + '</small>' : '') + '</td>' +
+        '<td data-label="Type">' + (d.type === 'quote' ? 'Quote' : 'Order') + '</td>' +
+        '<td data-label="Date">' + esc(d.date) + '</td>' +
+        '<td data-label="Expiry">' + (d.expiry ? esc(String(d.expiry).slice(0, 10)) + expClass : '—') + '</td>' +
+        '<td data-label="Total"><b>' + money(d.total) + '</b></td>' +
+        '<td data-label="Status"><span class="' + statusPill(d.status) + '">' + esc(d.status) + '</span></td>' +
+        '<td data-label="Actions">' + act + '</td></tr>';
+    }).join('');
+  }
+  function statusPill(s) {
+    var base = 'status';
+    if (s === 'fulfilled') return base;
+    if (s === 'accepted') return base + ' warn';
+    if (s === 'cancelled' || s === 'rejected') return base + ' low';
+    return base + ' warn';
+  }
+  var docLines = [];
+  function openDocDialog() {
+    if (!docCanManage()) { toast('Sales access required for quotes and orders'); return; }
+    if (!state.businessId) { toast('Open your cloud workspace first'); return; }
+    docLines = [];
+    $('#docCustomerName').value = '';
+    $('#docCustomerPhone').value = '';
+    $('#docExpiry').value = '';
+    $('#docNotes').value = '';
+    var pick = $('#docProductPick');
+    if (pick) {
+      pick.innerHTML = '<option value="">Choose a product…</option>' + state.products.filter(function (p) { return p.is_active !== false; })
+        .map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.name) + ' · ₹' + Number(p.price || 0) + '</option>'; }).join('');
+    }
+    renderDocLines();
+    $('#docDialog').showModal();
+  }
+  function addDocLine() {
+    var pick = $('#docProductPick');
+    var id = pick ? pick.value : '';
+    if (!id) { toast('Choose a product first'); return; }
+    var p = state.products.find(function (x) { return x.id === id; });
+    if (!p) return;
+    var qty = Math.max(1, Number($('#docLineQty').value) || 1);
+    docLines.push({ productId: p.id, name: p.name, qty: qty, rate: Number(p.price || 0) });
+    renderDocLines();
+    if (pick) pick.value = '';
+  }
+  function renderDocLines() {
+    var tb = $('#docLines'); if (!tb) return;
+    tb.innerHTML = docLines.length ? docLines.map(function (l, ix) {
+      return '<tr><td data-label="Item"><b>' + esc(l.name) + '</b></td><td data-label="Qty"><input type="number" class="search-input dl-qty" data-ix="' + ix + '" value="' + l.qty + '" min="1" style="max-width:70px"></td>' +
+        '<td data-label="Rate"><input type="number" class="search-input dl-rate" data-ix="' + ix + '" value="' + l.rate + '" min="0" step="any" style="max-width:90px"></td>' +
+        '<td data-label="Total">' + money(l.qty * l.rate) + '</td><td><button type="button" class="icon-btn dl-remove" data-ix="' + ix + '" aria-label="Remove line">×</button></td></tr>';
+    }).join('') : '<tr><td colspan="5" class="empty-cell">Add at least one item.</td></tr>';
+    var tot = docLines.reduce(function (a, l) { return a + (Number(l.qty) || 0) * (Number(l.rate) || 0); }, 0);
+    if ($('#docLinesTotal')) $('#docLinesTotal').textContent = money(tot);
+  }
+  async function saveDoc() {
+    if (!docCanManage()) { toast('Sales access required'); return; }
+    var name = $('#docCustomerName').value.trim();
+    if (!name) { toast('Customer name is required'); return; }
+    if (!docLines.length) { toast('Add at least one item'); return; }
+    var lines = docLines.map(function (l) { return { product_id: l.productId, quantity: Number(l.qty) || 1, rate: Number(l.rate) || 0 }; });
+    try {
+      await cloud.salesDocs.create(state.businessId, 'quote', {
+        customerName: name, customerPhone: $('#docCustomerPhone').value.trim(),
+        items: lines, expiryDate: $('#docExpiry').value || null, notes: $('#docNotes').value.trim() || null
+      });
+      $('#docDialog').close();
+      await loadDocs();
+      toast('Quote saved for ' + name);
+    } catch (err) { toast(friendly(err)); }
+  }
+  async function onDocAction(e) {
+    var btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    var d = (state.saleDocs || []).find(function (x) { return x.id === btn.dataset.id; });
+    if (!d) return;
+    if (btn.dataset.act === 'doc-print') { printDoc(d); return; }
+    if (btn.dataset.act === 'doc-order') {
+      try { await cloud.salesDocs.convertToOrder(d.id); await loadDocs(); toast(d.number + ' converted to sales order'); }
+      catch (err) { toast(friendly(err)); }
+      return;
+    }
+    if (btn.dataset.act === 'doc-invoice') {
+      invoiceDocTarget = d;
+      $('#docInvMethod').value = 'bank';
+      $('#docInvStatus').value = 'unpaid';
+      $('#docInvHint').textContent = 'Convert ' + d.number + ' into a live invoice — stock will be deducted and the document marked fulfilled.';
+      $('#docInvDialog').showModal();
+      return;
+    }
+    if (btn.dataset.act === 'doc-cancel') {
+      var ok = await confirmDialog('Cancel document?', d.number + ' will be marked cancelled and can no longer be invoiced.');
+      if (!ok) return;
+      try { await cloud.salesDocs.setStatus(d.id, 'cancelled'); await loadDocs(); toast('Document cancelled'); }
+      catch (err) { toast(friendly(err)); }
+    }
+  }
+  var invoiceDocTarget = null;
+  async function confirmDocToInvoice() {
+    if (!invoiceDocTarget) return;
+    var d = invoiceDocTarget;
+    try {
+      await cloud.salesDocs.convertToInvoice(d.id, $('#docInvMethod').value, $('#docInvStatus').value);
+      $('#docInvDialog').close();
+      invoiceDocTarget = null;
+      await refreshCloudData();
+      await loadDocs();
+      toast(d.number + ' converted to invoice');
+    } catch (err) { toast(friendly(err)); }
+  }
+  function printDoc(d) {
+    var w = window.open('', '_blank', 'width=720,height=900');
+    if (!w) { toast('Pop-up blocked. Allow pop-ups to print.'); return; }
+    var sym = symbol();
+    var biz = state.businessProfile || {};
+    var title = d.type === 'quote' ? 'QUOTATION' : 'SALES ORDER';
+    var rows = d.items.map(function (x) {
+      return '<tr><td>' + esc(x.name) + '</td><td class="num">' + Number(x.qty || 0) + '</td><td class="num">' + sym + Number(x.rate || 0).toLocaleString('en-IN') + '</td><td class="num">' + sym + Number(x.lineTotal || x.qty * x.rate || 0).toLocaleString('en-IN') + '</td></tr>';
+    }).join('') || '<tr><td colspan="4" class="muted">No items</td></tr>';
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + esc(d.number) + '</title><style>' +
+      'body{font-family:Helvetica,Arial,sans-serif;color:#111;margin:40px;max-width:660px}' +
+      'h1{font-size:22px;margin:0}h2{font-size:15px;letter-spacing:.1em;margin:0}.muted{color:#777;font-size:11px;line-height:1.6}' +
+      '.top{display:flex;justify-content:space-between;border-bottom:3px solid #111;padding-bottom:14px}' +
+      'table{width:100%;border-collapse:collapse;margin:18px 0 12px}' +
+      'th,td{border:1px solid #ddd;padding:7px 9px;text-align:left;font-size:12px}th{background:#f4f4f4}.num{text-align:right}' +
+      '.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eee}' +
+      '.foot{margin-top:26px;color:#777;font-size:11px}' +
+      '</style></head><body>' +
+      '<div class="top"><div><h1>' + esc(biz.name || state.businessName || '') + '</h1><div class="muted">' + esc((biz.address || '') + (biz.phone ? (biz.address ? ' · ' : '') + biz.phone : '')) + '</div></div>' +
+      '<div style="text-align:right"><h2>' + title + '</h2><b>' + esc(d.number) + '</b><div class="muted">' + esc(d.date) + (d.expiry ? '<br>Valid until: ' + esc(String(d.expiry).slice(0, 10)) : '') + '</div></div></div>' +
+      '<p class="muted"><b>Customer:</b> ' + esc(d.customer) + (d.phone ? '<br><b>Phone:</b> ' + esc(d.phone) : '') + '</p>' +
+      '<table><thead><tr><th>ITEM</th><th class="num">QTY</th><th class="num">RATE</th><th class="num">LINE TOTAL</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<div style="margin:0 0 8px auto;max-width:300px"><div class="row total" style="border-bottom:0"><span>Total</span><span>' + sym + Number(d.total).toLocaleString('en-IN') + '</span></div></div>' +
+      '<p>Status: <b>' + esc(String(d.status || 'open').toUpperCase()) + '</b></p>' +
+      (d.notes ? '<p>Notes: ' + esc(d.notes) + '</p>' : '') +
+      '<p class="muted">This is not an invoice. It becomes one when converted.</p>' +
+      '<script>print()<\/script></body></html>');
+    w.document.close();
+  }
+
   /* ============ customers ============ */
   function customerKey(c) { return (c.phone || c.name || '').toLowerCase(); }
   function customers() {
@@ -3837,6 +4063,7 @@ var pid = paymentTarget.id;
       if (id === 'product') openProductDialog(null);
       else if (id === 'customer') openCustomerDialog(null);
       else if (id === 'supplier') openSupplierDialog();
+      else if (id === 'estimate') openDocDialog();
       else if (id === 'purchase') openPurchaseDialog();
       else if (id === 'expense') { var f = $('#expenseForm'); if (f) { f.scrollIntoView({ behavior: 'smooth', block: 'center' }); var fi = f.querySelector('input,select'); if (fi) fi.focus(); } }
       else if (id === 'sale') gotoView('billing');
@@ -3910,6 +4137,7 @@ var pid = paymentTarget.id;
     if (page === 'purchases') bindPurchases();
     if (page === 'expenses') bindExpenses();
     if (page === 'history') { bindInvoices(); bindReceiptDialog(); }
+    if (page === 'estimates') bindEstimates();
     if (page === 'reports') bindReports();
     if (page === 'plans') bindPlans();
     if (page === 'settings') bindSettings();

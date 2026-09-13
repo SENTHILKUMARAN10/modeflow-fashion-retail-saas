@@ -156,6 +156,30 @@
         return client.rpc('delete_sale', { p_invoice_id: id }).then(function (r) { if (r.error) throw r.error; });
       }
     },
+    salesDocs: {
+      list: function (businessId) {
+        return one(client.from('sales_documents')
+          .select('*,sales_document_items(*)').eq('business_id', businessId).order('created_at', { ascending: false }));
+      },
+      create: function (businessId, type, d) {
+        return client.rpc('create_sales_document', {
+          p_business_id: businessId, p_document_type: type, p_customer_name: d.customerName,
+          p_customer_phone: d.customerPhone || null, p_items: d.items, p_expiry_date: d.expiryDate || null,
+          p_notes: d.notes || null
+        }).then(function (r) { if (r.error) throw r.error; return r.data; });
+      },
+      convertToOrder: function (docId) {
+        return client.rpc('convert_quote_to_order', { p_document_id: docId }).then(function (r) { if (r.error) throw r.error; return r.data; });
+      },
+      convertToInvoice: function (docId, method, status) {
+        return client.rpc('convert_sales_document_to_invoice', {
+          p_document_id: docId, p_payment_method: method || 'bank', p_payment_status: status || 'unpaid'
+        }).then(function (r) { if (r.error) throw r.error; return r.data; });
+      },
+      setStatus: function (id, status) {
+        return one(client.from('sales_documents').update({ status: status }).eq('id', id).select().single());
+      }
+    },
     expenses: {
       list: function (businessId) {
         return one(client.from('expenses')

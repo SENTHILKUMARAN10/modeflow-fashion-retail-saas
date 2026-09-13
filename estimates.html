@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#070B14">
 <script>(function(){try{var t=localStorage.getItem('sv-theme');if(!t)t=(window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
-<meta name="description" content="Salesventory — a calm, premium workspace for fashion retail: sales, inventory, customers, expenses and business analytics in one place.">
-<title>Customers — Salesventory</title>
+<meta name="description" content="Salesventory — quotes, sales orders and estimates for fashion retail.">
+<title>Quotes &amp; orders — Salesventory</title>
 <link rel="icon" href="assets/logo.png">
 <link rel="apple-touch-icon" href="assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,7 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css?v=20260912">
 </head>
-<body data-page="customers">
+<body data-page="estimates">
 
 <div id="login" class="hidden"></div>
 
@@ -34,13 +34,13 @@
       <a class="nav" data-view="dashboard" href="dashboard.html"><i>01</i><span>Overview</span></a>
       <a class="nav" data-view="billing" href="sales.html"><i>02</i><span>New sale</span></a>
       <a class="nav" data-view="inventory" href="products.html"><i>03</i><span>Products</span></a>
-      <a class="nav active" data-view="customers" aria-current="page" href="customers.html"><i>04</i><span>Customers</span></a>
+      <a class="nav" data-view="customers" href="customers.html"><i>04</i><span>Customers</span></a>
       <a class="nav" data-view="suppliers" href="suppliers.html"><i>05</i><span>Suppliers</span></a>
       <a class="nav" data-view="purchases" href="purchases.html"><i>06</i><span>Purchases</span></a>
       <a class="nav" data-view="expenses" href="expenses.html"><i>07</i><span>Expenses</span></a>
       <a class="nav" data-view="history" href="history.html"><i>08</i><span>Transactions</span></a>
-            <a class="nav" data-view="estimates" href="estimates.html"><i>09</i><span>Quotes &amp; orders</span></a>
-<a class="nav" data-view="reports" href="reports.html"><i>10</i><span>Analytics</span></a>
+      <a class="nav active" data-view="estimates" aria-current="page" href="estimates.html"><i>09</i><span>Quotes &amp; orders</span></a>
+      <a class="nav" data-view="reports" href="reports.html"><i>10</i><span>Analytics</span></a>
       <a class="nav" data-view="plans" href="plans.html"><i>11</i><span>Plans &amp; billing</span></a>
       <a class="nav" data-view="settings" href="settings.html"><i>12</i><span>Settings</span></a>
     </nav>
@@ -54,8 +54,8 @@
   <main>
     <header class="topbar">
       <div class="topbar-copy">
-        <p class="kicker" id="eyebrow">CUSTOMERS</p>
-        <h2 id="title">Customer relationships</h2>
+        <p class="kicker" id="eyebrow">QUOTES &amp; ORDERS</p>
+        <h2 id="title">Estimates that become sales</h2>
       </div>
       <div class="header-actions">
         <button id="menuToggle" class="icon-btn menu-toggle" type="button" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
@@ -79,95 +79,76 @@
       </div>
     </header>
 
-    <!-- CUSTOMERS -->
-    <section id="customers" class="view active-view">
-<div class="page-intro">
-        <div><p class="kicker">CUSTOMERS</p><h3>Know the people behind <em>the numbers.</em></h3></div>
+    <section id="estimates" class="view active-view">
+      <div class="page-intro">
+        <div><p class="kicker">QUOTES &amp; ORDERS</p><h3>Quotes, sales orders and the <em>path to the invoice.</em></h3></div>
         <div class="utility-row">
-          <button id="newCustomerBtn" class="btn primary" type="button">New customer</button>
-        <button id="importCsvBtn" class="btn ghost" type="button">Import CSV</button>
-        <input id="importCsvInput" type="file" accept=".csv,text/csv" hidden>
+          <button id="newDocBtn" class="btn primary" type="button">New quote</button>
         </div>
       </div>
-<div class="utility-row">
-        <input id="customerSearch" class="search-input" placeholder="Search customers" aria-label="Search customers">
-        <div id="custTagChips" class="filter-strip"></div>
+      <div class="utility-row">
+        <input id="docSearch" class="search-input" placeholder="Search number, customer…" aria-label="Search quotes">
+        <select id="docTypeFilter" class="compact-select" aria-label="Filter by type and status">
+          <option value="all">All documents</option>
+          <option value="quote">Quotes (QT)</option>
+          <option value="sales_order">Sales orders (SO)</option>
+          <option value="open">Open / accepted</option>
+          <option value="done">Fulfilled</option>
+          <option value="cancelled">Cancelled / rejected</option>
+        </select>
       </div>
       <article class="panel table-panel">
         <div class="table-wrap"><table>
-          <thead><tr><th>CUSTOMER</th><th>PHONE</th><th>TRANSACTIONS</th><th>LIFETIME VALUE</th><th>LAST PURCHASE</th><th>OUTSTANDING</th><th>ACTIONS</th></tr></thead>
-          <tbody id="customerRows"></tbody>
-        </table></div>
-      </article>
-      <article id="customerProfile" class="panel customer-profile" hidden>
-        <div class="panel-head">
-          <div class="cell-person">
-            <span class="store-avatar" id="cpAvatar">—</span>
-            <div class="cell-main"><b id="cpName">Customer</b><small id="cpPhone">—</small></div>
-          <span id="cpLeadPill" class="status low" style="align-self:center" hidden>LEAD</span>
-          </div>
-          <div class="profile-actions">
-            <a id="cpWhatsApp" class="btn ghost" href="#" target="_blank" rel="noopener">WhatsApp ↗</a>
-            <button id="cpShareStmt" class="btn ghost" type="button" title="Send the statement as a WhatsApp message">Share statement</button>
-            <button id="cpCopy" class="btn ghost" type="button">Copy statement</button>
-            <button id="cpCsv" class="btn ghost" type="button">CSV</button>
-            <button id="cpPrint" class="btn ghost" type="button">Print / PDF</button>
-            <button id="cpClose" class="icon-btn" type="button" aria-label="Close customer profile">×</button>
-          </div>
-        </div>
-        <div class="kpi-strip">
-          <article><span>Transactions</span><strong id="cpOrders">0</strong></article>
-          <article><span>Lifetime value</span><strong id="cpLifetime">₹0</strong></article>
-          <article><span>Outstanding</span><strong id="cpOutstanding">₹0</strong></article>
-          <article class="tinted"><span>Last purchase</span><strong id="cpLast">—</strong></article>
-        </div>
-        <div class="dash-filter" role="group" aria-label="Statement date range">
-          <label for="stmtFrom">Period</label>
-          <input type="date" id="stmtFrom" aria-label="Statement start date">
-          <input type="date" id="stmtTo" aria-label="Statement end date">
-          <span class="summary-chip" id="stmtClosing">Closing: ₹0</span>
-        </div>
-<div class="table-wrap"><table class="age-table">
-          <thead><tr><th>DATE</th><th>INVOICE</th><th>ITEM</th><th>TOTAL</th><th>PAID</th><th>BALANCE</th><th>STATUS</th></tr></thead>
-          <tbody id="statementTable"></tbody>
-        </table></div>
-        <div class="panel-head" style="margin-top:22px">
-          <div><p class="kicker">CRM</p><h3>Follow-ups</h3></div>
-        </div>
-        <div class="utility-row" style="justify-content:flex-start">
-          <input id="cfTitle" class="search-input" style="max-width:180px" placeholder="e.g. Send catalogue" aria-label="Follow-up title">
-          <input id="cfDue" type="date" class="search-input" style="max-width:150px" aria-label="Follow-up due date">
-          <select id="cfPriority" class="compact-select" aria-label="Priority">
-            <option value="normal" selected>Normal</option><option value="high">High</option><option value="urgent">Urgent</option><option value="low">Low</option>
-          </select>
-          <input id="cfNote" class="search-input" style="max-width:200px" placeholder="Note (optional)" aria-label="Follow-up note">
-          <button id="cfAdd" class="btn primary" type="button">Add</button>
-        </div>
-        <div class="table-wrap"><table>
-          <thead><tr><th>TITLE</th><th>DUE</th><th>PRIORITY</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
-          <tbody id="cfRows"><tr><td colspan="5" class="empty-cell">No follow-ups yet.</td></tr></tbody>
+          <thead><tr><th>NUMBER</th><th>CUSTOMER</th><th>TYPE</th><th>DATE</th><th>EXPIRY</th><th>TOTAL</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
+          <tbody id="docRows"></tbody>
         </table></div>
       </article>
     </section>
   </main>
 </div>
 
-<dialog id="customerDialog">
-  <form id="customerForm" class="dialog-card confirm-card" novalidate>
-    <div><p class="kicker">CUSTOMER</p><h3 id="customerDialogTitle">New customer</h3></div>
-    <label>Name*<input id="custName" required maxlength="80"></label>
-    <label>Phone<input id="custPhone" maxlength="20"></label>
-    <label>Email<input id="custEmail" type="email" maxlength="120"></label>
-    <label>Company<input id="custCompany" maxlength="120"></label>
-    <label>Address<input id="custAddress" maxlength="200"></label>
-    <label>Tags<input id="custTags" placeholder="VIP, wholesale, credit … (comma separated)"></label>
-    <label>Notes<input id="custNotes" maxlength="500"></label>
-    <label class="check-row" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="custLead" style="width:18px;height:18px"> Mark as a <b>lead</b> (prospect — no purchases yet)</label>
+<dialog id="docDialog">
+  <form id="docForm" class="dialog-card confirm-card" novalidate>
+    <div><p class="kicker">QUOTATION</p><h3>New quote</h3></div>
+    <label>Customer name*<input id="docCustomerName" required maxlength="80"></label>
+    <label>Phone<input id="docCustomerPhone" maxlength="20"></label>
+    <label>Valid until<input id="docExpiry" type="date"></label>
+    <label>Notes<input id="docNotes" placeholder="Payment terms, valid days, delivery…" maxlength="500"></label>
+    <div class="panel-head" style="padding:14px 0 6px">
+      <div><p class="kicker">ITEMS</p><h3 style="font-size:16px">What are you quoting?</h3></div>
+      <strong id="docLinesTotal" class="panel-total">₹0</strong>
+    </div>
+    <div class="utility-row" style="gap:8px">
+      <select id="docProductPick" class="compact-select" style="flex:1" aria-label="Pick a product"><option value="">Choose a product…</option></select>
+      <input id="docLineQty" type="number" class="search-input" style="max-width:70px" value="1" min="1" aria-label="Quantity">
+      <button id="docAddLine" class="btn ghost" type="button">Add line</button>
+    </div>
+    <div class="table-wrap" style="margin-top:10px"><table>
+      <thead><tr><th>ITEM</th><th>QTY</th><th>RATE</th><th>TOTAL</th><th></th></tr></thead>
+      <tbody id="docLines"></tbody>
+    </table></div>
     <div class="dialog-actions">
-      <button type="button" id="customerCancel" class="btn ghost">Cancel</button>
-      <button class="btn primary" type="submit">Save customer</button>
+      <button type="button" id="docCancel" class="btn ghost">Cancel</button>
+      <button class="btn primary" type="submit">Save quote</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="docInvDialog">
+  <div class="dialog-card confirm-card">
+    <div><p class="kicker">CONVERT</p><h3>Make this an invoice</h3></div>
+    <label>Payment method<select id="docInvMethod" aria-label="Payment method">
+      <option value="cash">Cash</option><option value="upi">UPI</option><option value="card">Card</option><option value="bank">Bank</option><option value="other">Custom</option>
+    </select></label>
+    <label>Payment status<select id="docInvStatus" aria-label="Payment status">
+      <option value="unpaid">Unpaid</option><option value="partial">Partial</option><option value="paid">Paid</option>
+    </select></label>
+    <p id="docInvHint" class="micro" style="text-align:left;margin:0 0 18px"></p>
+    <div class="dialog-actions">
+      <button id="docInvCancel" class="btn ghost" type="button">Keep quote</button>
+      <button id="docInvOk" class="btn primary" type="button">Convert to invoice</button>
+    </div>
+  </div>
 </dialog>
 
 <dialog id="confirmDialog">

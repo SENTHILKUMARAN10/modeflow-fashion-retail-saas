@@ -30,8 +30,8 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 |---|------|--------|-------|
 | 9 | POS billing | PARTIAL | fast checkout, USB barcode scan, hold/resume (up to 5 carts, local), cash received → change/shortfall calculator, live preview, quick re-sell (one-tap copy past invoice into Billing), qty steppers (±) with stock guard; add split payments, cashier login, shift open/close, reprint |
 | 6 | Barcode | PARTIAL | USB-scanner capture (global key buffer): add to cart on billing, filter on Products; labels/bulk print & stock-count mode remain |
-| 10 | Estimates / quotations | PLAN | quote→order→challan→invoice conversion (RPCs exist: convert_quote_to_order) |
-| 11 | Sales orders | PLAN | create/fulfil/cancel, convert to invoice/challan |
+| 10 | Estimates / quotations | PARTIAL | Quotes page: create quote (customer, expiry, notes, product/qty/rate lines via create_sales_document), list with type/status filters, statuses (open/accepted/fulfilled/cancelled/rejected), print quotation, convert quote→sales order (convert_quote_to_order) and quote/order→invoice with stock deduction + payment method/status (convert_sales_document_to_invoice); add WhatsApp share + quote→challan |
+| 11 | Sales orders | PARTIAL | sales orders created via quote→order conversion and listed on Quotes & orders (SO type, open/accepted/fulfilled, convert to invoice); add create order directly, fulfil/cancel, challan |
 | 12 | Delivery challan | PLAN | items, driver/vehicle, signature, print/WhatsApp |
 | 13 | Sales returns | PLAN | select invoice/items, credit note, stock & balance update (schema: sales_returns) |
 | 15 | Purchase returns | PLAN | debit note, supplier refund, stock adjust |
