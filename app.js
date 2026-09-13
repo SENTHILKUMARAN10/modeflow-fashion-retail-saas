@@ -3216,6 +3216,23 @@ var pid = paymentTarget.id;
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 500);
     toast('Report exported');
   }
+  function downloadXLS(filename, headers, rows) {
+    var cell = function (v) {
+      var s = v === null || v === undefined ? '' : String(v);
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    };
+    var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><table border="1"><thead><tr>' +
+      headers.map(function (h) { return '<th>' + cell(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr>' + r.map(function (v) { return '<td>' + cell(v) + '</td>'; }).join('') + '</tr>'; }).join('') +
+      '</tbody></table></body></html>';
+    var blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename.replace(/\.csv$/, '.xls');
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 500);
+    toast('Excel report exported');
+  }
 
   /* ============ catalogue & restock list ============ */
   function shareCatalogue() {
@@ -3363,10 +3380,11 @@ var pid = paymentTarget.id;
     downloadCSV('tally-party-ledgers-' + now + '.csv',
       ['Ledger Name', 'Ledger Group', 'Phone', 'Transactions', 'Turnover', 'Outstanding Balance'], ledrows);
   }
-  function reportCSV(kind) {
+  function reportCSV(kind, fmt) {
+    var out = fmt === 'xls' ? downloadXLS : downloadCSV;
     var now = new Date().toISOString().slice(0, 10);
     if (kind === 'sales') {
-      downloadCSV('salesventory-transactions-' + now + '.csv',
+      out('salesventory-transactions-' + now + '.csv',
         ['Transaction', 'Customer', 'Phone', 'Item', 'Qty', 'Rate', 'Subtotal', 'Discount', 'Total', 'Paid', 'Balance', 'Status', 'Due', 'Method', 'Date'],
         (state.invoices || []).map(function (i) {
           return [i.id, i.customer, i.phone, i.product, i.qty, i.rate, i.subtotal, i.discount, i.total, i.paid, i.balance,
@@ -3375,7 +3393,7 @@ var pid = paymentTarget.id;
       return;
     }
     if (kind === 'expenses') {
-      downloadCSV('salesventory-expenses-' + now + '.csv',
+      out('salesventory-expenses-' + now + '.csv',
         ['Date', 'Category', 'Amount', 'Note'],
         (state.expenses || []).map(function (e) { return [e.date, e.category, e.amount, e.note]; }));
       return;
@@ -3386,13 +3404,13 @@ var pid = paymentTarget.id;
         var k = x.category || 'Miscellaneous';
         byCat[k] = (byCat[k] || 0) + x.amount;
       });
-      downloadCSV('salesventory-expenses-by-category-' + now + '.csv',
+      out('salesventory-expenses-by-category-' + now + '.csv',
         ['Category', 'Amount'],
         Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; }).map(function (k) { return [k, byCat[k]]; }));
       return;
     }
     if (kind === 'pyblrecon') {
-      downloadCSV('salesventory-payables-recon-' + now + '.csv',
+      out('salesventory-payables-recon-' + now + '.csv',
         ['Supplier', 'Bills', 'Billed', 'Paid', 'Outstanding', 'Overdue', 'Status'],
         pyblReconRows().map(function (r) {
           return [r.name, r.bills, r.billed, r.paid, r.balance, r.overdueAmt, r.status];
@@ -3400,7 +3418,7 @@ var pid = paymentTarget.id;
       return;
     }
     if (kind === 'inventory') {
-      downloadCSV('salesventory-inventory-' + now + '.csv',
+      out('salesventory-inventory-' + now + '.csv',
         ['Name', 'SKU', 'Category', 'Unit', 'Cost', 'Selling price', 'Stock', 'Reorder', 'Stock value'],
         (state.products || []).map(function (p) {
           return [p.name, p.sku || '', p.category || '', p.unit || '', p.cost, p.price, p.stock, p.reorder, Number(p.stock || 0) * Number(p.cost || 0)];
@@ -3409,7 +3427,7 @@ var pid = paymentTarget.id;
     }
     if (kind === 'receivables') {
       var open = (state.invoices || []).filter(function (i) { return Number(i.balance || 0) > 0; });
-      downloadCSV('salesventory-receivables-' + now + '.csv',
+      out('salesventory-receivables-' + now + '.csv',
         ['Customer', 'Invoice', 'Due date', 'Total', 'Paid', 'Balance', 'Age'],
         open.map(function (i) {
           return [i.customer, i.id, i.dueDate || '', i.total, i.paid, i.balance,
@@ -3467,10 +3485,10 @@ var pid = paymentTarget.id;
     w.print();
   }
   function bindReports() {
-    var map = { csvSalesBtn: 'sales', csvExpensesBtn: 'expenses', csvInventoryBtn: 'inventory', csvAgingBtn: 'receivables', csvExpcatBtn: 'expcats', csvPyblReconBtn: 'pyblrecon' };
+    var map = { csvSalesBtn: 'sales', xlsSalesBtn: 'sales', csvExpensesBtn: 'expenses', xlsExpensesBtn: 'expenses', csvInventoryBtn: 'inventory', xlsInventoryBtn: 'inventory', csvAgingBtn: 'receivables', xlsAgingBtn: 'receivables', csvExpcatBtn: 'expcats', xlsExpcatBtn: 'expcats', csvPyblReconBtn: 'pyblrecon', xlsPyblReconBtn: 'pyblrecon' };
     Object.keys(map).forEach(function (id) {
       var btn = document.getElementById(id);
-      if (btn) btn.addEventListener('click', function () { reportCSV(map[id]); });
+      if (btn) btn.addEventListener('click', function () { reportCSV(map[id], id.indexOf('xls') === 0 ? 'xls' : 'csv'); });
     });
     var pb = $('#printReportBtn');
     if (pb) pb.addEventListener('click', printReport);

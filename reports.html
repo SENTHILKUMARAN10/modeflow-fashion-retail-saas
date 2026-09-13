@@ -85,9 +85,13 @@
         <div><p class="kicker">ANALYTICS</p><h3>See what your business is <em>telling you.</em></h3></div>
         <div class="utility-row">
           <button id="csvSalesBtn" class="btn ghost" type="button">CSV · Sales</button>
+          <button id="xlsSalesBtn" class="btn ghost" type="button">Excel · Sales</button>
           <button id="csvExpensesBtn" class="btn ghost" type="button">CSV · Expenses</button>
+          <button id="xlsExpensesBtn" class="btn ghost" type="button">Excel · Expenses</button>
           <button id="csvInventoryBtn" class="btn ghost" type="button">CSV · Inventory</button>
+          <button id="xlsInventoryBtn" class="btn ghost" type="button">Excel · Inventory</button>
           <button id="csvAgingBtn" class="btn ghost" type="button">CSV · Receivables</button>
+          <button id="xlsAgingBtn" class="btn ghost" type="button">Excel · Receivables</button>
           <button id="printReportBtn" class="btn primary" type="button">Print / PDF report</button>
         </div>
       </div>
@@ -209,7 +213,7 @@
       <article class="panel full">
         <div class="panel-head">
           <div><p class="kicker">SUPPLIERS</p><h3>Payables reconciliation</h3></div>
-          <div class="chip-row"><span class="summary-chip" id="pyblReconTot">Total outstanding ₹0</span><button class="btn ghost" id="csvPyblReconBtn" type="button">Export CSV</button></div>
+          <div class="chip-row"><span class="summary-chip" id="pyblReconTot">Total outstanding ₹0</span><button class="btn ghost" id="csvPyblReconBtn" type="button">Export CSV</button><button class="btn ghost" id="xlsPyblReconBtn" type="button">Export Excel</button></div>
         </div>
         <div class="table-wrap"><table>
           <thead><tr><th>SUPPLIER</th><th>BILLS</th><th>BILLED</th><th>PAID</th><th>OUTSTANDING</th><th>OVERDUE</th><th>STATUS</th></tr></thead>
@@ -234,7 +238,7 @@
       <article class="panel full">
         <div class="panel-head">
           <div><p class="kicker">EXPENSES</p><h3>Spend by category</h3></div>
-          <button class="btn ghost" id="csvExpcatBtn" type="button">Export CSV</button>
+          <button class="btn ghost" id="csvExpcatBtn" type="button">Export CSV</button><button class="btn ghost" id="xlsExpcatBtn" type="button">Export Excel</button>
         </div>
         <div class="table-wrap"><table>
           <thead><tr><th>CATEGORY</th><th>ENTRIES</th><th>AMOUNT</th><th>SHARE OF SPEND</th></tr></thead>
