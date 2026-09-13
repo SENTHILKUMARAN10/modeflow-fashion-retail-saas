@@ -43,7 +43,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 42 | WhatsApp | PARTIAL | invoice share + overdue reminders (Transactions) + receipt Share + customer statement Share + catalogue share (copy-to-clipboard formatted catalogue, Products) + quote/order share (online document WhatsApp) + purchase bill/PO share (supplier WhatsApp); add delivery challan + payment reminders WhatsApp |
 | 45 | Multi-user | PARTIAL | team manage on Settings: invite by email + role (+link copy), live member list with inline role changes, pending invitations with revoke, remove member (owner/admin via server APIs: team/invite, team/list, team/update, remove, revoke-invite) + invite-link acceptance flow (sign in → auto-accept → join workspace); add branch assignment UI |
 | 46 | Permissions | PARTIAL | client capability map; align with server `salesdesk_can` matrix |
-| 56 | Notifications | PARTIAL | alerts centre on dashboard (low stock/OOS + overdue recv/payables with amounts, Restock/Collect/Pay jump via named hash intents incl. #open=lowstock) + Cash focus strip (due today & overdue recv/payables); add expiry/subscription expiry + push/email delivery |
+| 56 | Notifications | PARTIAL | alerts centre on dashboard (subscription renews-in / non-active status + low stock/OOS + overdue recv/payables with amounts, Restock/Collect/Pay jump via named hash intents incl. #open=lowstock) + Cash focus strip (due today & overdue recv/payables); add expiry/subscription expiry + push/email delivery |
 | 60 | Quick create + search | PARTIAL | global ＋ New menu (sale/product/customer/supplier/purchase/expense, deep-links & auto-opens dialogs) + global search |
 
 ## Phase 3 — Advanced

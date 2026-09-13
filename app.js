@@ -280,6 +280,7 @@
     state.channel = cloud.realtime.subscribe(id, function () { clearTimeout(state._rt); state._rt = setTimeout(refreshCloudData, 300); });
     toast('Workspace loaded');
     showApp();
+    loadBillingSummary();
     if (window.__svResolveInvite) window.__svResolveInvite();
   }
   async function resolvePendingInvite() {
@@ -2542,6 +2543,16 @@ var pid = paymentTarget.id;
       var overRecv = state.invoices.filter(invoiceOverdue);
       var overPay = state.purchases.filter(purchaseOverdue);
       var extra = '';
+      if (state.billing && state.billing.sub) {
+        var bsub = state.billing.sub;
+        var bend = bsub.current_period_end ? new Date(bsub.current_period_end) : null;
+        var bdays = bend && !isNaN(bend.getTime()) ? Math.ceil((bend.getTime() - Date.now()) / 864e5) : null;
+        if (bsub.status !== 'active') {
+          extra += '<div class="alert"><div><b>Subscription ' + esc(bsub.status || 'inactive') + '</b><div class="muted">Your workspace may lose access. Review your plan now.</div></div><a class="status low" href="plans.html" style="text-decoration:none">Renew</a></div>';
+        } else if (bdays !== null && bdays <= 14) {
+          extra += '<div class="alert"><div><b>Plan renews in ' + Math.max(0, bdays) + ' days</b><div class="muted">Period ends ' + bend.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) + '</div></div><a class="status low" href="plans.html" style="text-decoration:none">Manage plan</a></div>';
+        }
+      }
       if (overRecv.length) {
         var amt = overRecv.reduce(function (a, i) { return a + invBal(i); }, 0);
         extra += '<div class="alert"><div><b>Overdue receivables · ' + overRecv.length + '</b><div class="muted">' + money(amt) + ' outstanding past due</div></div><a class="status low" data-go="history" href="history.html" style="text-decoration:none">Collect</a></div>';
@@ -3675,6 +3686,19 @@ var pid = paymentTarget.id;
     var data = await r.json().catch(function () { return {}; });
     if (!r.ok) throw new Error(data.error || 'Unable to load billing status');
     return data;
+  }
+  async function loadBillingSummary() {
+    if (!cloud || !state.businessId || state.billingLoading) return;
+    state.billingLoading = true;
+    try {
+      var data = await billingStatus();
+      state.billing = { loaded: true, sub: data && data.subscription ? data.subscription : null };
+    } catch (err) {
+      state.billing = { loaded: false, sub: null };
+    } finally {
+      state.billingLoading = false;
+    }
+    if (currentPage() === 'dashboard') renderDashboard();
   }
   function loadRazorpay() {
     if (window.Razorpay) return Promise.resolve(window.Razorpay);
