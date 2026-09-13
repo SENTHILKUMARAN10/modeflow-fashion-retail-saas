@@ -84,6 +84,7 @@
         <div><p class="kicker">QUOTES &amp; ORDERS</p><h3>Quotes, sales orders and the <em>path to the invoice.</em></h3></div>
         <div class="utility-row">
           <button id="newDocBtn" class="btn primary" type="button">New quote</button>
+          <button id="newOrderBtn" class="btn ghost" type="button">New sales order</button>
         </div>
       </div>
       <div class="utility-row">
@@ -109,7 +110,7 @@
 
 <dialog id="docDialog">
   <form id="docForm" class="dialog-card confirm-card" novalidate>
-    <div><p class="kicker">QUOTATION</p><h3>New quote</h3></div>
+    <div><p class="kicker" id="docKicker">QUOTATION</p><h3 id="docTitle">New quote</h3></div>
     <label>Customer name*<input id="docCustomerName" required maxlength="80"></label>
     <label>Phone<input id="docCustomerPhone" maxlength="20"></label>
     <label>Valid until<input id="docExpiry" type="date"></label>

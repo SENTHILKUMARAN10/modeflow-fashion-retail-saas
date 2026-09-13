@@ -921,7 +921,9 @@
   }
   function bindEstimates() {
     var nd = $('#newDocBtn');
-    if (nd) { nd.hidden = !docCanManage(); nd.addEventListener('click', openDocDialog); }
+    if (nd) { nd.hidden = !docCanManage(); nd.addEventListener('click', function () { openDocDialog('quote'); }); }
+    var no = $('#newOrderBtn');
+    if (no) { no.hidden = !docCanManage(); no.addEventListener('click', function () { openDocDialog('order'); }); }
     if ($('#docSearch')) $('#docSearch').addEventListener('input', renderDocs);
     var df = $('#docTypeFilter');
     if (df) df.addEventListener('change', renderDocs);
@@ -1010,14 +1012,18 @@
     return base + ' warn';
   }
   var docLines = [];
-  function openDocDialog() {
+  var curDocType = 'quote';
+  function openDocDialog(type) {
     if (!docCanManage()) { toast('Sales access required for quotes and orders'); return; }
     if (!state.businessId) { toast('Open your cloud workspace first'); return; }
+    curDocType = type === 'order' ? 'order' : 'quote';
     docLines = [];
     $('#docCustomerName').value = '';
     $('#docCustomerPhone').value = '';
     $('#docExpiry').value = '';
     $('#docNotes').value = '';
+    if ($('#docTitle')) $('#docTitle').textContent = curDocType === 'order' ? 'New sales order' : 'New quote';
+    if ($('#docKicker')) $('#docKicker').textContent = curDocType === 'order' ? 'SALES ORDER' : 'QUOTATION';
     var pick = $('#docProductPick');
     if (pick) {
       pick.innerHTML = '<option value="">Choose a product…</option>' + state.products.filter(function (p) { return p.is_active !== false; })
@@ -1053,14 +1059,15 @@
     if (!name) { toast('Customer name is required'); return; }
     if (!docLines.length) { toast('Add at least one item'); return; }
     var lines = docLines.map(function (l) { return { product_id: l.productId, quantity: Number(l.qty) || 1, rate: Number(l.rate) || 0 }; });
+    var docType = curDocType === 'quote' ? 'quote' : 'sales_order';
     try {
-      await cloud.salesDocs.create(state.businessId, 'quote', {
+      await cloud.salesDocs.create(state.businessId, docType, {
         customerName: name, customerPhone: $('#docCustomerPhone').value.trim(),
         items: lines, expiryDate: $('#docExpiry').value || null, notes: $('#docNotes').value.trim() || null
       });
       $('#docDialog').close();
       await loadDocs();
-      toast('Quote saved for ' + name);
+      toast((docType === 'quote' ? 'Quote' : 'Sales order') + ' saved for ' + name);
     } catch (err) { toast(friendly(err)); }
   }
   async function onDocAction(e) {
@@ -4464,7 +4471,8 @@ var pid = paymentTarget.id;
       if (id === 'product') openProductDialog(null);
       else if (id === 'customer') openCustomerDialog(null);
       else if (id === 'supplier') openSupplierDialog();
-      else if (id === 'estimate') openDocDialog();
+      else if (id === 'estimate') openDocDialog('quote');
+      else if (id === 'order') openDocDialog('order');
       else if (id === 'purchase') openPurchaseDialog();
       else if (id === 'expense') { var f = $('#expenseForm'); if (f) { f.scrollIntoView({ behavior: 'smooth', block: 'center' }); var fi = f.querySelector('input,select'); if (fi) fi.focus(); } }
       else if (id === 'sale') gotoView('billing');
