@@ -962,6 +962,7 @@
         act += '<button class="action-btn" data-act="doc-cancel" data-id="' + esc(d.id) + '">Cancel</button>';
       }
       if (d.status !== 'fulfilled') act += '<button class="action-btn" data-act="doc-print" data-id="' + esc(d.id) + '">Print</button>';
+      if (d.phone && d.status !== 'cancelled' && d.status !== 'rejected') act += '<button class="action-btn" data-act="doc-share" data-id="' + esc(d.id) + '">WhatsApp</button>';
       return '<tr data-row-id="d-' + esc(d.id) + '">' +
         '<td data-label="Number"><span class="sku-tag">' + esc(d.number) + '</span></td>' +
         '<td data-label="Customer"><b>' + esc(d.customer) + '</b>' + (d.phone ? '<small>' + esc(d.phone) + '</small>' : '') + '</td>' +
@@ -1040,6 +1041,7 @@
     var d = (state.saleDocs || []).find(function (x) { return x.id === btn.dataset.id; });
     if (!d) return;
     if (btn.dataset.act === 'doc-print') { printDoc(d); return; }
+    if (btn.dataset.act === 'doc-share') { shareDoc(d); return; }
     if (btn.dataset.act === 'doc-order') {
       try { await cloud.salesDocs.convertToOrder(d.id); await loadDocs(); toast(d.number + ' converted to sales order'); }
       catch (err) { toast(friendly(err)); }
@@ -1101,6 +1103,16 @@
       '<p class="muted">This is not an invoice. It becomes one when converted.</p>' +
       '<script>print()<\/script></body></html>');
     w.document.close();
+  }
+
+  function shareDoc(d) {
+    var phone = String(d.phone || '').replace(/\D/g, '');
+    if (phone.length < 10) { toast('No phone on this customer — add one to share'); return; }
+    var target = phone.length === 10 ? '91' + phone : phone;
+    var head = String(state.businessName).toUpperCase() + '\n' + (d.type === 'quote' ? 'QUOTATION' : 'SALES ORDER') + ' ' + d.number + '\nCustomer: ' + d.customer + '\nDate: ' + d.date + (d.expiry ? '\nValid until: ' + String(d.expiry).slice(0, 10) : '') + '\n\n';
+    var items = d.items.map(function (x) { return '• ' + x.name + ' × ' + Number(x.qty || 0) + ' — ' + symbol() + Number(x.lineTotal || x.qty * x.rate || 0).toLocaleString('en-IN'); }).join('\n');
+    var text = head + items + '\n\nTotal: ' + symbol() + Number(d.total).toLocaleString('en-IN') + '\nStatus: ' + String(d.status).toUpperCase() + (d.notes ? '\n\nNote: ' + d.notes : '') + '\n\nThank you for your business!';
+    window.open('https://wa.me/' + target + '?text=' + encodeURIComponent(text), '_blank');
   }
 
   /* ============ customers ============ */
@@ -1951,6 +1963,17 @@
     w.focus();
     w.print();
   }
+  function sharePurchase(p) {
+    if (!p) return;
+    var sup = (state.suppliers || []).find(function (s) { return String(s.id) === String(p.supplierId); });
+    var phone = String(sup && sup.phone ? sup.phone : '').replace(/\D/g, '');
+    if (phone.length < 10) { toast('No supplier phone on file — add one to share'); return; }
+    var target = phone.length === 10 ? '91' + phone : phone;
+    var head = String(state.businessName).toUpperCase() + '\n' + (purchaseDocLabel(p) === 'BILL' ? 'PURCHASE BILL' : 'PURCHASE ORDER') + ' ' + p.number + '\nSupplier: ' + p.supplier + '\nDate: ' + p.date + (p.dueDate ? '\nDue: ' + String(p.dueDate).slice(0, 10) : '') + '\n\n';
+    var items = (p.items || []).map(function (it) { return '• ' + it.name + ' × ' + Number(it.qty || 0) + ' — ' + symbol() + Number(it.lineTotal || 0).toLocaleString('en-IN'); }).join('\n');
+    var text = head + items + '\n\nTotal: ' + symbol() + Number(p.total).toLocaleString('en-IN') + '\nStatus: ' + String(p.status).toUpperCase() + (p.notes ? '\n\nNote: ' + p.notes : '') + '\n\nRegards,\n' + String(state.businessName);
+    window.open('https://wa.me/' + target + '?text=' + encodeURIComponent(text), '_blank');
+  }
   function renderPurchases() {
     var rows = $('#purchaseRows'); if (!rows) return;
     var q = ($('#purchaseSearch').value || '').toLowerCase();
@@ -1975,6 +1998,7 @@
       }
       if (p.status !== 'cancelled') {
         actions += '<button class="action-btn" data-act="print-purchase" data-id="' + esc(p.id) + '">Print</button>';
+        actions += '<button class="action-btn" data-act="share-purchase" data-id="' + esc(p.id) + '">WhatsApp</button>';
       }
       return '<tr data-row-id="b-' + p.id + '">' +
         '<td data-label="Purchase"><b><span class="doc-tag">' + esc(purchaseDocLabel(p)) + '</span>' + esc(p.number.replace(/^PO-/, '')) + '</b></td>' +
@@ -2045,11 +2069,12 @@
       } catch (err) { toast(friendly(err)); }
     });
     $('#purchaseRows').addEventListener('click', async function (e) {
-      var btn = e.target.closest('[data-act="receive-purchase"], [data-act="cancel-purchase"], [data-act="pay-purchase"], [data-act="print-purchase"]');
+      var btn = e.target.closest('[data-act="receive-purchase"], [data-act="cancel-purchase"], [data-act="pay-purchase"], [data-act="print-purchase"], [data-act="share-purchase"]');
       if (!btn) return;
       var act = btn.dataset.act, id = btn.dataset.id;
       var found = state.purchases.find(function (x) { return String(x.id) === String(id); });
       if (act === 'print-purchase') { printPurchaseDocument(found); return; }
+      if (act === 'share-purchase') { sharePurchase(found); return; }
       if (act === 'receive-purchase') {
         var ok = await confirmDialog('Receive stock?', 'Stock levels are updated with the purchased quantities and product costs are refreshed.');
         if (!ok) return;
