@@ -3417,18 +3417,32 @@ var pid = paymentTarget.id;
       var mapped = rows.slice(1).map(function (r) { return mapImportRow(kind, r); }).filter(Boolean);
       if (!mapped.length) { toast('No valid rows — check that a “name” column exists'); return; }
       var preview = mapped.slice(0, 3).map(function (r) { return r.name; }).join(', ');
-      var ok = await confirmDialog('Import ' + mapped.length + ' ' + kind + '(s)?', 'Preview: ' + preview + (mapped.length > 3 ? ' + ' + (mapped.length - 3) + ' more' : '') + '. Duplicates and invalid rows are skipped.');
+      var preset = kind === 'product' ? ' Products already in stock get their opening stock value updated; all other fields are kept.' : '';
+      var ok = await confirmDialog('Import ' + mapped.length + ' ' + kind + '(s)?', 'Preview: ' + preview + (mapped.length > 3 ? ' + ' + (mapped.length - 3) + ' more' : '') + '. Duplicates and invalid rows are skipped.' + preset);
       if (!ok) return;
-      var done = 0, errs = 0;
+      var done = 0, errs = 0, matched = 0;
       for (var i = 0; i < mapped.length; i++) {
         try {
-          if (kind === 'product') await cloud.products.create(state.businessId, mapped[i]);
+          if (kind === 'product') {
+            var nm = String(mapped[i].name || '').trim().toLowerCase();
+            var existing = (state.products || []).find(function (x) { return String(x.name || '').trim().toLowerCase() === nm; });
+            if (existing) {
+              await cloud.products.update(existing.id, {
+                name: existing.name, cost: existing.cost, price: existing.price, unit: existing.unit,
+                sku: existing.sku, category: existing.category, barcode: existing.barcode,
+                service: isService(existing), stock: mapped[i].stock, reorder: existing.reorder
+              });
+              matched++;
+            } else {
+              await cloud.products.create(state.businessId, mapped[i]);
+            }
+          }
           else if (kind === 'customer') await cloud.customers.create(state.businessId, mapped[i]);
           else await cloud.suppliers.create(state.businessId, state.user && state.user.id, mapped[i]);
           done++;
         } catch (e) { errs++; }
       }
-      toast('Imported ' + done + ' ' + kind + '(s)' + (errs ? ' · ' + errs + ' failed' : ''));
+      toast('Imported ' + done + ' ' + kind + '(s)' + (kind === 'product' && matched ? ' · ' + matched + ' opening stock updated' : '') + (errs ? ' · ' + errs + ' failed' : ''));
       await refreshCloudData();
     });
   }
