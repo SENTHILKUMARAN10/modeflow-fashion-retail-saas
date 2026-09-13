@@ -205,6 +205,24 @@
       },
       remove: function (id) { return one(client.from('expenses').delete().eq('id', id)); }
     },
+    warehouses: {
+      list: function (businessId) {
+        return one(client.from('warehouses').select('id,name,code,is_default,is_active')
+          .eq('business_id', businessId).eq('is_active', true).order('is_default', { ascending: false }).order('name'));
+      },
+      stock: function (businessId) {
+        return client.rpc('salesdesk_warehouse_stock', { p_business_id: businessId }).then(function (r) { if (r.error) throw r.error; return r.data || []; });
+      },
+      transfers: function (businessId) {
+        return one(client.from('inventory_transfers')
+          .select('*,inventory_transfer_items(*)').eq('business_id', businessId).order('created_at', { ascending: false }));
+      },
+      transfer: function (businessId, fromId, toId, items, notes) {
+        return client.rpc('transfer_inventory', {
+          p_business_id: businessId, p_from_warehouse_id: fromId, p_to_warehouse_id: toId, p_items: items, p_notes: notes || null
+        }).then(function (r) { if (r.error) throw r.error; return r.data; });
+      }
+    },
     suppliers: {
       list: function (businessId) {
         return one(client.from('suppliers')

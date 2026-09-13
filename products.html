@@ -100,11 +100,34 @@
           <button class="filter-chip" data-filter="in" aria-pressed="false" type="button">In stock</button>
         </div>
       </div>
-      <article class="panel table-panel">
+<article class="panel table-panel">
 <div class="table-wrap"><table>
           <thead><tr><th>PRODUCT</th><th>CATEGORY</th><th>COST</th><th>SELLING</th><th>STOCK</th><th>REORDER</th><th>STATUS</th><th>ACTIONS</th></tr></thead>
           <tbody id="inventoryRows"></tbody>
         </table></div>
+      </article>
+      <article class="panel table-panel" style="margin-top:18px">
+        <div class="panel-head">
+          <div><p class="kicker">WAREHOUSES</p><h3>Stock across locations</h3></div>
+          <button id="transferBtn" class="btn ghost" type="button">Start transfer</button>
+        </div>
+        <div class="chip-row">
+          <button class="chip" data-tab="wh" aria-pressed="true" type="button">By warehouse</button>
+          <button class="chip" data-tab="tr" aria-pressed="false" type="button">Transfer history</button>
+        </div>
+        <div id="whView">
+          <div class="table-wrap"><table>
+            <thead><tr><th>WAREHOUSE</th><th class="num">STOCK VALUE</th><th>LOW ITEMS</th></tr></thead>
+            <tbody id="whRows"></tbody>
+          </table></div>
+          <div id="whStock"></div>
+        </div>
+        <div id="trView" hidden>
+          <div class="table-wrap"><table>
+            <thead><tr><th>TRANSFER</th><th>FROM</th><th>TO</th><th class="num">ITEMS</th><th>DATE</th><th>STATUS</th></tr></thead>
+            <tbody id="transferRows"></tbody>
+          </table></div>
+        </div>
       </article>
     </section>
   </main>
@@ -141,6 +164,33 @@
     <div class="dialog-actions">
       <button type="button" id="cancelProduct" class="btn ghost">Cancel</button>
       <button class="btn primary" type="submit">Save product</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="transferDialog">
+  <form id="transferForm" class="dialog-card" novalidate>
+    <div><p class="kicker">INVENTORY</p><h3>Transfer stock</h3></div>
+    <div class="dialog-grid">
+      <label>From warehouse<select id="trFrom" aria-label="Source warehouse"></select></label>
+      <label>To warehouse<select id="trTo" aria-label="Destination warehouse"></select></label>
+    </div>
+    <div class="dialog-grid">
+      <label>Product<select id="trProduct" aria-label="Product"></select></label>
+      <label>Quantity<input id="trQty" type="number" min="1" step="any" value="1"></label>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" id="trAddLine" class="btn ghost">Add line</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>PRODUCT</th><th class="num">QTY</th><th></th></tr></thead>
+      <tbody id="trLines"></tbody>
+    </table></div>
+    <p id="trHint" class="micro" style="text-align:left;margin:0 0 18px"></p>
+    <label>Notes<input id="trNotes" placeholder="Optional"></label>
+    <div class="dialog-actions">
+      <button type="button" id="trCancel" class="btn ghost">Cancel</button>
+      <button class="btn primary" type="submit">Transfer stock</button>
     </div>
   </form>
 </dialog>

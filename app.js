@@ -311,7 +311,10 @@
         cloud.suppliers.list(state.businessId).catch(function () { return []; }),
         cloud.purchases.list(state.businessId).catch(function () { return []; }),
         cloud.customers.list(state.businessId).catch(function () { return []; }),
-        cloud.followups.list(state.businessId).catch(function () { return []; })
+        cloud.followups.list(state.businessId).catch(function () { return []; }),
+        cloud.warehouses.list(state.businessId).catch(function () { return []; }),
+        cloud.warehouses.stock(state.businessId).catch(function () { return []; }),
+        cloud.warehouses.transfers(state.businessId).catch(function () { return []; })
       ]);
       state.products = results[0].map(productFromCloud);
       state.invoices = results[1].map(invoiceFromCloud);
@@ -320,6 +323,9 @@
       state.purchases = results[4].map(purchaseFromCloud);
       state.customers = results[5].map(customerFromCloud);
       state.followups = results[6].map(followupFromCloud);
+      state.warehouses = results[7] || [];
+      state.warehouseStock = results[8] || [];
+      state.transfers = results[9] || [];
       var el = $('#cloudStatus');
       var appEl = $('#app');
       if (el && appEl && !appEl.classList.contains('hidden')) el.textContent = '';
@@ -1114,6 +1120,118 @@
     var items = d.items.map(function (x) { return '• ' + x.name + ' × ' + Number(x.qty || 0) + ' — ' + symbol() + Number(x.lineTotal || x.qty * x.rate || 0).toLocaleString('en-IN'); }).join('\n');
     var text = head + items + '\n\nTotal: ' + symbol() + Number(d.total).toLocaleString('en-IN') + '\nStatus: ' + String(d.status).toUpperCase() + (d.notes ? '\n\nNote: ' + d.notes : '') + '\n\nThank you for your business!';
     window.open('https://wa.me/' + target + '?text=' + encodeURIComponent(text), '_blank');
+  }
+
+  var transferLines = [];
+  function warehouseName(id) {
+    var w = (state.warehouses || []).find(function (x) { return x.id === id; });
+    return w ? (w.name || w.code || '—') : '—';
+  }
+  function renderWarehouses() {
+    var tb = $('#whRows'); if (!tb) return;
+    var stock = state.warehouseStock || [];
+    var rows = (state.warehouses || []).map(function (w) {
+      var prods = stock.filter(function (s) { return s.warehouse_id === w.id; });
+      var costOf = {};
+      state.products.forEach(function (p) { costOf[p.id] = Number(p.cost || 0); });
+      var value = prods.reduce(function (a, s) { return a + Number(s.quantity || 0) * (costOf[s.product_id] || 0); }, 0);
+      var low = prods.filter(function (s) {
+        var p = state.products.find(function (x) { return x.id === s.product_id; });
+        return p && Number(s.quantity || 0) <= Number(p.reorder || 0);
+      }).length;
+      return '<tr><td><b>' + esc(w.name) + '</b>' + (w.is_default ? ' <span class="status">default</span>' : '') + '</td>' +
+        '<td class="num"><b>' + money(value) + '</b></td>' +
+        '<td>' + (low ? '<span class="status low">' + low + '</span>' : '<span class="status">healthy</span>') + '</td></tr>';
+    }).join('');
+    tb.innerHTML = rows || '<tr><td colspan="3" class="empty-cell">No warehouses yet. Your default warehouse holds all stock.</td></tr>';
+    var ws = $('#whStock');
+    if (ws) {
+      var prods = stock.slice(0, 200);
+      ws.innerHTML = prods.length ? '<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>PRODUCT</th><th>WAREHOUSE</th><th class="num">QTY</th></tr></thead><tbody>' +
+        prods.map(function (s) {
+          var p = state.products.find(function (x) { return x.id === s.product_id; });
+          return '<tr><td>' + esc((p && p.name) || s.product_name) + '</td><td>' + esc(s.warehouse_name) + '</td><td class="num">' + Number(s.quantity || 0) + '</td></tr>';
+        }).join('') + '</tbody></table></div>' + (stock.length > 200 ? '<p class="micro">Showing 200 of ' + stock.length + ' rows.</p>' : '')
+        : '<p class="micro">No warehouse stock rows.</p>';
+    }
+    var tt = $('#transferRows');
+    if (tt) {
+      var trs = state.transfers || [];
+      tt.innerHTML = trs.map(function (t) {
+        return '<tr><td><span class="sku-tag">' + esc(t.transfer_number) + '</span></td><td>' + esc(warehouseName(t.from_warehouse_id)) + '</td><td>' + esc(warehouseName(t.to_warehouse_id)) + '</td>' +
+          '<td class="num">' + (t.inventory_transfer_items || []).length + '</td><td>' + esc(fmtDay(new Date(t.created_at))) + '</td><td><span class="' + statusPill(t.status) + '">' + esc(t.status) + '</span></td></tr>';
+      }).join('') || '<tr><td colspan="6" class="empty-cell">No transfers yet.</td></tr>';
+    }
+  }
+  function openTransferDialog() {
+    if (!(caps().manageProducts)) { toast('Manager access required for transfers'); return; }
+    if (!state.businessId) { toast('Open your cloud workspace first'); return; }
+    if (!(state.warehouses || []).length) { toast('No warehouses found on this workspace'); return; }
+    var from = $('#trFrom'), to = $('#trTo');
+    var opts = state.warehouses.map(function (w) { return '<option value="' + esc(w.id) + '">' + esc(w.name) + (w.is_default ? ' (default)' : '') + '</option>'; }).join('');
+    from.innerHTML = opts;
+    to.innerHTML = opts;
+    var prodOpts = (state.products || []).filter(function (p) { return p.is_active !== false && !isService(p); })
+      .map(function (p) { return '<option value="' + esc(p.id) + '" data-max="' + Number(p.stock || 0) + '">' + esc(p.name) + ' · on hand ' + Number(p.stock || 0) + '</option>'; }).join('');
+    $('#trProduct').innerHTML = '<option value="">Choose a tracked product…</option>' + prodOpts;
+    $('#trQty').value = 1;
+    $('#trNotes').value = '';
+    $('#trHint').textContent = 'Stock is deducted from the source and added to the destination warehouse.';
+    transferLines = [];
+    renderTransferLines();
+    $('#transferDialog').showModal();
+  }
+  function renderTransferLines() {
+    var tb = $('#trLines'); if (!tb) return;
+    tb.innerHTML = transferLines.length ? transferLines.map(function (l, ix) {
+      return '<tr><td data-label="Product"><b>' + esc(l.name) + '</b></td><td class="num">' + l.qty + '</td><td><button type="button" class="icon-btn tr-line-remove" data-ix="' + ix + '" aria-label="Remove line">×</button></td></tr>';
+    }).join('') : '<tr><td colspan="3" class="empty-cell">No lines yet — choose a product and quantity, then Add line.</td></tr>';
+  }
+  function bindWarehouses() {
+    var tb = $('#transferBtn');
+    if (!tb) return;
+    tb.addEventListener('click', openTransferDialog);
+    ['.chip[data-tab="wh"]', '.chip[data-tab="tr"]'].forEach(function (sel) {
+      var b = document.querySelector(sel);
+      if (b) b.addEventListener('click', function () {
+        document.querySelectorAll('.chip[data-tab]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+        $('#whView').hidden = b.dataset.tab !== 'wh';
+        $('#trView').hidden = b.dataset.tab !== 'tr';
+      });
+    });
+    $('#trCancel').addEventListener('click', function () { $('#transferDialog').close(); });
+    $('#trAddLine').addEventListener('click', function () {
+      var id = $('#trProduct').value;
+      if (!id) { toast('Choose a product'); return; }
+      var p = state.products.find(function (x) { return x.id === id; });
+      if (!p) return;
+      var qty = Math.max(1, Number($('#trQty').value) || 1);
+      if (qty > Number(p.stock || 0)) { toast('Only ' + p.stock + ' ' + esc(p.unit || 'units') + ' on hand'); return; }
+      transferLines.push({ productId: p.id, name: p.name, qty: qty });
+      renderTransferLines();
+    });
+    var linesEl = $('#trLines');
+    if (linesEl) linesEl.addEventListener('click', function (e) {
+      var rm = e.target.closest('.tr-line-remove');
+      if (!rm) return;
+      transferLines.splice(Number(rm.dataset.ix), 1);
+      renderTransferLines();
+    });
+    $('#transferForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var fromId = $('#trFrom').value, toId = $('#trTo').value;
+      if (!fromId || !toId || fromId === toId) { toast('Pick two different warehouses'); return; }
+      if (!transferLines.length) { toast('Add at least one line'); return; }
+      var items = transferLines.map(function (l) { return { product_id: l.productId, quantity: l.qty }; });
+      var ok = await confirmDialog('Transfer stock?', items.length + ' line(s) will be moved. Stock balances are updated immediately.');
+      if (!ok) return;
+      try {
+        await cloud.warehouses.transfer(state.businessId, fromId, toId, items, $('#trNotes').value.trim() || null);
+        await refreshCloudData();
+        $('#transferDialog').close();
+        toast('Stock transferred');
+      } catch (err) { toast(friendly(err)); }
+    });
   }
 
   /* ============ customers ============ */
@@ -4038,7 +4156,7 @@ var pid = paymentTarget.id;
     rendering = true;
     try {
       productOptions(); renderInventory(); renderCustomers(); renderSuppliers(); renderPurchases(); renderExpenses();
-      renderInvoices(); renderReceipts(); renderDashboard(); renderReports();
+      renderInvoices(); renderReceipts(); renderDashboard(); renderReports(); renderWarehouses();
       renderPlans(); updatePreview(); renderSettings();
       handleOpenIntent();
     } finally { rendering = false; }
@@ -4256,7 +4374,7 @@ var pid = paymentTarget.id;
     var eodBtn = $('#eodBtn');
     if (eodBtn) eodBtn.addEventListener('click', printEndOfDay);
     if (page === 'billing') bindSale();
-    if (page === 'inventory') bindInventory();
+    if (page === 'inventory') { bindInventory(); bindWarehouses(); }
     if (page === 'suppliers') bindSuppliers();
     if (page === 'customers') bindCustomers();
     if (page === 'purchases') bindPurchases();
