@@ -3661,6 +3661,8 @@ var pid = paymentTarget.id;
     var invValue = (state.products || []).reduce(function (a, p) { return a + Number(p.stock || 0) * Number(p.cost || 0); }, 0);
     var trxTotal = (state.invoices || []).reduce(function (a, i) { return a + Number(i.total || 0); }, 0);
     var expTotal = (state.expenses || []).reduce(function (a, e) { return a + Number(e.amount || 0); }, 0);
+    var pnl = pnlFor(0, Date.now() + 864e5);
+    var cash = cashTotals();
     w.document.write(
       '<!doctype html><html><head><meta charset="utf-8"><title>Salesventory report</title>' +
       '<style>body{font-family:Helvetica,Arial,sans-serif;color:#111;margin:32px;font-size:12px}' +
@@ -3677,9 +3679,19 @@ var pid = paymentTarget.id;
       '<li><span class="k">Total expenses</span><b>' + money(expTotal) + '</b></li>' +
       '<li><span class="k">Inventory value</span><b>' + money(invValue) + '</b></li>' +
       '<li><span class="k">Outstanding</span><b>' + money(open.reduce(function (a, i) { return a + Number(i.balance || 0); }, 0)) + '</b></li>' +
-      '<li><span class="k">Net cash</span><b>' + money(cashTotals().net) + '</b></li>' +
-      '<li><span class="k">Net profit</span><b>' + money(pnlFor(0, Date.now() + 864e5).net) + '</b></li>' +
+      '<li><span class="k">Net cash</span><b>' + money(cash.net) + '</b></li>' +
+      '<li><span class="k">Net profit</span><b>' + money(pnl.net) + '</b></li>' +
       '</ul></div>' +
+      '<h2>Profit &amp; loss</h2><div>' +
+      '<div class="tl"><span>Revenue</span><b>' + money(pnl.revenue) + '</b></div>' +
+      '<div class="tl"><span>Cost of goods sold</span><b>− ' + money(pnl.cogs) + '</b></div>' +
+      '<div class="tl tot"><span>Gross profit</span><b>' + money(pnl.gross) + '</b></div>' +
+      '<div class="tl"><span>Expenses</span><b>− ' + money(pnl.expenses) + '</b></div>' +
+      '<div class="tl tot"><span>Net profit</span><b>' + money(pnl.net) + '</b></div></div>' +
+      '<h2>Cash position</h2><div>' +
+      '<div class="tl"><span>Received in (sales + collections)</span><b>' + money(cash.in) + '</b></div>' +
+      '<div class="tl"><span>Paid out (supplier payments + purchase refunds)</span><b>' + money(cash.out) + '</b></div>' +
+      '<div class="tl tot"><span>Net cash</span><b>' + money(cash.net) + '</b></div></div>' +
       '<h2>Transactions</h2><table><thead><tr><th>ID</th><th>Customer</th><th>Item</th><th class="num">Total</th><th>Status</th><th>Date</th></tr></thead><tbody>' + (invRows || '<tr><td colspan="6">No transactions</td></tr>') + '</tbody></table>' +
       '<h2>Expenses</h2><table><thead><tr><th>Date</th><th>Category</th><th class="num">Amount</th><th>Note</th></tr></thead><tbody>' + (expRows || '<tr><td colspan="4">No expenses</td></tr>') + '</tbody></table>' +
       '<h2>Expenses by category</h2><table><thead><tr><th>Category</th><th class="num">Amount</th></tr></thead><tbody>' + (expCatRows || '<tr><td colspan="2">No expenses</td></tr>') + '</tbody></table>' +
