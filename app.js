@@ -712,6 +712,15 @@
           p_payment_status: $('#paymentStatus').value,
           p_branch_id: null,
           p_idempotency_key: window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : null
+        }).then(async function (madeId) {
+          var dueEl = $('#saleDueDate'), notesEl = $('#saleNotes');
+          var due = dueEl ? dueEl.value : '', notes = notesEl ? notesEl.value.trim() : '';
+          if (madeId && (due || notes)) {
+            var patch = {};
+            if (due) patch.dueDate = due;
+            if (notes) patch.notes = notes;
+            await cloud.invoices.updateMeta(madeId, patch).catch(function () { });
+          }
         });
         await refreshCloudData();
         done();
