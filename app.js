@@ -4542,6 +4542,12 @@ var pid = paymentTarget.id;
     var ff = $('#followupFilter');
     if (ff) ff.addEventListener('change', renderFollowupsInbox);
     if (page === 'billing') bindSale();
+    var plb = $('#printLastBtn');
+    if (plb) plb.addEventListener('click', function () {
+      var last = (state.invoices || [])[0];
+      if (!last) { toast('No previous sale to reprint'); return; }
+      printInvoice(last);
+    });
     if (page === 'inventory') { bindInventory(); bindWarehouses(); }
     if (page === 'suppliers') bindSuppliers();
     if (page === 'customers') bindCustomers();
