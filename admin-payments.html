@@ -28,6 +28,8 @@
   <main class="content">
     <header class="topbar"><div><p class="eyebrow">SALESVENTORY ADMIN</p><h1>Payment verification</h1></div><a class="btn" href="/">Back to Salesventory</a></header>
     <section class="summary"><article class="stat"><span>Pending review</span><strong id="pendingCount">—</strong></article><article class="stat"><span>Approved</span><strong id="approvedCount">—</strong></article><article class="stat"><span>Rejected</span><strong id="rejectedCount">—</strong></article></section>
+    <section class="summary"><article class="stat"><span>Active subscriptions</span><strong id="activeCount">—</strong></article><article class="stat"><span>MRR (monthly + annual/12)</span><strong id="mrrEl">—</strong></article><article class="stat"><span>Pending amount</span><strong id="pendingAmtEl">—</strong></article></section>
+    <section class="card"><div class="card-head"><h2>Businesses on plans</h2><small>Latest subscription state per business.</small></div><div id="planList"><div class="status">Loading…</div></div></section>
     <section class="card"><div class="card-head"><h2>Payment submissions</h2><small>Verify QR/UPI payments before activating customer access.</small></div><div id="list"><div class="status">Loading payments…</div></div></section>
   </main>
 </div>
@@ -44,8 +46,21 @@ async function load(){
  const t=await token();if(!t){list.innerHTML='<div class="status"><div class="empty-icon">!</div>Sign in to Salesventory first, then reopen this page.</div>';counts([]);return;}
  const r=await fetch('/api/admin-payments',{headers:{authorization:'Bearer '+t}}),d=await r.json().catch(()=>({}));
  if(!r.ok){list.innerHTML='<div class="status">'+esc(d.error||'Unable to load payments')+'</div>';counts([]);return;}
- const rows=d.payments||[];counts(rows);if(!rows.length){list.innerHTML='<div class="status"><div class="empty-icon">₹</div>No payment submissions yet.</div>';return;}
+ const rows=d.payments||[];counts(rows);renderAnalytics(rows);renderPlans(rows);if(!rows.length){list.innerHTML='<div class="status"><div class="empty-icon">₹</div>No payment submissions yet.</div>';return;}
  list.innerHTML=rows.map(p=>{const name=p.businesses?.name||'Business',ref=String(p.provider_subscription_id||'').replace(/^UPI:/,''),pending=p.status==='pending_verification';return `<div class="row"><div><div class="biz">${esc(name)}</div><div class="meta">UPI ref: ${esc(ref||'—')}</div></div><div><strong>${esc(p.plan_interval)}</strong><div class="meta">${esc(p.currency)} ${esc(p.amount)}</div></div><div><span class="pill ${esc(p.status)}">${esc(p.status)}</span></div><div class="meta">${esc(new Date(p.updated_at).toLocaleString())}</div><div class="actions">${pending?`<button class="btn primary" onclick="act('${esc(p.business_id)}','approve',this)">Approve</button><button class="btn reject" onclick="act('${esc(p.business_id)}','reject',this)">Reject</button>`:'—'}</div></div>`}).join('');
+}
+function renderAnalytics(rows){
+ activeCount.textContent=rows.filter(x=>x.status==='active').length;
+ const active=rows.filter(x=>x.status==='active');
+ const mrr=active.filter(x=>x.plan_interval==='month').reduce((a,x)=>a+Number(x.amount||0),0)+active.filter(x=>x.plan_interval==='year').reduce((a,x)=>a+Number(x.amount||0)/12,0);
+ mrrEl.textContent='₹'+Math.round(mrr).toLocaleString('en-IN');
+ pendingAmtEl.textContent='₹'+rows.filter(x=>x.status==='pending_verification').reduce((a,x)=>a+Number(x.amount||0),0).toLocaleString('en-IN');
+}
+function renderPlans(rows){
+ const latest={};
+ rows.slice().sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at)).forEach(p=>{if(!latest[p.business_id])latest[p.business_id]=p;});
+ const entries=Object.keys(latest).map(k=>latest[k]);
+ planList.innerHTML=entries.length?entries.map(p=>`<div class="row"><div><div class="biz">${esc(p.businesses?.name||'Business')}</div><div class="meta">Plan: ${esc(p.plan_interval||'—')} · ${esc(p.currency)} ${esc(p.amount)}</div></div><div><span class="pill ${esc(p.status)}">${esc(p.status)}</span><div class="meta">${p.current_period_end?`renews ${esc(new Date(p.current_period_end).toLocaleDateString())}`:'&nbsp;'}</div></div></div>`).join(''):'<div class="status">No subscriptions recorded yet.</div>';
 }
 async function act(businessId,action,button){if(!confirm((action==='approve'?'Approve':'Reject')+' this payment?'))return;const t=await token();button.disabled=true;const r=await fetch('/api/admin-payment-action',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+t},body:JSON.stringify({businessId,action})}),d=await r.json().catch(()=>({}));if(!r.ok){alert(d.error||'Unable to update payment');button.disabled=false;return;}await load();}
 load();

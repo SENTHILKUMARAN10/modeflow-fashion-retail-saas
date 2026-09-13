@@ -83,7 +83,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 58 | Responsive UI | DONE | 320px→large, mobile card tables; continue polish |
 | 59 | UI/UX premium | DONE | dark/light, Jakarta Sans, KPI cards; keep improving |
 | 62 | Subscriptions | DONE | Razorpay + UPI fallback; add free trial, plan gating |
-| 63 | Admin panel | PARTIAL | payment verification; add main analytics + plan management |
+| 63 | Admin panel | PARTIAL | payment verification + platform analytics on /admin-payments (active subscriptions, MRR, pending amount, latest plan per business); plan management pending |
 
 ## Non-functional commitments
 - Every tenant table carries `business_id`; RLS enforced; writes server-validated.
