@@ -940,6 +940,42 @@
     var impBtn = $('#importCsvBtn');
     if (impBtn) impBtn.hidden = !canManage;
   }
+  function printCountVariance(rows, matched, seen) {
+    var sym = symbol();
+    var diffs = rows.filter(function (x) { return Math.abs(x.diff) > 0.001; });
+    var biz = state.businessProfile || {};
+    var trs = rows.map(function (x) {
+      var cls = Math.abs(x.diff) > 0.001 ? ' class="var"' : '';
+      return '<tr' + cls + '><td>' + esc(x.p.name) + '</td><td class="num">' + x.p.stock + '</td><td class="num">' + x.counted + '</td><td class="num">' + (x.diff > 0 ? '+' : '') + x.diff + '</td>' +
+        '<td class="num">' + sym + Number(x.diffVal).toLocaleString('en-IN') + '</td></tr>';
+    }).join('');
+    var w = window.open('', '_blank', 'width=760,height=800');
+    if (w) {
+      w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Stock count variance</title><style>' +
+        'body{font-family:Helvetica,Arial,sans-serif;margin:28px;color:#111;font-size:12px}h1{font-size:20px;margin:0 0 2px}.muted{color:#666;font-size:11px}' +
+        'table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:11px}th{background:#f4f4f4}' +
+        '.num{text-align:right}.var td:first-child{font-weight:700}' +
+        '</style></head><body><h1>Stock count variance</h1>' +
+        '<div class="muted">' + esc(biz.name || state.businessName || 'Store') + (biz.tax_id ? ' · Tax ' + esc(biz.tax_id) : '') + ' · ' + new Date().toDateString() + '</div>' +
+        '<p class="muted">' + (matched != null ? matched + ' of ' + seen + ' rows matched · ' : '') + diffs.length + ' product(s) differ from system stock. This is a reconciliation worksheet — enter corrections through bills/returns.</p>' +
+        '<table><thead><tr><th>Product</th><th class="num">System</th><th class="num">Counted</th><th class="num">Diff</th><th class="num">Diff value</th></tr></thead><tbody>' + trs + '</tbody></table>' +
+        '<script>print()<\/script></body></html>');
+      w.document.close();
+    } else { toast('Pop-up blocked for variance report'); }
+  }
+  function openCountDialog() {
+    var items = state.products.filter(function (p) { return !isService(p); });
+    if (!items.length) { toast('No stockable products to count'); return; }
+    var list = $('#countStockList');
+    if (list) {
+      list.innerHTML = items.map(function (p) {
+        return '<tr><td><b>' + esc(p.name) + '</b><div class="muted sku-tag">' + (p.sku ? 'SKU ' + esc(p.sku) : 'SKU SV-' + String(p.id).padStart(4, '0')) + ' · system ' + p.stock + '</div></td>' +
+          '<td class="num"><input type="number" min="0" step="1" class="count-input" data-pid="' + p.id + '" value="' + p.stock + '" style="width:90px;text-align:right"></td></tr>';
+      }).join('');
+    }
+    var dlg = $('#stockCountDialog');
+    if (dlg) dlg.showModal();
+  }
   function openProductDialog(id) {
     if (!id) {
       $('#productForm').reset();
@@ -1003,27 +1039,8 @@
           rows.push({ p: p, counted: q, diff: diff, diffVal: diff * Number(p.cost || 0) });
         });
         if (!rows.length) { toast('No counted rows matched a product name'); return; }
-        var sym = symbol();
+        printCountVariance(rows, matched, seen);
         var diffs = rows.filter(function (x) { return Math.abs(x.diff) > 0.001; });
-        var biz = state.businessProfile || {};
-        var trs = rows.map(function (x) {
-          var cls = Math.abs(x.diff) > 0.001 ? ' class="var"' : '';
-          return '<tr><td>' + esc(x.p.name) + '</td><td class="num">' + x.p.stock + '</td><td class="num">' + x.counted + '</td><td class="num">' + (x.diff > 0 ? '+' : '') + x.diff + '</td>' +
-            '<td class="num">' + sym + Number(x.diffVal).toLocaleString('en-IN') + '</td></tr>';
-        }).join('');
-        var w = window.open('', '_blank', 'width=760,height=800');
-        if (w) {
-          w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Stock count variance</title><style>' +
-            'body{font-family:Helvetica,Arial,sans-serif;margin:28px;color:#111;font-size:12px}h1{font-size:20px;margin:0 0 2px}.muted{color:#666;font-size:11px}' +
-            'table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:11px}th{background:#f4f4f4}' +
-            '.num{text-align:right}.var td:first-child{font-weight:700}' +
-            '</style></head><body><h1>Stock count variance</h1>' +
-            '<div class="muted">' + esc(biz.name || state.businessName || 'Store') + (biz.tax_id ? ' · Tax ' + esc(biz.tax_id) : '') + ' · ' + new Date().toDateString() + '</div>' +
-            '<p class="muted">' + matched + ' of ' + seen + ' rows matched · ' + diffs.length + ' product(s) differ from system stock. This is a reconciliation worksheet — enter corrections through bills/returns.</p>' +
-            '<table><thead><tr><th>Product</th><th class="num">System</th><th class="num">Counted</th><th class="num">Diff</th><th class="num">Diff value</th></tr></thead><tbody>' + trs + '</tbody></table>' +
-            '<script>print()<\/script></body></html>');
-          w.document.close();
-        } else { toast('Pop-up blocked for variance report'); }
         toast('Count import done — ' + diffs.length + ' variance(s) found');
       });
     }
@@ -1038,6 +1055,27 @@
     });
     var reorder = $('#reorderListBtn');
     if (reorder) reorder.addEventListener('click', printRestockList);
+    var cnbtn = $('#countBtn');
+    if (cnbtn) cnbtn.addEventListener('click', openCountDialog);
+    var cdCancel = $('#countCancel'), cdSave = $('#countSave');
+    if (cdCancel) cdCancel.addEventListener('click', function () { var d = $('#stockCountDialog'); if (d) d.close(); });
+    if (cdSave) cdSave.addEventListener('click', function () {
+      var rows = [];
+      var list = $('#countStockList');
+      if (!list) return;
+      list.querySelectorAll('input.count-input').forEach(function (inp) {
+        var p = state.products.find(function (x) { return String(x.id) === inp.dataset.pid; });
+        var q = parseFloat(inp.value);
+        if (!p || isNaN(q) || q < 0) return;
+        var diff = q - Number(p.stock || 0);
+        rows.push({ p: p, counted: q, diff: diff, diffVal: diff * Number(p.cost || 0) });
+      });
+      if (!rows.length) { toast('Enter at least one counted quantity'); return; }
+      var dlg = $('#stockCountDialog'); if (dlg) dlg.close();
+      printCountVariance(rows, null, null);
+      var diffs = rows.filter(function (x) { return Math.abs(x.diff) > 0.001; });
+      toast(diffs.length ? diffs.length + ' product(s) differ from system stock' : 'Count matches system stock');
+    });
     var rew = $('#reorderWaBtn');
     if (rew) rew.addEventListener('click', sendReorderToSupplier);
     var rbuy = $('#reorderBuyBtn');

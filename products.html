@@ -99,6 +99,7 @@
         <input id="importCsvInput" type="file" accept=".csv,text/csv" hidden>
         <button id="countImportBtn" class="btn ghost" type="button">Import counts</button>
         <input id="countImportInput" type="file" accept=".csv,text/csv" hidden>
+        <button id="countBtn" class="btn ghost" type="button">Count stock</button>
       </div>
       <div class="utility-row">
         <input id="productSearch" class="search-input" placeholder="Search inventory" aria-label="Search inventory">
@@ -245,6 +246,23 @@
     <p id="tdNotes" class="micro" style="text-align:left;margin:14px 0 0"></p>
     <div class="dialog-actions">
       <button type="button" id="tdClose" class="btn ghost" data-close-dialog="#transferDetailDialog">Close</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="stockCountDialog">
+  <div class="dialog-card" style="min-width:420px">
+    <div><p class="kicker">STOCK COUNT</p><h3>Enter counted quantities</h3></div>
+    <p class="muted" style="font-size:12px">Prefilled with system stock — adjust what you physically counted, then print the variance worksheet. Corrections go through bills/returns.</p>
+    <div style="max-height:48vh;overflow:auto;margin-top:8px">
+      <table>
+        <thead><tr><th>Product</th><th class="num">Counted</th></tr></thead>
+        <tbody id="countStockList"></tbody>
+      </table>
+    </div>
+    <div class="dialog-actions">
+      <button id="countCancel" class="btn ghost" type="button">Cancel</button>
+      <button id="countSave" class="btn primary" type="button">Print variance</button>
     </div>
   </div>
 </dialog>
