@@ -2763,6 +2763,42 @@ var pid = paymentTarget.id;
       catch (err) { toast(friendly(err)); }
     }
   }
+  function inWords(n) {
+    var amt = Math.abs(Math.round((n || 0) * 100));
+    if (amt === 0) return 'Zero rupees only';
+    var rupees = Math.floor(amt / 100);
+    var paise = amt % 100;
+    var ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    var tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    function two(d) {
+      if (d < 20) return ones[d];
+      return tens[Math.floor(d / 10)] + (d % 10 ? ' ' + ones[d % 10] : '');
+    }
+    function three(d) {
+      var h = Math.floor(d / 100);
+      return (h ? ones[h] + ' Hundred' + (d % 100 ? ' ' : '') : '') + (d % 100 ? two(d % 100) : '');
+    }
+    function core(d) {
+      if (d === 0) return '';
+      if (d < 100) return two(d);
+      if (d < 1000) return three(d);
+      var cr = Math.floor(d / 10000000);
+      var remCr = d % 10000000;
+      var lakh = Math.floor(remCr / 100000);
+      var remLakh = remCr % 100000;
+      var th = Math.floor(remLakh / 1000);
+      var rem = remLakh % 1000;
+      var s = '';
+      if (cr) s += core(cr) + ' Crore ';
+      if (lakh) s += core(lakh) + ' Lakh ';
+      if (th) s += core(th) + ' Thousand ';
+      if (rem) s += three(rem);
+      return s.trim();
+    }
+    var out = core(rupees).trim();
+    var word = (out ? out + ' Rupees' : '') + (paise ? (out ? ' and ' : '') + two(paise) + ' Paise' : '');
+    return (word || 'Zero rupees') + (paise && !out ? '' : ' only');
+  }
   function printInvoice(i) {
     var w = window.open('', '_blank', 'width=720,height=900');
     if (!w) { toast('Pop-up blocked. Allow pop-ups to print invoices.'); return; }
@@ -2798,6 +2834,7 @@ var pid = paymentTarget.id;
       '<div class="row"><span>Balance due</span><b>' + sym + bal.toLocaleString('en-IN') + '</b></div>' +
       '</div>' +
       '<p>Payment: ' + String(i.paymentMethod || 'upi').toUpperCase() + ' · <b>' + status + '</b></p>' +
+      '<p class="muted"><b>Amount in words:</b> ' + esc(inWords(Number(i.total))) + '</p>' +
       (i.notes ? '<p>Notes: ' + esc(i.notes) + '</p>' : '') +
       '<p class="muted">Thank you for your business.</p>' +
       '<script>print()<\/script></body></html>');
