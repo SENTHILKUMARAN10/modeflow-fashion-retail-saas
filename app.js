@@ -2705,6 +2705,36 @@ var pid = paymentTarget.id;
         '<td>' + esc(fmtDay(new Date(r.created_at))) + '</td></tr>';
     }).join('') || '<tr><td colspan="8" class="empty-cell">No returns recorded yet.</td></tr>';
   }
+  function printReturnsRegister() {
+    var rows = state.returns || [];
+    if (!rows.length) { toast('No returns to print'); return; }
+    var biz = state.businessProfile || {};
+    var sym = symbol();
+    var total = rows.reduce(function (a, r) { return a + Number(r.refund_amount || 0); }, 0);
+    var trs = rows.map(function (r) {
+      var invN = (state.invoices || []).find(function (i) { return String(i.cloudId) === String(r.invoice_id); });
+      var item = (r.sales_return_items || []).map(function (it) { return esc(it.product_name) + ' × ' + (Number(it.quantity) || 0); }).join(', ') || '—';
+      var qty = (r.sales_return_items || []).reduce(function (a, it) { return a + Number(it.quantity || 0); }, 0);
+      var restock = (r.sales_return_items || [])[0];
+      return '<tr><td>' + esc(r.return_number) + '</td><td>' + esc(invN ? invN.id : String(r.invoice_id).slice(0, 8)) + '</td><td>' + item + '</td>' +
+        '<td class="num">' + qty + '</td><td class="num">' + sym + Number(r.refund_amount || 0).toLocaleString('en-IN') + '</td><td>' + esc(String(r.refund_method || '—').toUpperCase()) + '</td>' +
+        '<td>' + (restock ? (restock.restock ? 'yes' : 'no') : '—') + '</td><td>' + esc(fmtDay(new Date(r.created_at))) + '</td></tr>';
+    }).join('');
+    var w = window.open('', '_blank', 'width=900,height=800');
+    if (!w) { toast('Pop-up blocked. Allow pop-ups to print.'); return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Returns register</title><style>' +
+      '@page{size:A4;margin:10mm}body{font-family:Helvetica,Arial,sans-serif;color:#111;font-size:12px}' +
+      'h1{font-size:20px;margin:0 0 2px}.muted{color:#666;font-size:11px}' +
+      'table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:11px}' +
+      'th{background:#f4f4f4;text-transform:uppercase;font-size:10px;letter-spacing:.05em}.num{text-align:right}' +
+      '</style></head><body>' +
+      '<h1>' + esc(biz.name || state.businessName || 'Store') + '</h1>' +
+      '<div class="muted">' + esc((biz.tax_id ? 'Tax ' + biz.tax_id + (biz.address ? ' · ' : '') : '') + (biz.address || '') + ' · Returns register ' + new Date().toDateString()) + '</div>' +
+      '<table><thead><tr><th>Return</th><th>Invoice</th><th>Item</th><th class="num">Qty</th><th class="num">Refund</th><th>Method</th><th>Restock</th><th>Date</th></tr></thead><tbody>' + trs + '</tbody></table>' +
+      '<p class="muted">Total refunded: <b>' + sym + total.toLocaleString('en-IN') + '</b> · ' + rows.length + ' returns</p>' +
+      '<script>print()<\/script></body></html>');
+    w.document.close();
+  }
   function findInvoice(id) { return state.invoices.find(function (x) { return x.id === id; }); }
   var invoiceEditId = null;
   function openInvoiceMeta(i) {
@@ -5052,6 +5082,8 @@ var pid = paymentTarget.id;
     if (page === 'purchases') bindPurchases();
     if (page === 'expenses') bindExpenses();
     if (page === 'history') { bindInvoices(); bindReceiptDialog(); bindReturnDialog(); }
+    var prb = $('#printReturnsBtn');
+    if (prb) prb.addEventListener('click', printReturnsRegister);
     if (page === 'estimates') bindEstimates();
     if (page === 'reports') bindReports();
     if (page === 'plans') bindPlans();
