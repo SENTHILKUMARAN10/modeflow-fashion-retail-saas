@@ -58,7 +58,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 30 | E-invoice | IRN/ack/QR architecture, modular gov API |
 | 31 | E-way bill | modular integration, fields on bill |
 | 32 | TDS/TCS | rates, invoice calc, reports |
-| 33 | Profit & loss | PARTIAL | P&L panel on Analytics: revenue/COGS/gross/expenses/net for range + 6-month monthly table + on print report. Product-wise profit (revenue−COGS, negative badge) + customer-wise profit columns in sales performance suite |
+| 33 | Profit & loss | PARTIAL | P&L panel on Analytics: revenue/COGS/gross/expenses/net for range + 6-month monthly table + on print report. Product-wise profit (revenue−COGS, negative badge) + customer-wise profit columns in sales performance suite. Today vs yesterday sales delta on dashboard KPI |
 | 36 | Manufacturing | BOM, production, auto material consumption (schema: BOM primitives) |
 | 37 | Bill of materials | raw→finished mapping, labour/cost capture |
 | 38 | Online store | per-business catalogue, slug store link, WhatsApp order, checkout |

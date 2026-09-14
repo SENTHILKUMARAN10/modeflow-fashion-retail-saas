@@ -1172,7 +1172,7 @@
       '.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eee}' +
       '.foot{margin-top:26px;color:#777;font-size:11px}' +
       '</style></head><body>' +
-      '<div class="top"><div><h1>' + esc(biz.name || state.businessName || '') + '</h1><div class="muted">' + esc((biz.address || '') + (biz.phone ? (biz.address ? ' · ' : '') + biz.phone : '')) + '</div></div>' +
+      '<div class="top"><div><h1>' + esc(biz.name || state.businessName || '') + '</h1><div class="muted">' + esc((biz.address || '') + (biz.phone ? (biz.address ? ' · ' : '') + biz.phone : '') + (biz.tax_id ? ((biz.address || biz.phone) ? ' · ' : '') + 'Tax ' + biz.tax_id : '')) + '</div></div>' +
       '<div style="text-align:right"><h2>' + title + '</h2><b>' + esc(d.number) + '</b><div class="muted">' + esc(d.date) + (d.expiry ? '<br>Valid until: ' + esc(String(d.expiry).slice(0, 10)) : '') + '</div></div></div>' +
       '<p class="muted"><b>Customer:</b> ' + esc(d.customer) + (d.phone ? '<br><b>Phone:</b> ' + esc(d.phone) : '') + '</p>' +
       '<table><thead><tr><th>ITEM</th><th class="num">QTY</th><th class="num">RATE</th><th class="num">LINE TOTAL</th></tr></thead><tbody>' + rows + '</tbody></table>' +
@@ -2822,7 +2822,7 @@ var pid = paymentTarget.id;
       '.total{font-size:24px;font-weight:700}.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #eee}' +
       '.foot{margin-top:26px;color:#777;font-size:11px}' +
       '</style></head><body>' +
-      '<div class="top"><div><h1>' + esc(biz.name || state.businessName || '') + '</h1><div class="muted">' + esc((biz.address || '') + (biz.phone ? (biz.address ? ' · ' : '') + biz.phone : '')) + '</div></div>' +
+      '<div class="top"><div><h1>' + esc(biz.name || state.businessName || '') + '</h1><div class="muted">' + esc((biz.address || '') + (biz.phone ? (biz.address ? ' · ' : '') + biz.phone : '') + (biz.tax_id ? ((biz.address || biz.phone) ? ' · ' : '') + 'Tax ' + biz.tax_id : '')) + '</div></div>' +
       '<div style="text-align:right"><h2>INVOICE</h2><b>' + esc(i.id) + '</b><div class="muted">' + esc(i.date) + (i.dueDate ? '<br>Due: ' + esc(String(i.dueDate).slice(0, 10)) : '') + '</div></div></div>' +
       '<p class="muted"><b>Customer:</b> ' + esc(i.customer) + (i.phone ? '<br><b>Phone:</b> ' + esc(i.phone) : '') + '</p>' +
       '<table><thead><tr><th>ITEM</th><th class="num">QTY</th><th class="num">RATE</th><th class="num">LINE TOTAL</th></tr></thead><tbody>' + lines + '</tbody></table>' +
@@ -3559,7 +3559,7 @@ var pid = paymentTarget.id;
     var roleEl = $('#settingsRole');
     if (roleEl) { roleEl.textContent = 'Role · ' + (state.role || 'owner'); roleEl.hidden = false; }
     var editable = !isOwner;
-    ['setName', 'setPhone', 'setAddress', 'setCurrency', 'setPrefix'].forEach(function (id) {
+    ['setName', 'setPhone', 'setAddress', 'setCurrency', 'setPrefix', 'setTax'].forEach(function (id) {
       var el = $(id); if (el) el.disabled = editable;
     });
     var f = $('#settingsForm');
@@ -3570,6 +3570,7 @@ var pid = paymentTarget.id;
       if ($('#setAddress')) $('#setAddress').value = biz.address || '';
       if ($('#setCurrency')) $('#setCurrency').value = state.currency || biz.currency || 'INR';
       if ($('#setPrefix')) $('#setPrefix').value = biz.invoice_prefix || '';
+      if ($('#setTax')) $('#setTax').value = biz.tax_id || '';
     }
     if ($('#setBusinessId')) $('#setBusinessId').textContent = state.businessId;
     if ($('#setSlug')) $('#setSlug').textContent = biz.slug || '—';
@@ -3598,7 +3599,8 @@ var pid = paymentTarget.id;
         phone: $('#setPhone').value.trim() || null,
         address: $('#setAddress').value.trim() || null,
         currency: $('#setCurrency').value,
-        invoice_prefix: $('#setPrefix').value.trim()
+        invoice_prefix: $('#setPrefix').value.trim(),
+        tax_id: $('#setTax').value.trim() || null
       };
       if (!patch.name) { toast('Business name is required'); return; }
       try {
