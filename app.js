@@ -893,6 +893,15 @@
   });
   function bindInventory() {
     bindCsvImport('product');
+    var pe = $('#exportProductsBtn');
+    if (pe) pe.addEventListener('click', function () {
+      var sym = symbol();
+      var rows = state.products.filter(function (p) { return p.is_active !== false; }).map(function (p) {
+        return [p.name, p.sku || '', p.barcode || '', p.category || '', p.unit || 'pcs', p.cost, p.price, p.stock, p.reorder, Number(p.stock || 0) * Number(p.cost || 0)];
+      });
+      downloadCSV('salesventory-products-' + new Date().toISOString().slice(0, 10) + '.csv',
+        ['Name', 'SKU', 'Barcode', 'Category', 'Unit', 'Cost (' + sym + ')', 'Selling (' + sym + ')', 'Stock', 'Reorder level', 'Stock value (' + sym + ')'], rows);
+    });
     var reorder = $('#reorderListBtn');
     if (reorder) reorder.addEventListener('click', printRestockList);
     var rew = $('#reorderWaBtn');
