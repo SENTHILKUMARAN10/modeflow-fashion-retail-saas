@@ -870,6 +870,17 @@
     if (reorder) reorder.addEventListener('click', printRestockList);
     var rew = $('#reorderWaBtn');
     if (rew) rew.addEventListener('click', sendReorderToSupplier);
+    var rbuy = $('#reorderBuyBtn');
+    if (rbuy) rbuy.addEventListener('click', function () {
+      var low = restockList();
+      if (!low.length) { toast('Nothing to restock — stock looks healthy'); return; }
+      toast('Preparing purchase bill for ' + low.length + ' low-stock items');
+      try {
+        localStorage.setItem('sv-purchase-lines', JSON.stringify(low.map(function (p) { return { id: p.id, qty: Math.max(p.reorder - p.stock, 1), cost: Number(p.cost || 0) }; })));
+        localStorage.removeItem('sv-purchase-supplier');
+      } catch (e) { /* ignore */ }
+      location.href = SECTION_PAGE['purchases'];
+    });
     var ss = $('#stockSheetBtn');
     if (ss) ss.addEventListener('click', printStockSheet);
     var bpBtn = $('#bulkPriceBtn');
@@ -2331,7 +2342,21 @@
     $('#purchaseForm').reset();
     var box = $('#purchaseItems');
     box.innerHTML = '';
-    box.appendChild(purchaseItemRow(null));
+    var prefLines = null;
+    try {
+      prefLines = JSON.parse(localStorage.getItem('sv-purchase-lines') || 'null');
+    } catch (e) { prefLines = null; }
+    if (prefLines && prefLines.length) {
+      localStorage.removeItem('sv-purchase-lines');
+      prefLines.forEach(function (l) {
+        var p = state.products.find(function (x) { return String(x.id) === String(l.id); });
+        if (!p || isService(p)) return;
+        box.appendChild(purchaseItemRow({ productId: p.id, qty: Math.max(Number(l.qty) || 1, 1), cost: Number(l.cost) || Number(p.cost || 0) }));
+      });
+      toast('Prefilled ' + box.children.length + ' low-stock items from restock list');
+    } else {
+      box.appendChild(purchaseItemRow(null));
+    }
     $('#poSupplier').innerHTML = supplierOptions();
     try {
       var pref = JSON.parse(localStorage.getItem('sv-purchase-supplier') || 'null');
@@ -3912,10 +3937,13 @@ var pid = paymentTarget.id;
     copyClipboard(text);
     toast('Catalogue copied — paste it in WhatsApp');
   }
-  function printRestockList() {
-    var low = state.products.filter(function (p) { return !isService(p); })
+  function restockList() {
+    return state.products.filter(function (p) { return !isService(p); })
       .filter(function (p) { return p.stock <= p.reorder; })
       .sort(function (a, b) { return (a.stock / Math.max(a.reorder, 1)) - (b.stock / Math.max(b.reorder, 1)); });
+  }
+  function printRestockList() {
+    var low = restockList();
     if (!low.length) { toast('Nothing to restock — stock looks healthy'); return; }
     var biz = state.businessProfile || {};
     var rows = low.map(function (p) {
