@@ -2360,6 +2360,7 @@
         actions += '<button class="action-btn" data-act="remind-purchase" data-id="' + esc(p.id) + '" title="WhatsApp payment reminder to supplier">Remind</button>';
       }
       if (p.status !== 'cancelled') {
+        if (capsHere.managePurchases) actions += '<button class="action-btn" data-act="dup-purchase" data-id="' + esc(p.id) + '">Duplicate</button>';
         actions += '<button class="action-btn" data-act="print-purchase" data-id="' + esc(p.id) + '">Print</button>';
         actions += '<button class="action-btn" data-act="share-purchase" data-id="' + esc(p.id) + '">WhatsApp</button>';
       }
@@ -2438,6 +2439,24 @@
       var found = state.purchases.find(function (x) { return String(x.id) === String(id); });
       if (act === 'print-purchase') { printPurchaseDocument(found); return; }
       if (act === 'share-purchase') { sharePurchase(found); return; }
+      if (act === 'dup-purchase') {
+        if (!found) return;
+        var items = (found.items || []).map(function (it) {
+          return { product_id: it.productId, quantity: it.qty, rate: it.cost };
+        }).filter(function (l) { return !!l.product_id; });
+        if (!items.length) { toast('Nothing to duplicate — no product lines'); return; }
+        try {
+          await cloud.purchases.create({
+            p_business_id: state.businessId,
+            p_supplier_id: found.supplierId,
+            p_items: items,
+            p_notes: 'Copy of ' + found.number + (found.notes ? ' · ' + found.notes : '')
+          });
+          await refreshCloudData();
+          toast('Purchase duplicated');
+        } catch (err) { toast(friendly(err)); }
+        return;
+      }
       if (act === 'remind-purchase') { remindPurchasePayment(found); return; }
       if (act === 'receive-purchase') {
         var ok = await confirmDialog('Receive stock?', 'Stock levels are updated with the purchased quantities and product costs are refreshed.');
