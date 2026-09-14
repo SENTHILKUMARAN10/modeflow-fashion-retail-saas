@@ -2810,7 +2810,8 @@ var pid = paymentTarget.id;
       return '<tr><td><span class="sku-tag">' + esc(r.return_number) + '</span></td><td>' + esc(invN ? invN.id : String(r.invoice_id).slice(0, 8)) + '</td><td>' + item + '</td>' +
         '<td class="num">' + qty + '</td><td class="num"><b>' + money(r.refund_amount) + '</b></td><td>' + esc(String(r.refund_method || '—').toUpperCase()) + '</td>' +
         '<td>' + (restock ? (restock.restock ? '<span class="status">restocked</span>' : '<span class="status neutral">no</span>') : '—') + '</td>' +
-        '<td>' + esc(fmtDay(new Date(r.created_at))) + '</td></tr>';
+        '<td>' + esc(fmtDay(new Date(r.created_at))) + '</td>' +
+        '<td><button class="action-btn" data-act="print-return" data-id="' + esc(r.id) + '">Credit note</button></td></tr>';
     }).join('') || '<tr><td colspan="8" class="empty-cell">No returns recorded yet.</td></tr>';
   }
   function printReturnsRegister() {
@@ -2840,6 +2841,35 @@ var pid = paymentTarget.id;
       '<div class="muted">' + esc((biz.tax_id ? 'Tax ' + biz.tax_id + (biz.address ? ' · ' : '') : '') + (biz.address || '') + ' · Returns register ' + new Date().toDateString()) + '</div>' +
       '<table><thead><tr><th>Return</th><th>Invoice</th><th>Item</th><th class="num">Qty</th><th class="num">Refund</th><th>Method</th><th>Restock</th><th>Date</th></tr></thead><tbody>' + trs + '</tbody></table>' +
       '<p class="muted">Total refunded: <b>' + sym + total.toLocaleString('en-IN') + '</b> · ' + rows.length + ' returns</p>' +
+      '<script>print()<\/script></body></html>');
+    w.document.close();
+  }
+  function printReturnDoc(r) {
+    var biz = state.businessProfile || {};
+    var sym = symbol();
+    var invN = (state.invoices || []).find(function (i) { return String(i.cloudId) === String(r.invoice_id); });
+    var items = (r.sales_return_items || []).map(function (it) {
+      return '<tr><td>' + esc(it.product_name) + '</td><td class="num">' + (Number(it.quantity) || 0) + '</td>' +
+        '<td class="num">' + sym + (Number(it.rate) || Number(it.unit_price) || 0).toLocaleString('en-IN') + '</td>' +
+        '<td class="num">' + sym + (Number(it.refund_amount) || Number(it.amount) || 0).toLocaleString('en-IN') + '</td></tr>';
+    }).join('');
+    var w = window.open('', '_blank', 'width=760,height=760');
+    if (!w) { toast('Pop-up blocked. Allow pop-ups to print.'); return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Credit note ' + esc(r.return_number) + '</title><style>' +
+      'body{font-family:Helvetica,Arial,sans-serif;color:#111;margin:36px;font-size:13px}' +
+      'h1{font-size:24px;margin:0 0 2px}.muted{color:#666;font-size:11px}h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin:26px 0 8px}' +
+      'table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:7px 8px;text-align:left;font-size:12px}th{background:#f4f4f4;text-transform:uppercase;font-size:10px;letter-spacing:.05em}.num{text-align:right}' +
+      '.meta{display:flex;justify-content:space-between;margin-top:18px}.meta b{display:block;font-size:14px}.meta span{display:block;color:#666;font-size:11px;margin-top:2px}' +
+      '.total{display:flex;justify-content:space-between;margin-top:14px;font-weight:700;font-size:16px}' +
+      '</style></head><body>' +
+      '<h1>' + esc(biz.name || state.businessName || 'Store') + '</h1>' +
+      '<div class="muted">' + esc((biz.address || '') + (biz.tax_id ? (biz.address ? ' · ' : '') + 'Tax ' + biz.tax_id : '') + (biz.phone ? ' · ' + biz.phone : '')) + '</div>' +
+      '<div class="meta"><div><h2 style="margin-top:6px">Credit note</h2><b>' + esc(r.return_number) + '</b><span>Issued ' + esc(fmtDay(new Date(r.created_at))) + '</span></div>' +
+      '<div><h2 style="margin-top:6px">Against invoice</h2><b>' + esc(invN ? invN.id : String(r.invoice_id).slice(0, 8)) + '</b><span>' + esc(invN ? invN.customer : '') + '</span></div></div>' +
+      '<h2>Returned items</h2>' +
+      '<table><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Refund</th></tr></thead><tbody>' + items + '</tbody></table>' +
+      '<div class="total"><span>Total refund (' + esc(String(r.refund_method || 'method').toUpperCase()) + ')</span><span>' + sym + Number(r.refund_amount || 0).toLocaleString('en-IN') + '</span></div>' +
+      (r.sales_return_items && r.sales_return_items[0] && r.sales_return_items[0].restock ? '<p class="muted">Items restocked into inventory.</p>' : '') +
       '<script>print()<\/script></body></html>');
     w.document.close();
   }
@@ -2922,6 +2952,13 @@ var pid = paymentTarget.id;
     var filter = $('#invoiceFilter');
     if (filter) filter.addEventListener('change', function () { invoiceFilter = filter.value; renderInvoices(); });
     $('#historyRows').addEventListener('click', onInvoiceAction);
+    var rrRows = $('#returnRows');
+    if (rrRows) rrRows.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-act="print-return"]');
+      if (!btn) return;
+      var r = (state.returns || []).find(function (x) { return String(x.id) === String(btn.dataset.id); });
+      if (r) printReturnDoc(r);
+    });
     var md = $('#invMetaDialog');
     if (md && $('#invMetaForm')) {
       $('#invMetaCancel').addEventListener('click', function () { md.close(); });
