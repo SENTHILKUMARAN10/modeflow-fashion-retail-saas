@@ -859,6 +859,8 @@
     if (reorder) reorder.addEventListener('click', printRestockList);
     var rew = $('#reorderWaBtn');
     if (rew) rew.addEventListener('click', sendReorderToSupplier);
+    var ss = $('#stockSheetBtn');
+    if (ss) ss.addEventListener('click', printStockSheet);
     var lbl = $('#labelPrintBtn');
     if (lbl) lbl.addEventListener('click', printLabels);
     var catalogue = $('#catalogueShareBtn');
@@ -3843,6 +3845,40 @@ var pid = paymentTarget.id;
       '\n\nPlease confirm availability and delivery. Thank you!';
     window.open('https://wa.me/' + (phone.length === 10 ? '91' + phone : phone) + '?text=' + encodeURIComponent(text), '_blank');
     toast('Sending reorder request to ' + target.name);
+  }
+  function printStockSheet() {
+    var items = state.products.filter(function (p) { return p.is_active !== false && !isService(p); })
+      .sort(function (a, b) { return String(a.category || '').localeCompare(String(b.category || '')) || String(a.name).localeCompare(String(b.name)); });
+    if (!items.length) { toast('No stock products to list'); return; }
+    var biz = state.businessProfile || {};
+    var sym = symbol();
+    var totalValue = items.reduce(function (a, p) { return a + (Number(p.cost || 0) * Number(p.stock || 0)); }, 0);
+    var rows = items.map(function (p) {
+      var value = Number(p.cost || 0) * Number(p.stock || 0);
+      return '<tr><td>' + esc(p.name) + (p.sku ? '<br><span class="muted-s">' + esc(p.sku) + '</span>' : '') + '</td>' +
+        '<td>' + esc(p.category || '—') + '</td>' +
+        '<td class="num">' + Number(p.stock || 0) + ' ' + esc(p.unit || 'units') + '</td>' +
+        '<td class="count-cell">&nbsp;</td>' +
+        '<td class="num">' + sym + Number(p.cost || 0).toLocaleString('en-IN') + '</td>' +
+        '<td class="num">' + sym + Number(p.price || 0).toLocaleString('en-IN') + '</td>' +
+        '<td class="num tot">' + sym + value.toLocaleString('en-IN') + '</td></tr>';
+    }).join('');
+    var w = window.open('', '_blank', 'width=860,height=960');
+    if (!w) { toast('Pop-up blocked. Allow pop-ups to print.'); return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Stock sheet</title><style>' +
+      '@page{size:A4;margin:10mm}' +
+      'body{font-family:Helvetica,Arial,sans-serif;color:#111;font-size:12px}' +
+      'h1{font-size:20px;margin:0 0 2px}.muted{color:#666;font-size:11px}.muted-s{color:#888;font-size:10px}' +
+      'table{width:100%;border-collapse:collapse;margin-top:12px}' +
+      'th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:11px}th{background:#f4f4f4;text-transform:uppercase;font-size:10px;letter-spacing:.05em}' +
+      '.num{text-align:right}.tot{font-weight:700}.count-cell{background:#fff}tr{page-break-inside:avoid}' +
+      '</style></head><body>' +
+      '<h1>' + esc(biz.name || state.businessName || 'Store') + '</h1>' +
+      '<div class="muted">' + esc((biz.address || '') + (biz.phone ? (biz.address ? ' · ' : '') + biz.phone : '') + (biz.tax_id ? ((biz.address || biz.phone) ? ' · ' : '') + 'Tax ' + biz.tax_id : '')) + ' · Stock sheet ' + new Date().toDateString() + '</div>' +
+      '<table><thead><tr><th>Product</th><th>Category</th><th class="num">System</th><th>Counted</th><th class="num">Cost</th><th class="num">Selling</th><th class="num">Value</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<p class="muted">Total stock value at cost: <b>' + sym + totalValue.toLocaleString('en-IN') + '</b> · ' + items.length + ' products</p>' +
+      '<script>print()<\/script></body></html>');
+    w.document.close();
   }
   function printLabels() {
     var items = state.products.filter(function (p) { return p.is_active !== false && !isService(p); })
