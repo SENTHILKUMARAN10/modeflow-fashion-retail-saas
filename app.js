@@ -2007,6 +2007,36 @@
         '<div><b>' + money(x.amount) + '</b> ' + del + '</div></div>';
     }).join('') || '<p class="muted" style="padding:16px 4px">No expenses in this category.</p>';
   }
+  function printExpenseRegister() {
+    var list = state.expenses;
+    if (!list.length) { toast('No expenses to print'); return; }
+    var biz = state.businessProfile || {};
+    var sym = symbol();
+    var total = list.reduce(function (a, x) { return a + Number(x.amount || 0); }, 0);
+    var byCat = {};
+    list.forEach(function (x) { var k = x.category || 'Miscellaneous'; byCat[k] = (byCat[k] || 0) + Number(x.amount || 0); });
+    var catRows = Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; })
+      .map(function (k) { return '<tr><td>' + esc(k) + '</td><td class="num">' + sym + byCat[k].toLocaleString('en-IN') + '</td></tr>'; }).join('');
+    var rows = list.slice().sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); }).map(function (x) {
+      return '<tr><td>' + esc(x.date) + '</td><td>' + esc(x.category || 'Miscellaneous') + '</td><td>' + esc(x.note || '') + '</td>' +
+        '<td class="num">' + sym + Number(x.amount || 0).toLocaleString('en-IN') + '</td></tr>';
+    }).join('');
+    var w = window.open('', '_blank', 'width=700,height=800');
+    if (!w) { toast('Pop-up blocked. Allow pop-ups to print.'); return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Expense register</title><style>' +
+      '@page{size:A4;margin:10mm}body{font-family:Helvetica,Arial,sans-serif;color:#111;font-size:11px}' +
+      'h1{font-size:20px;margin:0 0 2px}.muted{color:#666}.sum{display:inline-block;margin-right:24px;font-size:12px}.sum b{font-size:14px}' +
+      'table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:5px 7px;text-align:left;font-size:11px}' +
+      'th{background:#f4f4f4;text-transform:uppercase;font-size:9px;letter-spacing:.05em}.num{text-align:right}' +
+      '</style></head><body>' +
+      '<h1>' + esc(biz.name || state.businessName || 'Store') + '</h1>' +
+      '<div class="muted">' + esc((biz.tax_id ? 'Tax ' + biz.tax_id + (biz.address ? ' · ' : '') : '') + (biz.address || '') + ' · Expense register ' + new Date().toDateString()) + '</div>' +
+      '<p><span class="sum">Total spent <b>' + sym + total.toLocaleString('en-IN') + '</b></span><span class="sum">Entries <b>' + list.length + '</b></span></p>' +
+      '<table><thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="num">Amount</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<table style="margin-top:16px"><thead><tr><th>Category</th><th class="num">Total</th></tr></thead><tbody>' + catRows + '</tbody></table>' +
+      '<script>print()<\/script></body></html>');
+    w.document.close();
+  }
   function bindExpenses() {
     $('#expenseForm').addEventListener('submit', async function (e) {
       e.preventDefault();
@@ -5108,6 +5138,8 @@ var pid = paymentTarget.id;
     if (page === 'customers') bindCustomers();
     if (page === 'purchases') bindPurchases();
     if (page === 'expenses') bindExpenses();
+    var peb = $('#printExpensesBtn');
+    if (peb) peb.addEventListener('click', printExpenseRegister);
     if (page === 'history') { bindInvoices(); bindReceiptDialog(); bindReturnDialog(); }
     var prb = $('#printReturnsBtn');
     if (prb) prb.addEventListener('click', printReturnsRegister);
