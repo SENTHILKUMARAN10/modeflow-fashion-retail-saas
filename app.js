@@ -2950,7 +2950,16 @@ var pid = paymentTarget.id;
     var todayInvoices = state.invoices.filter(function (i) { return isSameDay(i.ts); });
     var todayRevenue = todayInvoices.reduce(function (a, b) { return a + Number(b.total || 0); }, 0);
     if ($('#kpiToday')) $('#kpiToday').textContent = money(todayRevenue);
-    if ($('#kpiTodayMeta')) $('#kpiTodayMeta').textContent = todayInvoices.length ? todayInvoices.length + (todayInvoices.length === 1 ? ' sale today' : ' sales today') : 'No sales recorded yet';
+    if ($('#kpiTodayMeta')) {
+      var yd = new Date(Date.now() - 864e5);
+      var yLo = dayStart(yd).getTime();
+      var yHi = dayEnd(yd).getTime();
+      var yRev = state.invoices.filter(function (i) { return i.ts >= yLo && i.ts <= yHi; }).reduce(function (a, b) { return a + Number(b.total || 0); }, 0);
+      var delta = yRev > 0 ? Math.round(((todayRevenue - yRev) / yRev) * 100) : (todayRevenue > 0 ? 100 : 0);
+      var yMeta = (todayInvoices.length ? todayInvoices.length + (todayInvoices.length === 1 ? ' sale today' : ' sales today') : 'No sales recorded yet') +
+        ' · yesterday ' + money(yRev) + (yRev > 0 ? ' (' + (delta >= 0 ? '▲' : '▼') + Math.abs(delta) + '%)' : '');
+      $('#kpiTodayMeta').textContent = yMeta;
+    }
 
     /* balance-sheet KPIs */
     var invBal = function (i) { return Number(i.balance || 0) || (i.paymentStatus !== 'paid' ? Number(i.total || 0) : 0); };
