@@ -861,6 +861,47 @@
     if (rew) rew.addEventListener('click', sendReorderToSupplier);
     var ss = $('#stockSheetBtn');
     if (ss) ss.addEventListener('click', printStockSheet);
+    var bpBtn = $('#bulkPriceBtn');
+    if (bpBtn) {
+      bpBtn.addEventListener('click', function () {
+        if (!caps().manageProducts) { toast('Product management access required'); return; }
+        var cats = {};
+        state.products.filter(function (p) { return !isService(p); }).forEach(function (p) { if (p.category) cats[p.category] = true; });
+        var pick = $('#bpCategory');
+        if (pick) {
+          pick.innerHTML = '<option value="">All categories (stock products only)</option>' +
+            Object.keys(cats).sort().map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + '</option>'; }).join('');
+        }
+        $('#bpPercent').value = '';
+        $('#bulkPriceDialog').showModal();
+      });
+      $('#bpCancel').addEventListener('click', function () { $('#bulkPriceDialog').close(); });
+      $('#bulkPriceForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var pct = parseFloat($('#bpPercent').value);
+        if (isNaN(pct)) { toast('Enter a percentage'); return; }
+        var cat = $('#bpCategory').value;
+        var targets = state.products.filter(function (p) { return !isService(p) && p.is_active !== false && (!cat || p.category === cat); });
+        if (!targets.length) { toast('No products match'); return; }
+        var ok = await confirmDialog('Update ' + targets.length + ' products?', 'Selling price becomes current × (1 + ' + pct + '%), rounded to the rupee. Cost and stock stay unchanged.');
+        if (!ok) return;
+        var done = 0;
+        for (var idx = 0; idx < targets.length; idx++) {
+          var p = targets[idx];
+          try {
+            await cloud.products.update(p.id, {
+              name: p.name, category: p.category, sku: p.sku, barcode: p.barcode, unit: p.unit,
+              cost: p.cost, price: Math.round(Number(p.price || 0) * (1 + pct / 100) * 100) / 100,
+              stock: p.stock, reorder: p.reorder, service: false
+            });
+            done += 1;
+          } catch (err) { break; }
+        }
+        await refreshCloudData();
+        $('#bulkPriceDialog').close();
+        toast(done ? 'Updated ' + done + ' of ' + targets.length + ' selling prices' : 'No prices updated');
+      });
+    }
     var lbl = $('#labelPrintBtn');
     if (lbl) lbl.addEventListener('click', printLabels);
     var catalogue = $('#catalogueShareBtn');

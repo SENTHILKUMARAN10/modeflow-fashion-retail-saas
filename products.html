@@ -91,6 +91,7 @@
         <button id="stockSheetBtn" class="btn ghost" type="button">Stock sheet</button>
         <button id="reorderWaBtn" class="btn ghost" type="button">Order on WhatsApp</button>
         <button id="labelPrintBtn" class="btn ghost" type="button">Print labels</button>
+        <button id="bulkPriceBtn" class="btn ghost" type="button">Update prices</button>
         <button id="catalogueShareBtn" class="btn ghost" type="button">WhatsApp catalogue</button>
         <button id="importCsvBtn" class="btn ghost" type="button">Import CSV</button>
         <input id="importCsvInput" type="file" accept=".csv,text/csv" hidden>
@@ -183,6 +184,21 @@
     <div class="dialog-actions">
       <button type="button" id="cancelProduct" class="btn ghost">Cancel</button>
       <button class="btn primary" type="submit">Save product</button>
+    </div>
+</form>
+</dialog>
+
+<dialog id="bulkPriceDialog">
+  <form id="bulkPriceForm" class="dialog-card" novalidate>
+    <div><p class="kicker">PRICING</p><h3>Update selling prices</h3></div>
+    <label>Change %<input id="bpPercent" type="number" step="any" inputmode="decimal" placeholder="+10 for a 10% rise, −5 for a discount" required></label>
+    <label>Apply to category<select id="bpCategory" aria-label="Category to update">
+        <option value="">All categories (stock products only)</option>
+      </select></label>
+    <p class="muted" id="bpHint" style="font-size:12px">New price = current × (1 + pct / 100), rounded to the rupee.</p>
+    <div class="dialog-actions">
+      <button type="button" id="bpCancel" class="btn ghost">Cancel</button>
+      <button class="btn primary" type="submit">Apply to prices</button>
     </div>
   </form>
 </dialog>
