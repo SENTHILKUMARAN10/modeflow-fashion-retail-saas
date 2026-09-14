@@ -3111,6 +3111,17 @@ var pid = paymentTarget.id;
     }).join('') + (open.length > 8 ? '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">+' + (open.length - 8) + ' more…</p>' : '');
   }
 
+  function exportFollowupsCsv() {
+    var open = (state.followups || []).filter(function (f) { return f.status === 'open'; });
+    if (!open.length) { toast('No open follow-ups to export'); return; }
+    var rows = open.map(function (f) {
+      var c = state.customers.find(function (x) { return x.id === f.customerId; });
+      return [f.title, (c && c.name) || '', String(f.priority || 'normal').toUpperCase(), String(f.dueAt || '').slice(0, 10), f.status,
+        (f.assignedTo ? teamMemberName(f.assignedTo) : 'Unassigned'), String(f.notes || '').replace(/\s+/g, ' ').trim()];
+    });
+    downloadCSV('salesventory-followups-' + new Date().toISOString().slice(0, 10) + '.csv', ['Title', 'Customer', 'Priority', 'Due', 'Status', 'Assignee', 'Notes'], rows);
+  }
+
   /* ============ sales performance suite ============ */
   function repWindow() {
     var sel = $('#repRange');
@@ -4752,6 +4763,8 @@ var pid = paymentTarget.id;
     if (eodBtn) eodBtn.addEventListener('click', printEndOfDay);
     var ff = $('#followupFilter');
     if (ff) ff.addEventListener('change', renderFollowupsInbox);
+    var cfX = $('#cfExportBtn');
+    if (cfX) cfX.addEventListener('click', exportFollowupsCsv);
     document.addEventListener('click', function (ev) {
       if (ev.target && ev.target.dataset && ev.target.dataset.cfclaim) {
         ev.preventDefault();
