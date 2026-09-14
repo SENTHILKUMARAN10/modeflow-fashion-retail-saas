@@ -648,8 +648,26 @@
       linesHtml +
       '<div class="line-item"><span>Discount</span><span>− ' + money(t.discount) + '</span></div>' +
       '<div class="line-item"><span>Payment</span><span>' + esc(($('#paymentMethod').value || 'upi').toUpperCase()) + ' · ' + esc($('#paymentStatus').value || 'paid') + '</span></div>' +
+      (cashierName() ? '<div class="line-item"><span>Served by</span><span>' + esc(cashierName()) + '</span></div>' : '') +
       '<div class="bill-total"><span>Total</span><span>' + money(t.total) + '</span></div>' +
       '<p class="muted" style="font-size:11px;padding-bottom:20px">Thank you for your business.</p>';
+  }
+  function renderCashierOptions() {
+    var el = $('#cashierSelect'); if (!el) return;
+    var members = (typeof teamState !== 'undefined' && teamState.members) || [];
+    var saved = ''; try { saved = localStorage.getItem('sv-cashier') || ''; } catch (e) { /* ignore */ }
+    var opts = '<option value="">(Not set)</option><option value="you">You' + (state.user && state.user.name ? ' — ' + esc(state.user.name) : '') + '</option>' +
+      members.filter(function (m) { return state.user && String(m.user_id) === String(state.user.id) ? false : true; })
+        .map(function (m) { return '<option value="' + esc(m.user_id) + '">' + esc(m.name) + '</option>'; }).join('');
+    el.innerHTML = opts;
+    if (saved) { el.value = saved; } else if (state.user) { el.value = 'you'; }
+  }
+  function cashierName() {
+    var el = $('#cashierSelect'); if (!el || !el.value) return '';
+    if (el.value === 'you') { var u = state.user; return u ? (u.name || u.email || 'You') : 'You'; }
+    var members = (typeof teamState !== 'undefined' && teamState.members) || [];
+    var m = members.filter(function (x) { return String(x.user_id) === String(el.value); })[0];
+    return (m && m.name) ? m.name : 'Team';
   }
   function bindSale() {
     var q = function (s) { return $(s); };
@@ -733,6 +751,14 @@
       if (m && !m.hidden && e.target.closest && !e.target.closest('.quick-create')) m.hidden = true;
     });
     renderHeldMenu();
+    var cash = q('#cashierSelect');
+    if (cash) {
+      renderCashierOptions();
+      cash.addEventListener('change', function () {
+        try { localStorage.setItem('sv-cashier', cash.value); } catch (e) { /* ignore */ }
+        updatePreview();
+      });
+    }
     $('#invoiceForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       if (!saleLines.length) { toast('Add at least one item to this sale'); return; }
@@ -767,6 +793,8 @@
         }).then(async function (madeId) {
           var dueEl = $('#saleDueDate'), notesEl = $('#saleNotes');
           var due = dueEl ? dueEl.value : '', notes = notesEl ? notesEl.value.trim() : '';
+          var cashier = cashierName();
+          if (cashier && notes.indexOf('Served by') === -1) notes = (notes ? notes + ' · ' : '') + 'Served by ' + cashier;
           if (madeId && (due || notes)) {
             var patch = {};
             if (due) patch.dueDate = due;
