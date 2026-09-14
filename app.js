@@ -3215,10 +3215,23 @@ var pid = paymentTarget.id;
         : '<span class="status">Mine</span>';
       return '<div class="alert"><div><b>' + esc(f.title) + '</b>' + tag + '<div class="muted">' + esc(name) + ' · ' + esc(String(f.priority || 'normal').toUpperCase()) + ' · due ' + esc(when) + ass + '</div></div>' +
         '<div style="display:flex;gap:8px;align-items:center">' + claim +
+        '<a class="status low" href="#" data-cfedit="' + f.id + '" style="text-decoration:none">Edit</a>' +
         '<a class="status low" href="customers.html#open=customer:' + key + '" data-go="customers" style="text-decoration:none">Open</a></div></div>';
     }).join('') + (open.length > 8 ? '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">+' + (open.length - 8) + ' more…</p>' : '');
   }
 
+  function openFollowupEdit(id) {
+    var dlg = $('#followupDialog');
+    if (!dlg) return;
+    var f = (state.followups || []).find(function (x) { return String(x.id) === String(id); });
+    if (!f) { toast('Follow-up not loaded'); return; }
+    $('#fId').value = f.id;
+    $('#fTitle').value = f.title || '';
+    $('#fNote').value = f.note || '';
+    $('#fDue').value = f.dueAt ? String(f.dueAt).slice(0, 10) : '';
+    $('#fPriority').value = String(f.priority || 'normal').toLowerCase() === 'high' ? 'high' : 'normal';
+    dlg.showModal();
+  }
   function exportFollowupsCsv() {
     var open = (state.followups || []).filter(function (f) { return f.status === 'open'; });
     if (!open.length) { toast('No open follow-ups to export'); return; }
@@ -4941,8 +4954,40 @@ var pid = paymentTarget.id;
           .then(function () { return refreshCloudData(); })
           .then(function () { toast('Follow-up assigned to you'); })
           .catch(function (err) { toast(friendly(err)); });
+        return;
+      }
+      if (ev.target && ev.target.dataset && ev.target.dataset.cfedit !== undefined) {
+        ev.preventDefault();
+        openFollowupEdit(ev.target.dataset.cfedit);
       }
     });
+    if (page === 'dashboard' && $('#followupDialog')) {
+      $('#fCancel').addEventListener('click', function () { $('#followupDialog').close(); });
+      $('#followupForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var id = $('#fId').value;
+        var due = $('#fDue').value || null;
+        try {
+          await cloud.followups.updateFollowup(id, {
+            title: $('#fTitle').value.trim(),
+            note: $('#fNote').value.trim(),
+            dueAt: due ? due + 'T12:00:00.000Z' : null,
+            priority: $('#fPriority').value
+          });
+          await refreshCloudData();
+          $('#followupDialog').close();
+          toast('Follow-up saved');
+        } catch (err) { toast(friendly(err)); }
+      });
+      var fDel = $('#fDelete');
+      if (fDel) fDel.addEventListener('click', async function () {
+        var id = $('#fId').value;
+        var ok = await confirmDialog('Delete follow-up?', 'This removes the follow-up for everyone.');
+        if (!ok) return;
+        try { await cloud.followups.remove(id); await refreshCloudData(); $('#followupDialog').close(); toast('Follow-up deleted'); }
+        catch (err) { toast(friendly(err)); }
+      });
+    }
     if (page === 'billing') bindSale();
     var plb = $('#printLastBtn');
     if (plb) plb.addEventListener('click', function () {

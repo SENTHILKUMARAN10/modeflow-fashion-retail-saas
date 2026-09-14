@@ -206,6 +206,24 @@
 
 <div id="toast" class="toast" role="status"></div>
 <div id="menuBackdrop" class="menu-backdrop"></div>
+<dialog id="followupDialog">
+  <form id="followupForm" class="dialog-card" novalidate>
+    <div><p class="kicker"></p><h3>Edit follow-up</h3></div>
+    <input id="fId" type="hidden">
+    <label>Title<input id="fTitle" required placeholder="e.g. Send saree catalogue"></label>
+    <label>Notes<textarea id="fNote" rows="2" placeholder="Context for the call / next step"></textarea></label>
+    <div class="dialog-grid">
+      <label>Due date<input id="fDue" type="date"></label>
+      <label>Priority<select id="fPriority"><option value="normal">Normal</option><option value="high">High</option></select></label>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" id="fDelete" class="btn danger">Delete</button>
+      <button type="button" id="fCancel" class="btn ghost">Cancel</button>
+      <button class="btn primary" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase/config.js"></script>
 <script src="cloud.js"></script>

@@ -126,6 +126,14 @@
       updateAssigned: function (id, userId) {
         return one(client.from('customer_followups').update({ assigned_to: userId || null }).eq('id', id).select().single());
       },
+      updateFollowup: function (id, f) {
+        var patch = {};
+        if (f.dueAt !== undefined) patch.due_at = f.dueAt || null;
+        if (f.priority !== undefined) patch.priority = f.priority || 'normal';
+        if (f.title !== undefined) patch.title = f.title;
+        if (f.note !== undefined) patch.note = f.note || null;
+        return one(client.from('customer_followups').update(patch).eq('id', id).select().single());
+      },
       complete: function (id, outcome) {
         return one(client.from('customer_followups')
           .update({ status: 'done', completed_at: new Date().toISOString(), outcome: outcome || null })
