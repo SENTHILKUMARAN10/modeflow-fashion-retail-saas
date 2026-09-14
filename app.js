@@ -631,6 +631,17 @@
   }
   function bindSale() {
     var q = function (s) { return $(s); };
+    try {
+      var pref = JSON.parse(localStorage.getItem('sv-sale-customer') || 'null');
+      localStorage.removeItem('sv-sale-customer');
+      if (pref && pref.name && q('#customerName')) {
+        q('#customerName').value = pref.name;
+        if (pref.phone) q('#phone').value = pref.phone;
+        toast('Customer prefilled from «' + pref.name + '» (editable)');
+        var focus = q('#itemSelect');
+        if (focus) focus.focus();
+      }
+    } catch (e) { /* ignore */ }
     if (q('#itemSelect')) q('#itemSelect').addEventListener('change', syncRate);
     if (q('#addItemBtn')) q('#addItemBtn').addEventListener('click', addSaleItem);
     $$('.qty-preset').forEach(function (b) {
@@ -1910,6 +1921,13 @@
       if (pr) pr.addEventListener('click', printStatement);
       var stmt = byId('#cpShareStmt');
       if (stmt) stmt.addEventListener('click', function () { shareStatement(rawCustomerByKey(selectedCustomerKey)); });
+      var ns = byId('#cpNewSale');
+      if (ns) ns.addEventListener('click', function () {
+        var c = rawCustomerByKey(selectedCustomerKey);
+        if (!c) return;
+        try { localStorage.setItem('sv-sale-customer', JSON.stringify({ name: c.name, phone: c.phone || '' })); } catch (e) { /* ignore */ }
+        location.href = SECTION_PAGE['billing'];
+      });
       ['#stmtFrom', '#stmtTo'].forEach(function (sel) {
         var el = $(sel);
         if (el) el.addEventListener('change', renderCustomerProfile);
