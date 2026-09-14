@@ -2295,7 +2295,7 @@
       '.totals{margin-left:auto;width:320px}.foot{margin-top:28px;color:#666;font-size:10px}' +
       '</style></head><body>' +
       '<div class="head"><div><h1>' + esc(biz.name || state.businessName || '') + '</h1>' +
-      '<div class="muted">' + esc((biz.address || '') + (biz.phone ? (biz.address ? ' · ' : '') + biz.phone : '')) + '</div></div>' +
+      '<div class="muted">' + esc((biz.address || '') + (biz.phone ? (biz.address ? ' · ' : '') + biz.phone : '') + (biz.tax_id ? ((biz.address || biz.phone) ? ' · ' : '') + 'Tax ' + biz.tax_id : '')) + '</div></div>' +
       '<div style="text-align:right"><h2>' + docTitle + '</h2><div class="muted">' + esc(p.number) + '</div><div class="muted">' + esc(p.date) + '</div></div></div>' +
       '<div class="meta"><div class="muted"><b>Supplier</b><br>' + esc(p.supplier) + '</div>' +
       '<div style="text-align:right"><span class="status-pill">' + esc(purchaseDocLabel(p)) + ' · ' + esc(p.status) + '</span></div></div>' +
@@ -2885,6 +2885,7 @@ var pid = paymentTarget.id;
       '<div class="c"><h1>' + esc(biz.name || state.businessName || '') + '</h1>' +
       (biz.address ? '<p class="muted">' + esc(biz.address) + '</p>' : '') +
       (biz.phone ? '<p class="muted">' + esc(biz.phone) + '</p>' : '') +
+      (biz.tax_id ? '<p class="muted">Tax ' + esc(biz.tax_id) + '</p>' : '') +
       '<p class="muted"><b>INVOICE ' + esc(i.id) + '</b><br>' + esc(i.date) + (i.dueDate ? ' · Due ' + esc(String(i.dueDate).slice(0, 10)) : '') + '</p></div>' +
       '<p>Customer: ' + esc(i.customer) + (i.phone ? ' · ' + esc(i.phone) : '') + '</p>' +
       '<div class="dash"></div>' + lines +
@@ -4073,7 +4074,7 @@ var pid = paymentTarget.id;
       'th{background:#f4f4f4}.num{text-align:right}.tot{font-weight:bold;font-size:12px}' +
       '.sum li{display:inline-block;margin-right:26px}.sum .k{color:#666;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em}' +
       '</style></head><body>' +
-      '<h1>' + esc(state.businessName) + '</h1><div class="muted">Business performance report · Generated ' + new Date().toDateString() + '</div>' +
+      '<h1>' + esc(state.businessName) + '</h1><div class="muted">' + esc((state.businessProfile && state.businessProfile.tax_id) ? 'Tax ' + state.businessProfile.tax_id + ' · ' : '') + 'Business performance report · Generated ' + new Date().toDateString() + '</div>' +
       '<div class="sum"><ul style="list-style:none;padding:0">' +
       '<li><span class="k">Total sales</span><b>' + money(trxTotal) + '</b></li>' +
       '<li><span class="k">Total expenses</span><b>' + money(expTotal) + '</b></li>' +
