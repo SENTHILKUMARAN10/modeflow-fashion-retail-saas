@@ -857,6 +857,8 @@
     bindCsvImport('product');
     var reorder = $('#reorderListBtn');
     if (reorder) reorder.addEventListener('click', printRestockList);
+    var rew = $('#reorderWaBtn');
+    if (rew) rew.addEventListener('click', sendReorderToSupplier);
     var lbl = $('#labelPrintBtn');
     if (lbl) lbl.addEventListener('click', printLabels);
     var catalogue = $('#catalogueShareBtn');
@@ -3798,6 +3800,29 @@ var pid = paymentTarget.id;
       '<table><thead><tr><th>Product</th><th>Category</th><th>Stock</th><th>Reorder level</th><th>Suggested order</th></tr></thead><tbody>' + rows + '</tbody></table>' +
       '<script>print()<\/script></body></html>');
     w.document.close();
+  }
+  function sendReorderToSupplier() {
+    var low = state.products.filter(function (p) { return !isService(p); })
+      .filter(function (p) { return p.stock <= p.reorder; })
+      .sort(function (a, b) { return (a.stock / Math.max(a.reorder, 1)) - (b.stock / Math.max(b.reorder, 1)); });
+    if (!low.length) { toast('Nothing to restock — stock looks healthy'); return; }
+    var suppliers = state.suppliers;
+    if (!suppliers.length) { toast('Add a supplier first'); gotoView('suppliers'); return; }
+    var withPhone = suppliers.filter(function (s) { return s.phone; });
+    var target = withPhone[0] || suppliers[0];
+    var phone = String(target.phone || '').replace(/\D/g, '');
+    if (phone.length < 10) { toast('Add a mobile number to ' + target.name + ' first'); gotoView('suppliers'); return; }
+    var biz = state.businessProfile || {};
+    var sym = symbol();
+    var lines = low.slice(0, 20).map(function (p) {
+      var suggest = Math.max(p.reorder - p.stock, 1);
+      return '• ' + p.name + (p.sku ? ' (SKU ' + p.sku + ')' : '') + ' — stock ' + p.stock + ' ' + (p.unit || 'units') + ', reorder level ' + p.reorder + ', please supply ' + suggest;
+    }).join('\n');
+    var text = 'RESTOCK REQUISITION\n' + (biz.name || state.businessName || 'Store') + ' · ' + new Date().toDateString() + '\n\n' + lines +
+      (low.length > 20 ? '\n… and ' + (low.length - 20) + ' more items.' : '') +
+      '\n\nPlease confirm availability and delivery. Thank you!';
+    window.open('https://wa.me/' + (phone.length === 10 ? '91' + phone : phone) + '?text=' + encodeURIComponent(text), '_blank');
+    toast('Sending reorder request to ' + target.name);
   }
   function printLabels() {
     var items = state.products.filter(function (p) { return p.is_active !== false && !isService(p); })
