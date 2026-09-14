@@ -75,7 +75,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 48 | Audit log | PARTIAL | DB triggers everywhere + UI view on Settings (owner-only): immutable trail of products/customers/suppliers/expenses/invoices/purchases/payments with action/entity/relative-time + CSV export |
 | 49 | Security | DONE | auth, RLS, storage rules, server validation; add 2FA option later |
 | 50 | Backup | DONE | scripts + docs; automate scheduling |
-| 51 | Import | PARTIAL | CSV import on Products/Customers/Suppliers (header mapping, preview+confirm, per-row error skip, permission-gated) + opening-stock import (existing products matched by name get stock updated, other fields preserved); add stock-count import |
+| 51 | Import | PARTIAL | CSV import on Products/Customers/Suppliers (header mapping, preview+confirm, per-row error skip, permission-gated) + opening-stock import (existing products matched by name get stock updated, other fields preserved) + stock-count import (CSV of name+counted → variance worksheet vs system: diff qty & value, printed, no DB writes) |
 | 52 | Export | PARTIAL | JSON backup + CSV per module (sales/expenses/inventory/receivables/statement/payables) + Excel (.xls) exports on Analytics + stock movements & warehouse transfer CSV exports + Tally vouchers + Print/PDF |
 | 53 | Tally export | PARTIAL | Settings → Export to Tally: sales vouchers, purchase vouchers, party ledgers (Sundry Debtors/Creditors + outstanding), Tally-ready CSV |
 | 55 | Financial year | PLAN | FY selection, closing, carry-forward |

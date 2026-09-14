@@ -930,6 +930,57 @@
   });
   function bindInventory() {
     bindCsvImport('product');
+    var cnt = $('#countImportBtn'), cntInp = $('#countImportInput');
+    if (cnt && cntInp) {
+      cnt.addEventListener('click', function () { cntInp.click(); });
+      cntInp.addEventListener('change', async function () {
+        var file = cntInp.files && cntInp.files[0];
+        cntInp.value = '';
+        if (!file) return;
+        var text = await file.text();
+        var parsed = parseCsv(text);
+        if (!parsed.length) { toast('Empty CSV'); return; }
+        var heads = parsed[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
+        var nameIx = -1, qtyIx = -1;
+        heads.forEach(function (h, i) { if (/name|product|item/.test(h)) nameIx = i; if (/count|qty|quantity|stock|physical/.test(h)) qtyIx = i; });
+        if (nameIx < 0 || qtyIx < 0) { toast('CSV needs a product-name column and a counted-qty column'); return; }
+        var seen = 0, matched = 0, rows = [];
+        parsed.slice(1).forEach(function (r) {
+          var nm = String(r[nameIx] || '').trim().toLowerCase();
+          var q = parseFloat(String(r[qtyIx] || '').replace(/[^0-9.]/g, ''));
+          if (!nm || isNaN(q)) return;
+          seen++;
+          var p = state.products.find(function (x) { return !isService(x) && String(x.name || '').trim().toLowerCase() === nm; });
+          if (!p) return;
+          matched++;
+          var diff = q - Number(p.stock || 0);
+          rows.push({ p: p, counted: q, diff: diff, diffVal: diff * Number(p.cost || 0) });
+        });
+        if (!rows.length) { toast('No counted rows matched a product name'); return; }
+        var sym = symbol();
+        var diffs = rows.filter(function (x) { return Math.abs(x.diff) > 0.001; });
+        var biz = state.businessProfile || {};
+        var trs = rows.map(function (x) {
+          var cls = Math.abs(x.diff) > 0.001 ? ' class="var"' : '';
+          return '<tr><td>' + esc(x.p.name) + '</td><td class="num">' + x.p.stock + '</td><td class="num">' + x.counted + '</td><td class="num">' + (x.diff > 0 ? '+' : '') + x.diff + '</td>' +
+            '<td class="num">' + sym + Number(x.diffVal).toLocaleString('en-IN') + '</td></tr>';
+        }).join('');
+        var w = window.open('', '_blank', 'width=760,height=800');
+        if (w) {
+          w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Stock count variance</title><style>' +
+            'body{font-family:Helvetica,Arial,sans-serif;margin:28px;color:#111;font-size:12px}h1{font-size:20px;margin:0 0 2px}.muted{color:#666;font-size:11px}' +
+            'table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;font-size:11px}th{background:#f4f4f4}' +
+            '.num{text-align:right}.var td:first-child{font-weight:700}' +
+            '</style></head><body><h1>Stock count variance</h1>' +
+            '<div class="muted">' + esc(biz.name || state.businessName || 'Store') + (biz.tax_id ? ' · Tax ' + esc(biz.tax_id) : '') + ' · ' + new Date().toDateString() + '</div>' +
+            '<p class="muted">' + matched + ' of ' + seen + ' rows matched · ' + diffs.length + ' product(s) differ from system stock. This is a reconciliation worksheet — enter corrections through bills/returns.</p>' +
+            '<table><thead><tr><th>Product</th><th class="num">System</th><th class="num">Counted</th><th class="num">Diff</th><th class="num">Diff value</th></tr></thead><tbody>' + trs + '</tbody></table>' +
+            '<script>print()<\/script></body></html>');
+          w.document.close();
+        } else { toast('Pop-up blocked for variance report'); }
+        toast('Count import done — ' + diffs.length + ' variance(s) found');
+      });
+    }
     var pe = $('#exportProductsBtn');
     if (pe) pe.addEventListener('click', function () {
       var sym = symbol();
