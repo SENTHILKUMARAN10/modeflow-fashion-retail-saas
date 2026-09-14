@@ -2844,6 +2844,17 @@ var pid = paymentTarget.id;
       '<script>print()<\/script></body></html>');
     w.document.close();
   }
+  function exportReturnsCsv() {
+    var rows = state.returns || [];
+    if (!rows.length) { toast('No returns to export'); return; }
+    var out = rows.map(function (r) {
+      var invN = (state.invoices || []).find(function (i) { return String(i.cloudId) === String(r.invoice_id); });
+      var item = (r.sales_return_items || []).map(function (it) { return it.product_name + ' × ' + (Number(it.quantity) || 0); }).join(', ');
+      var qty = (r.sales_return_items || []).reduce(function (a, it) { return a + Number(it.quantity || 0); }, 0);
+      return [r.return_number, invN ? invN.id : '', invN ? invN.customer : '', item, qty, r.refund_amount, r.refund_method || '', fmtDay(new Date(r.created_at))];
+    });
+    downloadCSV('salesventory-returns-' + new Date().toISOString().slice(0, 10) + '.csv', ['Return #', 'Invoice', 'Customer', 'Items', 'Qty', 'Refund', 'Method', 'Date'], out);
+  }
   function printReturnDoc(r) {
     var biz = state.businessProfile || {};
     var sym = symbol();
@@ -5234,6 +5245,8 @@ var pid = paymentTarget.id;
     if (page === 'history') { bindInvoices(); bindReceiptDialog(); bindReturnDialog(); }
     var prb = $('#printReturnsBtn');
     if (prb) prb.addEventListener('click', printReturnsRegister);
+    var rcv = $('#returnsCsvBtn');
+    if (rcv) rcv.addEventListener('click', exportReturnsCsv);
     if (page === 'estimates') bindEstimates();
     if (page === 'reports') bindReports();
     if (page === 'plans') bindPlans();
