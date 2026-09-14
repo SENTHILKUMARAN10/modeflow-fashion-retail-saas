@@ -2267,6 +2267,13 @@
       if (csv) csv.addEventListener('click', downloadSupplierStatementCSV);
       var pr = byId('#spPrint');
       if (pr) pr.addEventListener('click', printSupplierStatement);
+      var npp = byId('#spNewPurchase');
+      if (npp) npp.addEventListener('click', function () {
+        var s = state.suppliers.filter(function (x) { return String(x.id) === String(selectedSupplierId); })[0];
+        if (!s) return;
+        try { localStorage.setItem('sv-purchase-supplier', JSON.stringify({ id: s.id, name: s.name })); } catch (e) { /* ignore */ }
+        location.href = SECTION_PAGE['purchases'];
+      });
       ['#spFrom', '#spTo'].forEach(function (sel) {
         var el = $(sel);
         if (el) el.addEventListener('change', renderSupplierProfile);
@@ -2326,6 +2333,22 @@
     box.innerHTML = '';
     box.appendChild(purchaseItemRow(null));
     $('#poSupplier').innerHTML = supplierOptions();
+    try {
+      var pref = JSON.parse(localStorage.getItem('sv-purchase-supplier') || 'null');
+      localStorage.removeItem('sv-purchase-supplier');
+      if (pref && pref.id) {
+        var supEl = $('#poSupplier');
+        if (supEl) {
+          supEl.value = String(pref.id);
+          if (!supEl.value) {
+            var s = state.suppliers.find(function (x) { return String(x.id) === String(pref.id); });
+            if (s) supEl.innerHTML = '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>';
+            supEl.value = String(pref.id);
+          }
+          toast('Supplier prefilled from «' + (pref.name || '') + '»');
+        }
+      }
+    } catch (e) { /* ignore */ }
     recomputePurchaseTotal();
     $('#purchaseDialog').showModal();
   }
