@@ -1016,7 +1016,11 @@
       var expClass = d.expiry && d.status === 'open' && String(d.expiry).slice(0, 10) < new Date().toISOString().slice(0, 10) ? ' <span class="status low">expired</span>' : '';
       var act = '';
       if (can && d.status !== 'cancelled' && d.status !== 'rejected' && d.status !== 'fulfilled') {
-        if (d.type === 'quote' && d.status === 'open') act += '<button class="action-btn" data-act="doc-order" data-id="' + esc(d.id) + '">To order</button>';
+        if (d.type === 'quote' && d.status === 'open') {
+          act += '<button class="action-btn" data-act="doc-accept" data-id="' + esc(d.id) + '">Accept</button>';
+          act += '<button class="action-btn" data-act="doc-order" data-id="' + esc(d.id) + '">To order</button>';
+        }
+        if (d.type === 'order' && (d.status === 'open' || d.status === 'accepted')) act += '<button class="action-btn" data-act="doc-fulfil" data-id="' + esc(d.id) + '">Fulfil</button>';
         act += '<button class="action-btn" data-act="doc-invoice" data-id="' + esc(d.id) + '">Invoice</button>';
         act += '<button class="action-btn" data-act="doc-cancel" data-id="' + esc(d.id) + '">Cancel</button>';
       }
@@ -1107,6 +1111,18 @@
     if (!d) return;
     if (btn.dataset.act === 'doc-print') { printDoc(d); return; }
     if (btn.dataset.act === 'doc-share') { shareDoc(d); return; }
+    if (btn.dataset.act === 'doc-accept') {
+      try { await cloud.salesDocs.setStatus(d.id, 'accepted'); await loadDocs(); toast(d.number + ' accepted'); }
+      catch (err) { toast(friendly(err)); }
+      return;
+    }
+    if (btn.dataset.act === 'doc-fulfil') {
+      var okF = await confirmDialog('Fulfil order?', d.number + ' will be marked fulfilled. Raise an invoice from it first to also deduct stock.');
+      if (!okF) return;
+      try { await cloud.salesDocs.setStatus(d.id, 'fulfilled'); await loadDocs(); toast(d.number + ' fulfilled'); }
+      catch (err) { toast(friendly(err)); }
+      return;
+    }
     if (btn.dataset.act === 'doc-order') {
       try { await cloud.salesDocs.convertToOrder(d.id); await loadDocs(); toast(d.number + ' converted to sales order'); }
       catch (err) { toast(friendly(err)); }
