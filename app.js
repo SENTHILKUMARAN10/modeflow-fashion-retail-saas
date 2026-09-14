@@ -640,6 +640,13 @@
     var linesHtml = saleLines.map(function (l) {
       return '<div class="line-item"><span>' + esc(l.name) + ' × ' + l.qty + '</span><b>' + money(l.qty * l.rate) + '</b></div>';
     }).join('') || '<div class="line-item"><span>No items yet</span><b>—</b></div>';
+    var costSum = saleLines.reduce(function (a, l) {
+      var pr = state.products.find(function (x) { return String(x.id) === String(l.productId); });
+      var c = pr ? Number(pr.cost || 0) : 0;
+      return a + c * l.qty;
+    }, 0);
+    var margin = t.total - costSum;
+    var marginPct = t.total > 0 ? Math.round((margin / t.total) * 1000) / 10 : 0;
     $('#preview').innerHTML =
       '<div class="bill-head"><div><b>' + esc(state.businessName) + '</b><div class="muted">Business workspace</div></div>' +
       '<div class="text-right"><b>RECEIPT</b><div class="muted">Powered by Salesventory</div></div></div>' +
@@ -648,6 +655,7 @@
       linesHtml +
       '<div class="line-item"><span>Discount</span><span>− ' + money(t.discount) + '</span></div>' +
       '<div class="line-item"><span>Payment</span><span>' + esc(($('#paymentMethod').value || 'upi').toUpperCase()) + ' · ' + esc($('#paymentStatus').value || 'paid') + '</span></div>' +
+      '<div class="line-item"><span>Est. margin</span><span>' + (margin >= 0 ? '' : '− ') + money(Math.abs(margin)) + ' (' + (marginPct >= 0 ? '' : '−') + marginPct + '%)</span></div>' +
       (cashierName() ? '<div class="line-item"><span>Served by</span><span>' + esc(cashierName()) + '</span></div>' : '') +
       '<div class="bill-total"><span>Total</span><span>' + money(t.total) + '</span></div>' +
       '<p class="muted" style="font-size:11px;padding-bottom:20px">Thank you for your business.</p>';
