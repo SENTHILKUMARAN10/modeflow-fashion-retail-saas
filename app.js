@@ -837,6 +837,7 @@
       var actions = canManage
         ? '<button class="action-btn" data-act="edit-product" data-id="' + p.id + '">Edit</button>' +
           '<button class="action-btn" data-act="dup-product" data-id="' + p.id + '">Duplicate</button>' +
+          (!isService(p) ? '<button class="action-btn" data-act="print-single-label" data-id="' + p.id + '" title="Print a price label">Label</button>' : '') +
           '<button class="action-btn danger" data-act="delete-product" data-id="' + p.id + '">Delete</button>'
         : '<span class="muted" style="font-size:12px">Read-only</span>';
       var low = !isService(p) && p.stock <= p.reorder;
@@ -1007,6 +1008,11 @@
     if (!btn) return;
     var id = btn.dataset.id;
     if (btn.dataset.act === 'edit-product') { openProductDialog(id); return; }
+    if (btn.dataset.act === 'print-single-label') {
+      var lp = state.products.find(function (x) { return String(x.id) === String(id); });
+      if (lp) printLabelsFor([lp]);
+      return;
+    }
     if (btn.dataset.act === 'dup-product') {
       var src = state.products.find(function (x) { return String(x.id) === String(id); });
       if (!src) return;
@@ -4119,6 +4125,9 @@ var pid = paymentTarget.id;
     var items = state.products.filter(function (p) { return p.is_active !== false && !isService(p); })
       .sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
     if (!items.length) { toast('No products to label'); return; }
+    printLabelsFor(items);
+  }
+  function printLabelsFor(items) {
     var biz = state.businessProfile || {};
     var sym = symbol();
     var cards = items.map(function (p) {
