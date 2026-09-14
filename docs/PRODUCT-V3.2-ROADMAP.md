@@ -81,7 +81,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | 55 | Financial year | PLAN | FY selection, closing, carry-forward |
 | 57 | Search | PARTIAL | per-page filters + global search (products/customers/suppliers/invoices/purchases → deep-link & highlight rows) |
 | 58 | Responsive UI | DONE | 320px→large, mobile card tables, installable PWA (manifest + theme color + mobile-web-app metas); polish: anti-shake (scrollbar-gutter + overflow-x guard), scrollable sidebar so Settings always reachable, larger brand logo (48px), site footer on every page (except sign-in) |
-| 59 | UI/UX premium | DONE | dark/light, Jakarta Sans, KPI cards; keep improving |
+| 59 | UI/UX premium | DONE | Midnight Aurora design system: dark/light themes, Space Grotesk/Inter/IBM Plex Mono, glassmorphism surfaces, aurora gradient orbs, scroll-reveal motion, cursor glow, magnetic buttons, 3D tilt, redesigned sign-in hero; keep improving |
 | 62 | Subscriptions | DONE | Razorpay + UPI fallback; add free trial, plan gating |
 | 63 | Admin panel | PARTIAL | payment verification + platform analytics on /admin-payments (active subscriptions, MRR, pending amount, latest plan per business); plan management pending |
 
