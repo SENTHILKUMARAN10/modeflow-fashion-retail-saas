@@ -603,6 +603,28 @@
     syncRate();
     renderSaleItems();
   }
+  function scanBarcode() {
+    var inp = $('#barcodeScan');
+    if (!inp) return;
+    var code = String(inp.value || '').trim();
+    if (!code) return;
+    var match = state.products.find(function (p) { return p.is_active !== false && p.barcode && String(p.barcode).trim() === code; });
+    if (!match) { toast('No product with barcode «' + code + '»'); inp.select(); return; }
+    var line = saleLines.find(function (l) { return String(l.productId) === String(match.id); });
+    var rate = Number(match.price || 0);
+    if (line) {
+      if (!isService(match) && line.qty + 1 > match.stock) { toast('Not enough stock for ' + match.name); inp.value = ''; return; }
+      line.qty = Math.round((line.qty + 1) * 2) / 2;
+    } else {
+      if (!isService(match) && match.stock < 1) { toast('No stock for ' + match.name); inp.value = ''; return; }
+      saleLines.push({ productId: match.id, name: match.name, qty: 1, rate: rate });
+    }
+    inp.value = '';
+    renderSaleItems();
+    toast('Added ' + match.name);
+    var prog = $('#saleDueDate');
+    if (prog) inp.focus();
+  }
   function updatePreview() {
     if (!$('#preview') || !$('#previewTotal')) return;
     var t = saleTotals();
@@ -643,6 +665,11 @@
       }
     } catch (e) { /* ignore */ }
     if (q('#itemSelect')) q('#itemSelect').addEventListener('change', syncRate);
+    var bc = q('#barcodeScan');
+    if (bc) {
+      bc.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); scanBarcode(); } });
+      bc.addEventListener('change', scanBarcode);
+    }
     if (q('#addItemBtn')) q('#addItemBtn').addEventListener('click', addSaleItem);
     $$('.qty-preset').forEach(function (b) {
       b.addEventListener('click', function () {
