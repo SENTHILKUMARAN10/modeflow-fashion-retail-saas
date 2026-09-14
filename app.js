@@ -3450,6 +3450,7 @@ var pid = paymentTarget.id;
       return '<div class="alert"><div><b>' + esc(f.title) + '</b>' + tag + '<div class="muted">' + esc(name) + ' · ' + esc(String(f.priority || 'normal').toUpperCase()) + ' · due ' + esc(when) + ass + '</div></div>' +
         '<div style="display:flex;gap:8px;align-items:center">' + claim +
         '<a class="status low" href="#" data-cfedit="' + f.id + '" style="text-decoration:none">Edit</a>' +
+        '<a class="status low" href="#" data-cfdone="' + f.id + '" style="text-decoration:none">Done</a>' +
         '<a class="status low" href="customers.html#open=customer:' + key + '" data-go="customers" style="text-decoration:none">Open</a></div></div>';
     }).join('') + (open.length > 8 ? '<p class="muted" style="color:rgba(255,255,255,.8);padding:4px 0">+' + (open.length - 8) + ' more…</p>' : '');
   }
@@ -5200,7 +5201,30 @@ var pid = paymentTarget.id;
         ev.preventDefault();
         openFollowupEdit(ev.target.dataset.cfedit);
       }
+      if (ev.target && ev.target.dataset && ev.target.dataset.cfdone !== undefined) {
+        ev.preventDefault();
+        var doneEl = ev.target;
+        var dlgs = $('#followupDoneDialog');
+        if (!dlgs) return;
+        $('#fdId').value = doneEl.dataset.cfdone;
+        $('#fdOutcome').value = '';
+        dlgs.showModal();
+      }
     });
+    if (page === 'dashboard' && $('#followupDoneDialog') && !window.__fdBound) {
+      window.__fdBound = true;
+      $('#fdCancel').addEventListener('click', function () { $('#followupDoneDialog').close(); });
+      $('#followupDoneForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var id = $('#fdId').value;
+        try {
+          await cloud.followups.complete(id, $('#fdOutcome').value.trim());
+          await refreshCloudData();
+          $('#followupDoneDialog').close();
+          toast('Follow-up completed');
+        } catch (err) { toast(friendly(err)); }
+      });
+    }
     if (page === 'dashboard' && $('#followupDialog')) {
       $('#fCancel').addEventListener('click', function () { $('#followupDialog').close(); });
       $('#followupForm').addEventListener('submit', async function (e) {

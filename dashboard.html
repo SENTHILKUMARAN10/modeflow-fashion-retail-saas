@@ -224,6 +224,18 @@
   </form>
 </dialog>
 
+<dialog id="followupDoneDialog">
+  <form id="followupDoneForm" class="dialog-card confirm-card" novalidate>
+    <div><p class="kicker">FOLLOW-UP</p><h3>Mark as done</h3></div>
+    <input id="fdId" type="hidden">
+    <label>Outcome<textarea id="fdOutcome" rows="3" placeholder="What happened? e.g. Order placed, will collect on Saturday"></textarea></label>
+    <div class="dialog-actions">
+      <button type="button" id="fdCancel" class="btn ghost">Cancel</button>
+      <button class="btn primary" type="submit">Complete</button>
+    </div>
+  </form>
+</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase/config.js"></script>
 <script src="cloud.js"></script>
