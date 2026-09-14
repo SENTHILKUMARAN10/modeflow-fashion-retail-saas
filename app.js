@@ -257,6 +257,52 @@
     var pick = owned.filter(function (b) { return String(b.id) === saved; })[0] || owned[0];
     await activateBusiness(pick.id, pick.name, pick.currency, pick.role);
   }
+  function bindWorkspaceSwitcher() {
+    var dlg = $('#switchDialog');
+    var open = function () {
+      dlg.showModal();
+      var hint = $('#switchHint'), list = $('#switchList');
+      hint.textContent = 'Loading your workspaces…';
+      list.innerHTML = '';
+      cloud.businesses.list().then(function (members) {
+        var owned = (members || []).filter(function (m) { return m && m.businesses; }).map(function (m) {
+          return { id: m.businesses.id, name: m.businesses.name, role: m.role, currency: m.businesses.currency, slug: m.businesses.slug };
+        });
+        if (!owned.length) { hint.textContent = 'No other workspaces yet — create one below.'; return; }
+        hint.textContent = owned.length + ' workspace(s) — pick one to open.';
+        list.innerHTML = owned.map(function (b) {
+          var active = String(b.id) === String(state.businessId);
+          return '<button type="button" class="btn ' + (active ? 'primary' : 'ghost') + '" data-switch="' + esc(b.id) + '" style="justify-content:space-between;width:100%"><span>' + esc(b.name) + '</span><small>' + esc(b.role) + ' · ' + esc(b.currency || 'INR') + (active ? ' · here' : '') + '</small></button>';
+        }).join('');
+      }).catch(function () { hint.textContent = 'Could not load workspaces.'; });
+    };
+    $('#storeCard').addEventListener('click', open);
+    $('#switchClose').addEventListener('click', function () { dlg.close(); });
+    $('#switchNew').addEventListener('click', async function () {
+      $('#switchNew').disabled = true;
+      try {
+        var made = await cloud.client.rpc('create_business_with_owner', { p_name: 'My New Workspace', p_slug: null, p_phone: null, p_address: null });
+        if (made.error) throw made.error;
+        var id2 = made.data && (made.data.id || (made.data.business && made.data.business.id));
+        if (!id2) { toast('Workspace creation failed'); return; }
+        localStorage.setItem('salesventory-v3-business', id2);
+        toast('Workspace created — reloading');
+        setTimeout(function () { location.reload(); }, 400);
+      } catch (err) { toast(friendly(err)); }
+      finally { $('#switchNew').disabled = false; }
+    });
+    $('#switchList').addEventListener('click', async function (e) {
+      var btn = e.target.closest('[data-switch]');
+      if (!btn) return;
+      try {
+        cloud.businesses.get(btn.dataset.switch).then(function (biz) {
+          localStorage.setItem('salesventory-v3-business', btn.dataset.switch);
+          toast('Switching to «' + (biz ? biz.name : 'workspace') + '»');
+          setTimeout(function () { location.reload(); }, 400);
+        }).catch(function () { toast('Could not open that workspace'); });
+      } catch (err) { toast(friendly(err)); }
+    });
+  }
   async function activateBusiness(id, name, currency, role) {
     localStorage.setItem('salesventory-v3-business', id);
     state.mode = 'cloud'; state.demo = false;
@@ -5326,6 +5372,8 @@ var pid = paymentTarget.id;
     if (page === 'reports') bindReports();
     if (page === 'plans') bindPlans();
     if (page === 'settings') bindSettings();
+    var scCard = $('#storeCard');
+    if (scCard && $('#switchDialog')) bindWorkspaceSwitcher();
     initAuth();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });

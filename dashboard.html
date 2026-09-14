@@ -24,7 +24,7 @@
       <span class="brand-mark small logo-img"><img src="assets/logo.png" alt="Salesventory"></span>
       <div><b>Salesventory</b><small id="businessName">Business workspace</small></div>
     </div>
-    <div class="store-card">
+<div class="store-card" id="storeCard" title="Switch workspace">
       <span class="store-avatar" id="storeAvatar">SV</span>
       <div><b id="storeName">Salesventory Workspace</b><small id="storeMeta">Business · India</small></div>
       <span class="store-chevron">⌄</span>
@@ -236,6 +236,17 @@
   </form>
 </dialog>
 
+<dialog id="switchDialog">
+  <div class="dialog-card">
+    <div><p class="kicker">WORKSPACES</p><h3>Switch business</h3></div>
+    <p class="muted" id="switchHint" style="font-size:12px">Loading your workspaces…</p>
+    <div id="switchList" style="display:flex;flex-direction:column;gap:8px;margin-top:8px"></div>
+    <div class="dialog-actions">
+      <button id="switchNew" class="btn ghost" type="button">＋ New workspace</button>
+      <button id="switchClose" class="btn primary" type="button">Close</button>
+    </div>
+  </div>
+</dialog>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase/config.js"></script>
 <script src="cloud.js"></script>

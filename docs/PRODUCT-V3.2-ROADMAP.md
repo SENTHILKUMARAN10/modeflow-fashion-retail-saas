@@ -71,7 +71,7 @@ Status legend: `DONE` (shipped) · `PARTIAL` (working subset) · `BUILD` (in pro
 | # | Area | Status | Notes |
 |---|------|--------|-------|
 | 43 | Email | PLAN | send invoices/reports/reminders through server adapter (exists) |
-| 47 | Multiple businesses | DONE | business_members + creation RPC; add switcher UI polish |
+| 47 | Multiple businesses | DONE | business_members + creation RPC + workspace switcher (click store card on dashboard → list your businesses, one-tap switch, ＋ New workspace) |
 | 48 | Audit log | PARTIAL | DB triggers everywhere + UI view on Settings (owner-only): immutable trail of products/customers/suppliers/expenses/invoices/purchases/payments with action/entity/relative-time + CSV export |
 | 49 | Security | DONE | auth, RLS, storage rules, server validation; add 2FA option later |
 | 50 | Backup | DONE | scripts + docs; automate scheduling |
