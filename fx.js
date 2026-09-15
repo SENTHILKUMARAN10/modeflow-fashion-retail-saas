@@ -113,4 +113,11 @@
       el.addEventListener('mouseleave', function () { el.style.transform = ''; });
     });
   });
+
+  /* PWA: register service worker for installability + resilient app shell. */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
 })();
